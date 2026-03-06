@@ -164,7 +164,7 @@ GEM
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
     jmespath (1.6.2)
-    json (2.18.1)
+    json (2.19.0)
     kamal (2.10.1)
       activesupport (>= 7.0)
       base64 (~> 0.2)
@@ -329,7 +329,7 @@ GEM
       rubocop-rails (>= 2.30)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
-    ruby_llm (1.12.1)
+    ruby_llm (1.13.2)
       base64
       event_stream_parser (~> 1)
       faraday (>= 2.0)
