@@ -18,6 +18,7 @@ import {
   insertCodeBlock,
   insertVideoEmbed
 } from "lib/codemirror_content_insertion"
+import { setWikilinkFileProvider } from "lib/codemirror_wikilink"
 export default class extends Controller {
   static targets = [
     "fileTree",
@@ -72,6 +73,9 @@ export default class extends Controller {
     this.initializeTypewriterMode()
     this.setupConfigFileListener()
     this.setupTableEditorListener()
+
+    // Provide file list to wikilink autocomplete
+    setWikilinkFileProvider(() => this.getFilesFromTree())
 
     // Configure marked with custom extensions for superscript, subscript, highlight, emoji
     marked.use({
@@ -1079,6 +1083,40 @@ export default class extends Controller {
     const { path, lineNumber } = event.detail
     await this.openFileAndRevealInTree(path)
     this.jumpToLine(lineNumber)
+  }
+
+  // Handle wikilink click from preview panel
+  async openWikilink(event) {
+    event.preventDefault()
+    const target = event.currentTarget.dataset.wikilinkPath
+    if (!target) return
+
+    // Try to resolve the wikilink target to an actual file path
+    const path = await this.resolveWikilinkPath(target)
+    if (path) {
+      await this.openFileAndRevealInTree(path)
+    }
+  }
+
+  // Resolve a wikilink target (e.g. "Note Name" or "folder/Note") to a file path
+  resolveWikilinkPath(target) {
+    // Normalize: add .md if not present
+    const pathWithExt = target.endsWith(".md") ? target : `${target}.md`
+
+    // Get all files from the DOM tree
+    const files = this.getFilesFromTree()
+
+    // Try exact path match
+    const exactMatch = files.find(f => f.path === pathWithExt)
+    if (exactMatch) return exactMatch.path
+
+    // Try name-only match (for [[Note Name]] without folder)
+    const targetName = target.split("/").pop().toLowerCase()
+    const nameMatch = files.find(f => f.name.toLowerCase() === targetName)
+    if (nameMatch) return nameMatch.path
+
+    // No match found — return the path so loadFile can handle it (create or 404)
+    return pathWithExt
   }
 
   jumpToLine(lineNumber) {

@@ -326,6 +326,32 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert results.first["context"].length > 1
   end
 
+  # === backlinks ===
+
+  test "backlinks returns matching results" do
+    create_test_note("target.md", "# Target")
+    create_test_note("source.md", "Links to [[target]] here")
+
+    get "/notes/target.md/backlinks", as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal 1, data["count"]
+    assert_equal 1, data["backlinks"].length
+    assert_equal "source.md", data["backlinks"].first["path"]
+  end
+
+  test "backlinks returns empty array when no links exist" do
+    create_test_note("lonely.md", "# No one links to me")
+
+    get "/notes/lonely.md/backlinks", as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal 0, data["count"]
+    assert_equal [], data["backlinks"]
+  end
+
   # === bookmarkable URLs ===
 
   test "show with HTML request renders SPA with initial note data" do

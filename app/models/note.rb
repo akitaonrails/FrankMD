@@ -27,6 +27,10 @@ class Note
       service.search_content(query, **options)
     end
 
+    def backlinks(path)
+      BacklinksService.new.find_backlinks(path)
+    end
+
     def service
       NotesService.new
     end

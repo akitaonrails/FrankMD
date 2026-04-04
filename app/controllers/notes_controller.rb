@@ -139,6 +139,12 @@ class NotesController < ApplicationController
     end
   end
 
+  def backlinks
+    path = Note.normalize_path(params[:path])
+    results = Note.backlinks(path)
+    render json: { backlinks: results, count: results.size }
+  end
+
   private
 
   def serve_asset(path)

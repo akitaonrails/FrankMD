@@ -102,10 +102,40 @@ export const emojiExtension = {
   }
 }
 
+// Wikilink extension: [[Note Name]], [[Note Name|Display Text]], [[folder/Note Name]]
+export const wikilinkExtension = {
+  name: "wikilink",
+  level: "inline",
+  start(src) {
+    return src.indexOf("[[")
+  },
+  tokenizer(src) {
+    const match = src.match(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/)
+    if (match) {
+      const target = match[1].trim()
+      const displayText = match[2] ? match[2].trim() : null
+      return {
+        type: "wikilink",
+        raw: match[0],
+        target: target,
+        displayText: displayText
+      }
+    }
+  },
+  renderer(token) {
+    // Use custom display text, or fall back to the basename of the target
+    const display = token.displayText || token.target.split("/").pop()
+    const escapedTarget = token.target.replace(/"/g, "&quot;")
+    const escapedDisplay = display.replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    return `<a class="wikilink" data-wikilink-path="${escapedTarget}" data-action="click->app#openWikilink">${escapedDisplay}</a>`
+  }
+}
+
 // Export all extensions as an array for easy use with marked.use()
 export const allExtensions = [
   superscriptExtension,
   subscriptExtension,
   highlightExtension,
-  emojiExtension
+  emojiExtension,
+  wikilinkExtension
 ]

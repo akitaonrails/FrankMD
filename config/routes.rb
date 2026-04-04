@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   get "notes/search", to: "notes#search"
   post "notes", to: "notes#create"  # For Hugo template creation (no path in URL)
   post "notes/*path/rename", to: "notes#rename", as: :rename_note, format: false
+  get "notes/*path/backlinks", to: "notes#backlinks", as: :note_backlinks, format: false
   get "notes/*path", to: "notes#show", as: :note, format: false
   post "notes/*path", to: "notes#create", as: :create_note, format: false
   patch "notes/*path", to: "notes#update", as: :update_note, format: false

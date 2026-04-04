@@ -9,6 +9,7 @@ import { bracketMatching } from "@codemirror/language"
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search"
 import { createTheme } from "lib/codemirror_theme"
 import { LINE_NUMBER_MODES } from "lib/line_numbers"
+import { createWikilinkAutocomplete } from "lib/codemirror_wikilink"
 
 // Re-export for convenience
 export { LINE_NUMBER_MODES }
@@ -204,7 +205,10 @@ export function createExtensions(options = {}) {
       ...searchKeymap,
       indentWithTab
     ]),
-    markdownKeymap
+    markdownKeymap,
+
+    // Wikilink autocomplete ([[note name]])
+    createWikilinkAutocomplete()
   ]
 
   // Placeholder
