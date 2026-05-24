@@ -675,10 +675,32 @@ title: "My Amazing Post Title"
 slug: "my-amazing-post-title"
 date: 2026-01-30T14:30:00-0300
 draft: true
-tags:
--
+tags: []
 ---
 ```
+
+#### Custom Frontmatter Template
+
+To customize the generated frontmatter (add tags, extra fields, change formatting), create a `.hugo_template.md` file at the root of your notes directory. When present, its contents replace the built-in frontmatter. The following placeholders are substituted on each new post:
+
+- `{{title}}` — the post title (quotes escaped for use inside `"..."`)
+- `{{slug}}` — the generated slug
+- `{{date}}` — the ISO 8601 creation date with timezone offset
+
+```yaml
+---
+title: "{{title}}"
+slug: "{{slug}}"
+date: {{date}}
+draft: true
+author: "Your Name"
+tags:
+  - uncategorized
+categories: []
+---
+```
+
+The file is hidden (dot-prefixed) so it won't appear in the notes tree. Remove it to fall back to the built-in template.
 
 #### Flat Path Style
 

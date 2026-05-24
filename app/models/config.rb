@@ -185,7 +185,11 @@ class Config
         "",
         "# Path style: dated = YYYY/MM/DD/slug/index.md (default)",
         "#             flat  = slug.md (in current folder)",
-        "# hugo_path_style = dated"
+        "# hugo_path_style = dated",
+        "",
+        "# Custom frontmatter: create a .hugo_template.md file at the notes root",
+        "# to override the generated frontmatter. Placeholders {{title}}, {{slug}}",
+        "# and {{date}} are substituted. Leave unset to use the built-in template."
       ]
     },
     {

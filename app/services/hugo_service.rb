@@ -19,6 +19,25 @@ class HugoService
     "ł" => "l"
   }.freeze
 
+  # Optional per-install template file at the notes root. When present, its
+  # contents replace the built-in frontmatter. Hidden (dot-prefixed) so it does
+  # not show up in the notes tree. Supports {{title}}, {{slug}} and {{date}}.
+  TEMPLATE_FILE = ".hugo_template.md"
+
+  # Built-in frontmatter used when no custom template is present.
+  # `tags: []` is a valid empty YAML list — a bare `-` produces a null list
+  # entry that breaks Hugo's parser (see issue #69).
+  DEFAULT_TEMPLATE = <<~FRONTMATTER
+    ---
+    title: "{{title}}"
+    slug: "{{slug}}"
+    date: {{date}}
+    draft: true
+    tags: []
+    ---
+
+  FRONTMATTER
+
   class << self
     # Generate URL-safe slug from text
     def slugify(text)
@@ -51,21 +70,31 @@ class HugoService
       # Generate ISO date with timezone offset
       iso_date = now.strftime("%Y-%m-%dT%H:%M:%S%:z")
 
-      # Generate Hugo frontmatter
-      escaped_title = title.gsub('"', '\\"')
-      content = <<~FRONTMATTER
-        ---
-        title: "#{escaped_title}"
-        slug: "#{slug}"
-        date: #{iso_date}
-        draft: true
-        tags:
-        -
-        ---
-
-      FRONTMATTER
+      content = render_template(template_source, title: title, slug: slug, date: iso_date)
 
       { path: full_path, content: content }
+    end
+
+    # Read the per-install custom template if present, else the built-in default.
+    def template_source(base_path: nil)
+      file = notes_root(base_path).join(TEMPLATE_FILE)
+      return file.read if file.file?
+
+      DEFAULT_TEMPLATE
+    rescue => e
+      Rails.logger.warn("[Hugo] Could not read #{TEMPLATE_FILE}, using default: #{e.message}")
+      DEFAULT_TEMPLATE
+    end
+
+    # Substitute {{title}}, {{slug}} and {{date}} placeholders. Uses the block
+    # form of gsub so backslashes in the (quote-escaped) title are not treated
+    # as replacement backreferences.
+    def render_template(template, title:, slug:, date:)
+      escaped_title = title.gsub('"', '\\"')
+      template
+        .gsub("{{title}}") { escaped_title }
+        .gsub("{{slug}}") { slug }
+        .gsub("{{date}}") { date }
     end
 
     # Update slug in frontmatter content
@@ -89,6 +118,14 @@ class HugoService
       return nil if updated_frontmatter == frontmatter
 
       "---#{updated_frontmatter}---#{body}"
+    end
+
+    private
+
+    # Notes root used to locate the optional custom template, mirroring how
+    # Config resolves its base path.
+    def notes_root(base_path = nil)
+      Pathname.new(base_path || ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
     end
   end
 end

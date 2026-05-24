@@ -3,6 +3,14 @@
 require "test_helper"
 
 class HugoServiceTest < ActiveSupport::TestCase
+  def setup
+    setup_test_notes_dir
+  end
+
+  def teardown
+    teardown_test_notes_dir
+  end
+
   # === slugify ===
 
   test "slugify converts text to lowercase" do
@@ -121,6 +129,56 @@ class HugoServiceTest < ActiveSupport::TestCase
     result = HugoService.generate_blog_post('Say "Hello" World')
 
     assert_includes result[:content], 'title: "Say \\"Hello\\" World"'
+  end
+
+  test "generate_blog_post emits a valid empty tags list, not a bare hyphen" do
+    result = HugoService.generate_blog_post("My Post")
+
+    assert_includes result[:content], "tags: []"
+    # A bare `-` under `tags:` creates a null list entry that breaks Hugo (issue #69)
+    refute_match(/tags:\s*\n\s*-\s*\n/, result[:content])
+  end
+
+  # === custom template (.hugo_template.md) ===
+
+  test "generate_blog_post uses .hugo_template.md when present" do
+    @test_notes_dir.join(HugoService::TEMPLATE_FILE).write(<<~TPL)
+      ---
+      title: "{{title}}"
+      slug: "{{slug}}"
+      date: {{date}}
+      draft: false
+      author: "Jane"
+      tags:
+        - uncategorized
+      ---
+    TPL
+
+    travel_to Time.zone.local(2026, 2, 1, 10, 30, 0) do
+      result = HugoService.generate_blog_post("Custom Post")
+
+      assert_includes result[:content], 'title: "Custom Post"'
+      assert_includes result[:content], 'slug: "custom-post"'
+      assert_includes result[:content], "date: 2026-02-01T10:30:00"
+      assert_includes result[:content], 'author: "Jane"'
+      assert_includes result[:content], "- uncategorized"
+      assert_includes result[:content], "draft: false"
+    end
+  end
+
+  test "generate_blog_post escapes quotes in title within custom template" do
+    @test_notes_dir.join(HugoService::TEMPLATE_FILE).write(%(title: "{{title}}"\n))
+
+    result = HugoService.generate_blog_post('Say "Hi"')
+
+    assert_includes result[:content], 'title: "Say \\"Hi\\""'
+  end
+
+  test "generate_blog_post falls back to default template when none present" do
+    result = HugoService.generate_blog_post("No Template")
+
+    assert_includes result[:content], "draft: true"
+    assert_includes result[:content], "tags: []"
   end
 
   # === update_frontmatter_slug ===

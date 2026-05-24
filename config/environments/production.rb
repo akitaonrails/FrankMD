@@ -54,6 +54,14 @@ Rails.application.configure do
   # various hosts (localhost, LAN IPs, tunnel domains, etc.)
   config.hosts = nil
 
+  # Don't compare the request Origin against the app's own base_url for CSRF.
+  # FrankMD is reached over many origins (localhost, LAN IP, Cloudflare Tunnel
+  # domain) and behind an SSL-terminating proxy Rails computes an http:// base_url
+  # that won't match the browser's https:// Origin, rejecting every save with a
+  # 422 (issue #63). The CSRF token itself still protects writes; this only drops
+  # the origin comparison, consistent with `config.hosts = nil` above.
+  config.action_controller.forgery_protection_origin_check = false
+
   # Serve static files from /public (required for Docker without nginx)
   config.public_file_server.enabled = true
 end
