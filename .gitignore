@@ -47,3 +47,6 @@ package-lock.json
 # Claude Code project config
 .claude/
 coverage/
+
+# Local agent tooling artifacts
+.lobster/
