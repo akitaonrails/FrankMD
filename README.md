@@ -5,8 +5,8 @@
 <h1 align="center">FrankMD</h1>
 
 <p align="center">
-  <strong>FrankMD</strong> (Frank Markdown) is a simple, feature-rich, self-hosted markdown note-taking app built with Ruby on Rails 8.<br>
-  The name honors Frank Rosenblatt, inventor of the Perceptron - the pioneering neural network that laid the foundation for modern AI.<br>
+  <strong>FrankMD</strong> (Frank Markdown) is a self-hosted markdown note-taking app built with Ruby on Rails 8.<br>
+  The name honors Frank Rosenblatt, inventor of the Perceptron, an early neural network.<br>
   <strong>fed</strong> (frank editor) is the command-line alias.
 </p>
 
@@ -21,7 +21,7 @@
 - **No database** - Notes are plain markdown files on your filesystem
 - **Self-hosted** - Your data stays on your machine or server
 - **Docker-ready** - One command to start writing
-- **Blog-friendly** - Perfect for drafting posts with live preview
+- **Blog-friendly** - Draft posts with live preview
 
 <p align="center">
   <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-16-29.jpg" alt="FrankMD running as desktop app" width="800">
@@ -178,10 +178,10 @@ curl -sL https://raw.githubusercontent.com/akitaonrails/FrankMD/master/install.s
 Then add to your shell config:
 
 ```bash
-# bash/zsh — add to ~/.bashrc or ~/.zshrc
+# bash/zsh - add to ~/.bashrc or ~/.zshrc
 source ~/.config/frankmd/fed.sh
 
-# fish — add to ~/.config/fish/config.fish
+# fish - add to ~/.config/fish/config.fish
 source ~/.config/frankmd/fed.fish
 ```
 
@@ -202,34 +202,34 @@ fed               # open current directory (same as above)
 
 ### 3. Configure API Keys (Optional)
 
-For AI features, image hosting, etc., create an env file:
+For AI features, image hosting, and related integrations, create an env file:
 
 ```bash
 cp ~/.config/frankmd/env.example ~/.config/frankmd/env
 # Edit ~/.config/frankmd/env with your API keys
 
-# bash/zsh — add to ~/.bashrc or ~/.zshrc
+# bash/zsh - add to ~/.bashrc or ~/.zshrc
 export FRANKMD_ENV=~/.config/frankmd/env
 
-# fish — add to ~/.config/fish/config.fish
+# fish - add to ~/.config/fish/config.fish
 set -gx FRANKMD_ENV ~/.config/frankmd/env
 ```
 
 ### 4. Browser (Optional)
 
-FrankMD auto-detects your browser in this order: **Chromium** → Firefox → Brave → Chrome → Edge. The first one found is used.
+FrankMD checks for browsers in this order: **Chromium** -> Firefox -> Brave -> Chrome -> Edge. The first one found is used.
 
 To override, set `FRANKMD_BROWSER` in your shell config:
 
 ```bash
-# bash/zsh — add to ~/.bashrc or ~/.zshrc
+# bash/zsh - add to ~/.bashrc or ~/.zshrc
 export FRANKMD_BROWSER=brave           # or chromium, google-chrome, microsoft-edge, firefox
 
-# fish — add to ~/.config/fish/config.fish
+# fish - add to ~/.config/fish/config.fish
 set -gx FRANKMD_BROWSER brave
 ```
 
-For Firefox, enable SSB mode first: `about:config` → `browser.ssb.enabled` = `true`
+For Firefox, enable SSB mode first: `about:config` -> `browser.ssb.enabled` = `true`
 
 ### Running in Background
 
@@ -340,14 +340,14 @@ google_cse_id = your-cse-id
 # openai_model = gpt-4o-mini
 ```
 
-**Priority order:** File settings override environment variables, which override defaults.
+**Priority order:** File settings override environment variables. Environment variables override defaults.
 
-This means you can:
+That lets you:
 - Set global defaults via environment variables
 - Override per-folder using `.fed` (e.g., different AWS bucket for different projects)
-- UI changes (theme, font) are automatically saved to the file
+- Save UI changes (theme, font) back to the file
 
-**Note:** AI credentials have special behavior - if ANY AI key is set in `.fed`, ALL AI environment variables are ignored. See [Per-Folder AI Configuration](#per-folder-ai-configuration) for details.
+**Note:** AI credentials behave differently. If ANY AI key is set in `.fed`, ALL AI environment variables are ignored. See [Per-Folder AI Configuration](#per-folder-ai-configuration) for details.
 
 ### Editing .fed in the App
 
@@ -391,7 +391,7 @@ The `.fed` file appears in the explorer panel with a gear icon. You can click it
 
 ### Environment Variables
 
-Environment variables serve as global defaults. They're useful for Docker deployments or when you want the same configuration across all notes directories.
+Environment variables are global defaults. Use them for Docker deployments or when all notes directories should share the same config.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -459,7 +459,7 @@ Note: Google Custom Search has a free tier of 100 queries/day.
 
 ### Optional: AI Grammar Checking
 
-FrankMD includes an AI-powered grammar and spelling checker. Click the "AI" button in the editor toolbar to check your text. The AI will fix grammar errors, spelling mistakes, typos, and punctuation while preserving your writing style and markdown formatting.
+FrankMD has an AI grammar and spelling checker. Click the "AI" button in the editor toolbar to check your text. It fixes grammar errors, spelling mistakes, typos, and punctuation while keeping your writing style and markdown formatting.
 
 **Supported Providers** (priority order in auto mode):
 1. **OpenAI** - GPT models
@@ -468,7 +468,7 @@ FrankMD includes an AI-powered grammar and spelling checker. Click the "AI" butt
 4. **OpenRouter** - Multiple providers, pay-per-use
 5. **Ollama** - Local, free, private
 
-When multiple providers are configured, FrankMD automatically uses the first available one in the priority order above. You can override this with `ai_provider = <provider>`.
+When multiple providers are configured, FrankMD uses the first available one in the priority order above. You can override this with `ai_provider = <provider>`.
 
 #### Option 1: Ollama (Local, Free, Recommended)
 
@@ -538,7 +538,7 @@ openai_model = gpt-4o-mini
 
 #### Provider Selection
 
-By default, FrankMD uses the first configured provider in priority order (OpenAI → Anthropic → Gemini → OpenRouter → Ollama). To force a specific provider:
+By default, FrankMD uses the first configured provider in priority order (OpenAI -> Anthropic -> Gemini -> OpenRouter -> Ollama). To force a specific provider:
 
 ```ini
 ai_provider = anthropic
@@ -552,7 +552,7 @@ ai_model = claude-3-opus-20240229
 
 #### Per-Folder AI Configuration
 
-**Important:** If you set ANY AI credential in `.fed`, ALL AI-related environment variables are ignored for that folder. This allows per-folder AI configuration that completely overrides your global ENV settings.
+**Important:** If you set ANY AI credential in `.fed`, ALL AI-related environment variables are ignored for that folder. This gives each folder its own AI configuration and bypasses your global ENV settings.
 
 For example, if you have `OPENAI_API_KEY` and `OPENROUTER_API_KEY` set as environment variables, but add this to `.fed`:
 
@@ -626,7 +626,7 @@ This is useful for:
 
 ## Typewriter Mode
 
-Typewriter mode (`Ctrl+\`) is designed for focused, distraction-free writing:
+Typewriter mode (`Ctrl+\`) keeps the editor centered for long writing sessions:
 
 **Normal mode (default):**
 - Explorer panel visible on the left
@@ -635,7 +635,7 @@ Typewriter mode (`Ctrl+\`) is designed for focused, distraction-free writing:
 
 **Typewriter mode:**
 - Explorer panel hidden
-- Preview panel closed for maximum focus
+- Preview panel closed
 - Editor centered horizontally on the screen
 - Cursor stays centered in the middle of the editor (50% viewport height)
 - As you type, the text scrolls to keep your writing position fixed
@@ -647,14 +647,14 @@ Typewriter mode (`Ctrl+\`) is designed for focused, distraction-free writing:
   <em>Typewriter mode: distraction-free writing with centered cursor</em>
 </p>
 
-This mimics the experience of a typewriter where your typing position stays constant on the page, reducing eye movement and helping maintain focus during long writing sessions.
+This keeps your typing position steady on the page, which reduces eye movement during longer writing sessions.
 
 ## Hugo Blog Post Support
 
-FrankMD includes built-in support for creating Hugo-compatible blog posts. When you click the "New Note" button (or press `Ctrl+N`), you can choose between:
+FrankMD can create Hugo-compatible blog posts. When you click the "New Note" button (or press `Ctrl+N`), you can choose between:
 
 - **Empty Document** - A plain markdown file
-- **Hugo Blog Post** - A properly structured Hugo post
+- **Hugo Blog Post** - A Hugo post with frontmatter
 
 <p align="center">
   <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-39-53.jpg" alt="New note dialog" width="500">
@@ -683,9 +683,9 @@ tags: []
 
 To customize the generated frontmatter (add tags, extra fields, change formatting), create a `.hugo_template.md` file at the root of your notes directory. When present, its contents replace the built-in frontmatter. The following placeholders are substituted on each new post:
 
-- `{{title}}` — the post title (quotes escaped for use inside `"..."`)
-- `{{slug}}` — the generated slug
-- `{{date}}` — the ISO 8601 creation date with timezone offset
+- `{{title}}`: the post title (quotes escaped for use inside `"..."`)
+- `{{slug}}`: the generated slug
+- `{{date}}`: the ISO 8601 creation date with timezone offset
 
 ```yaml
 ---
@@ -715,21 +715,21 @@ With flat style, creating a post titled "My Amazing Post Title" produces `my-ama
 <p align="center">
   <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-38-55.jpg" alt="Hugo post with frontmatter" width="700">
   <br>
-  <em>Hugo blog post with automatic frontmatter generation</em>
+  <em>Hugo blog post with generated frontmatter</em>
 </p>
 
 ### Slug Generation
 
 The slug is automatically generated from the title:
 - Converts to lowercase
-- Replaces accented characters (a→a, e→e, c→c, n→n, etc.)
+- Replaces accented characters (a->a, e->e, c->c, n->n, etc.)
 - Removes special characters
 - Replaces spaces with hyphens
 
 Examples:
-- "Conexao a Internet" → `conexao-a-internet`
-- "What's New in 2026?" → `whats-new-in-2026`
-- "Codigo & Programacao" → `codigo-programacao`
+- "Conexao a Internet" -> `conexao-a-internet`
+- "What's New in 2026?" -> `whats-new-in-2026`
+- "Codigo & Programacao" -> `codigo-programacao`
 
 ### Hugo YouTube Shortcode
 
@@ -780,7 +780,7 @@ Then add the responsive CSS to your stylesheet (e.g. `assets/css/custom.css` or 
 
 ## Themes
 
-FrankMD includes 18 built-in color themes, plus automatic [Omarchy](https://omarchy.org) theme sync:
+FrankMD ships with 18 built-in color themes, plus [Omarchy](https://omarchy.org) theme sync:
 
 <p align="center">
   <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-37-05.jpg" alt="Theme picker" width="300">
@@ -792,9 +792,9 @@ FrankMD includes 18 built-in color themes, plus automatic [Omarchy](https://omar
 |-------|-------------|
 | Light | Clean light theme |
 | Dark | Standard dark theme |
-| Catppuccin | Soothing pastel dark theme |
-| Catppuccin Latte | Soothing pastel light theme |
-| Ethereal | Dreamy, soft colors |
+| Catppuccin | Pastel dark theme |
+| Catppuccin Latte | Pastel light theme |
+| Ethereal | Soft colors |
 | Everforest | Warm green nature theme |
 | Flexoki Light | Inky light theme |
 | Gruvbox | Retro groove color scheme |
@@ -807,15 +807,15 @@ FrankMD includes 18 built-in color themes, plus automatic [Omarchy](https://omar
 | Rose Pine | All natural pine, faux fur and mystery |
 | Solarized Dark | Classic dark color scheme |
 | Solarized Light | Classic light color scheme |
-| Tokyo Night | Vibrant night theme |
+| Tokyo Night | High-contrast night theme |
 
-**Omarchy auto-sync:** If you run the [Omarchy](https://omarchy.org) desktop environment, FrankMD detects your terminal theme and adds it as a selectable "Omarchy" option. Switching your terminal theme updates FrankMD in real time.
+**Omarchy sync:** If you run the [Omarchy](https://omarchy.org) desktop environment, FrankMD detects your terminal theme and adds it as a selectable "Omarchy" option. Switching your terminal theme updates FrankMD in real time.
 
 Change themes from the dropdown in the top-right corner. Your preference is saved to the `.fed` file.
 
 ## Remote Access with Cloudflare Tunnel
 
-For secure remote access without opening ports:
+For remote access without opening ports:
 
 1. Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/
 
@@ -884,7 +884,7 @@ Visit `http://localhost:3000`
 ### Running Tests
 
 ```bash
-# Run ALL checks (lint + security + tests) — same as CI
+# Run ALL checks (lint + security + tests) - same as CI
 bin/ci
 
 # Run Ruby tests only
@@ -900,7 +900,7 @@ bin/rails test test/controllers/notes_controller_test.rb
 bin/rails test -v
 ```
 
-Always run `bin/ci` before pushing to ensure CI will pass.
+Always run `bin/ci` before pushing so CI has already run locally.
 
 ### Project Structure
 
@@ -968,22 +968,22 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ### PR Requirements
 
-Before submitting a PR, ensure:
+Before submitting a PR:
 
-- **Rebase from master** — always rebase on the latest `master` before opening a PR. Merge commits are not accepted.
-- **`bin/ci` passes** — run it locally. This checks rubocop style, brakeman security scan, bundler-audit, importmap audit, Ruby tests, and JavaScript tests. PRs that fail CI will not be reviewed.
-- **Tests included** — every new feature or bug fix must include tests. Ruby tests go in `test/`, JavaScript tests go in `test/javascript/`. Untested PRs will be sent back.
-- **Focused scope** — one PR should do one thing. Don't mix unrelated changes (e.g., a new feature + linter fixes + refactoring). If you spot something unrelated to fix, open a separate PR.
+- **Rebase from master** - rebase on the latest `master` before opening a PR. Merge commits are not accepted.
+- **`bin/ci` passes** - run it locally. This checks rubocop style, brakeman security scan, bundler-audit, importmap audit, Ruby tests, and JavaScript tests. PRs that fail CI will not be reviewed.
+- **Tests included** - every new feature or bug fix must include tests. Ruby tests go in `test/`, JavaScript tests go in `test/javascript/`. Untested PRs will be sent back.
+- **Focused scope** - one PR should do one thing. Don't mix unrelated changes (e.g., a new feature + linter fixes + refactoring). If you spot something unrelated to fix, open a separate PR.
 
 ### Architecture Guidelines
 
 This is a Rails 8 app. Follow Rails 8 idioms and conventions:
 
-- **Turbo Streams for server-rendered updates** — file tree updates, CRUD operations on files/folders, and any server-driven DOM update must use Turbo Stream responses. Do not build HTML in JavaScript from JSON API responses.
-- **`@rails/request.js` for fetch calls** — use `get`, `post`, `patch`, `destroy` from `@rails/request.js` instead of raw `fetch()`. It handles CSRF tokens and Turbo Stream content negotiation automatically.
-- **Stimulus Outlets for controller communication** — use Stimulus Outlets (`static outlets = [...]`) instead of manual `querySelector` + `getControllerForElementAndIdentifier` lookups.
-- **Config via `Config.get()`** — never read `ENV["KEY"]` directly in controllers or services. Use `Config.new.get("key_name")` which respects the `.fed` file > ENV > default priority chain. See `app/models/config.rb` for the schema.
-- **No sessions** — this app is sessionless. Do not use `session[]` for state. All persistent state goes through the `.fed` config file.
+- **Turbo Streams for server-rendered updates** - file tree updates, CRUD operations on files/folders, and any server-driven DOM update must use Turbo Stream responses. Do not build HTML in JavaScript from JSON API responses.
+- **`@rails/request.js` for fetch calls** - use `get`, `post`, `patch`, `destroy` from `@rails/request.js` instead of raw `fetch()`. It handles CSRF tokens and Turbo Stream content negotiation automatically.
+- **Stimulus Outlets for controller communication** - use Stimulus Outlets (`static outlets = [...]`) instead of manual `querySelector` + `getControllerForElementAndIdentifier` lookups.
+- **Config via `Config.get()`** - never read `ENV["KEY"]` directly in controllers or services. Use `Config.new.get("key_name")` which respects the `.fed` file > ENV > default priority chain. See `app/models/config.rb` for the schema.
+- **No sessions** - this app is sessionless. Do not use `session[]` for state. All persistent state goes through the `.fed` config file.
 
 ### Code Style
 

@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-FrankMD is a self-hosted markdown note-taking app built with Ruby on Rails 8. Notes are plain `.md` files on the filesystem — there is **no database**. The editor uses CodeMirror 6 with Stimulus controllers.
+FrankMD is a self-hosted markdown note-taking app built with Ruby on Rails 8. Notes are plain `.md` files on the filesystem; there is **no database**. The editor uses CodeMirror 6 with Stimulus controllers.
 
 ## Commands
 
@@ -42,7 +42,7 @@ Always run `bin/rails test` and `npx vitest run` before submitting changes.
 ```
 app/
   controllers/     # Thin controllers, REST endpoints
-  models/          # Note, Folder, Config — filesystem-backed, no ActiveRecord/DB
+  models/          # Note, Folder, Config: filesystem-backed, no ActiveRecord/DB
   services/        # Business logic (AiService, ImagesService, NotesService)
   views/           # ERB templates, partials for dialogs
 config/
@@ -51,9 +51,9 @@ config/
 ```
 
 **Key models:**
-- `Note` — reads/writes `.md` files from `NOTES_PATH`
-- `Folder` — manages directories under `NOTES_PATH`
-- `Config` — reads `.fed` config file; priority: `.fed` file > ENV > default
+- `Note`: reads/writes `.md` files from `NOTES_PATH`
+- `Folder`: manages directories under `NOTES_PATH`
+- `Config`: reads `.fed` config file; priority: `.fed` file > ENV > default
 
 **Config pattern:** Always use `Config.new.get("key_name")` at runtime, never read `ENV` directly for configurable values. See `app/models/config.rb` for the SCHEMA.
 
@@ -104,13 +104,13 @@ test/
 
 ## Don't
 
-- Don't add a database — the app is intentionally filesystem-only
-- Don't read `ENV` directly for configurable values — use `Config.new.get()`
-- Don't name controller actions `config` — it conflicts with Rails' internal `AbstractController::Base#config` method
+- Don't add a database; the app is intentionally filesystem-only
+- Don't read `ENV` directly for configurable values; use `Config.new.get()`
+- Don't name controller actions `config`; it conflicts with Rails' internal `AbstractController::Base#config` method
 - Don't add dependencies without justification
 - Don't refactor code unrelated to your change
 - Don't skip linting or tests
-- Don't mock the filesystem with `chmod` in tests — use Mocha stubs instead
+- Don't mock the filesystem with `chmod` in tests; use Mocha stubs instead
 
 ## PR Checklist
 
