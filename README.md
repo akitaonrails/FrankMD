@@ -52,6 +52,7 @@
 - Full-text search with regex support (`Ctrl+Shift+F`)
 - Find and replace with regex support (`Ctrl+H`)
 - **Hugo blog post support** - Create posts with proper directory structure
+- **Wikilinks and backlinks** - `[[Note Title]]` syntax links to other notes; each note lists which other notes link back to it
 
 <p align="center">
   <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-24-36.jpg" alt="File finder" width="600">
@@ -76,6 +77,7 @@
 - Synchronized scrolling (including typewriter mode)
 - Zoom controls
 - GitHub-flavored markdown support
+- Copy button on rendered code blocks
 
 <p align="center">
   <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-13-29.jpg" alt="Preview panel" width="700">
