@@ -38,7 +38,7 @@ function _fed_find_browser
     end
 
     # macOS: GUI browsers ship as .app bundles, not PATH commands (issue #86).
-    # Match the order above; the binary inside the bundle accepts --app / --ssb
+    # Match the order above; the binary inside the bundle accepts --app / --new-window
     # the same way as the Linux executable.
     if _fed_is_macos
         set -l mac_candidates \
@@ -164,7 +164,7 @@ function fed
     set -l browser_name (basename "$browser")
     switch "$browser_name"
         case 'firefox*'
-            "$browser" --ssb="$url" >/dev/null 2>&1 &
+            "$browser" --new-window "$url" >/dev/null 2>&1 &
             disown >/dev/null 2>&1
         case '*'
             "$browser" --app="$url" >/dev/null 2>&1 &
