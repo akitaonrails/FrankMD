@@ -217,7 +217,7 @@ set -gx FRANKMD_ENV ~/.config/frankmd/env
 
 ### 4. Browser (Optional)
 
-FrankMD checks for browsers in this order: **Chromium** -> Firefox -> Brave -> Chrome -> Edge. The first one found is used.
+FrankMD checks for browsers in this order: **Chromium** -> Firefox -> Brave -> Chrome -> Edge. The first one found is used. On Linux it looks for PATH commands; on macOS it also checks the matching `.app` bundles under `/Applications/`.
 
 To override, set `FRANKMD_BROWSER` in your shell config:
 
@@ -227,6 +227,9 @@ export FRANKMD_BROWSER=brave           # or chromium, google-chrome, microsoft-e
 
 # fish - add to ~/.config/fish/config.fish
 set -gx FRANKMD_BROWSER brave
+
+# macOS - point at the binary inside the .app bundle if auto-detection misses it
+export FRANKMD_BROWSER="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
 
 For Firefox, enable SSB mode first: `about:config` -> `browser.ssb.enabled` = `true`
