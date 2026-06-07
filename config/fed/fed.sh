@@ -2,11 +2,21 @@
 # Source this file in your ~/.bashrc or ~/.zshrc:
 #   source ~/.config/frankmd/fed.sh
 
+_fed_is_macos() {
+  [[ "$(uname)" == "Darwin" ]]
+}
+
 # Detect the best available browser.
-# Override with: export FRANKMD_BROWSER=brave
+# Override with: export FRANKMD_BROWSER=brave  (PATH command or full path)
 _fed_find_browser() {
   if [[ -n "${FRANKMD_BROWSER:-}" ]]; then
+    # Accept either a PATH command or an absolute path to an executable
+    # (the macOS .app workaround: FRANKMD_BROWSER="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome").
     if command -v "$FRANKMD_BROWSER" >/dev/null 2>&1; then
+      echo "$FRANKMD_BROWSER"
+      return
+    fi
+    if [[ -x "$FRANKMD_BROWSER" ]]; then
       echo "$FRANKMD_BROWSER"
       return
     fi
@@ -26,6 +36,26 @@ _fed_find_browser() {
       return
     fi
   done
+
+  # macOS: GUI browsers ship as .app bundles, not PATH commands (issue #86).
+  # Match the order above; the binary inside the bundle accepts --app / --ssb
+  # the same way as the Linux executable.
+  if _fed_is_macos; then
+    local mac_candidates=(
+      "/Applications/Chromium.app/Contents/MacOS/Chromium"
+      "/Applications/Firefox.app/Contents/MacOS/firefox"
+      "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+      "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"
+    )
+    for path in "${mac_candidates[@]}"; do
+      if [[ -x "$path" ]]; then
+        echo "$path"
+        return
+      fi
+    done
+  fi
+
   return 1
 }
 
@@ -106,14 +136,18 @@ fed() {
   browser=$(_fed_find_browser)
   if [[ -z "$browser" ]]; then
     echo "[fed] Error: no supported browser found." >&2
-    echo "[fed] Install chromium, firefox, brave, google-chrome, or microsoft-edge," >&2
-    echo "[fed] or set FRANKMD_BROWSER to your browser command." >&2
+    echo "[fed] Linux: install chromium, firefox, brave, google-chrome, or microsoft-edge." >&2
+    echo "[fed] macOS: install one of those .app bundles under /Applications/." >&2
+    echo "[fed] Or set FRANKMD_BROWSER to a command on PATH or a full executable path." >&2
     return 1
   fi
 
   # Open browser with splash (polls until Rails is ready)
+  # Key off the basename so macOS bundle paths like
+  # /Applications/Firefox.app/Contents/MacOS/firefox still match `firefox*`.
   local url="file://$splash"
-  case "$browser" in
+  local browser_name="${browser##*/}"
+  case "$browser_name" in
     firefox*) "$browser" --ssb="$url" >/dev/null 2>&1 & disown ;;
     *)        "$browser" --app="$url" >/dev/null 2>&1 & disown ;;
   esac
