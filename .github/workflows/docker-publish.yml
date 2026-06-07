@@ -1,0 +1,55 @@
+# Publishes the FrankMD image to Docker Hub as a multi-arch manifest
+# (linux/amd64 + linux/arm64), so it also runs on ARM hosts such as
+# Raspberry Pi / Orange Pi / Ampere VPS.
+#
+# Requirements (repository -> Settings -> Secrets and variables -> Actions):
+#   - DOCKERHUB_USERNAME : Docker Hub account/namespace (e.g. akitaonrails)
+#   - DOCKERHUB_TOKEN    : Docker Hub access token with write permission
+#
+# Triggers on version tags (e.g. v1.2.3) and on manual dispatch.
+name: Publish Docker image
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract image metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: akitaonrails/frankmd
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest
+
+      - name: Build and push (amd64 + arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
