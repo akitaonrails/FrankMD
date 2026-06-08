@@ -40,7 +40,7 @@ jobs:
         with:
           images: akitaonrails/frankmd
           tags: |
-            type=ref,event=tag
+            type=semver,pattern={{version}}
             type=raw,value=latest
 
       - name: Build and push (amd64 + arm64)
