@@ -38,7 +38,7 @@ _fed_find_browser() {
   done
 
   # macOS: GUI browsers ship as .app bundles, not PATH commands (issue #86).
-  # Match the order above; the binary inside the bundle accepts --app / --ssb
+  # Match the order above; the binary inside the bundle accepts --app / --new-window
   # the same way as the Linux executable.
   if _fed_is_macos; then
     local mac_candidates=(
@@ -148,7 +148,7 @@ fed() {
   local url="file://$splash"
   local browser_name="${browser##*/}"
   case "$browser_name" in
-    firefox*) "$browser" --ssb="$url" >/dev/null 2>&1 & disown ;;
+    firefox*) "$browser" --new-window "$url" >/dev/null 2>&1 & disown ;;
     *)        "$browser" --app="$url" >/dev/null 2>&1 & disown ;;
   esac
 }

@@ -234,7 +234,7 @@ set -gx FRANKMD_BROWSER brave
 export FRANKMD_BROWSER="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
 
-For Firefox, enable SSB mode first: `about:config` -> `browser.ssb.enabled` = `true`
+Firefox opens in a regular browser window (it has no Chromium-style app-window mode); use a Chromium-based browser for the borderless app experience.
 
 ### Running in Background
 
