@@ -1,0 +1,28 @@
+# Asserts that lib/frankmd/version.rb (FrankMD::VERSION) matches the pushed
+# git tag, so the version constant and the release tag can never drift.
+name: Version guard
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+
+      - name: Verify FrankMD::VERSION matches the git tag
+        run: |
+          file_version="$(ruby -r ./lib/frankmd/version -e 'print FrankMD::VERSION')"
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [ "$file_version" != "$tag_version" ]; then
+            echo "::error::FrankMD::VERSION ($file_version) does not match git tag $GITHUB_REF_NAME"
+            exit 1
+          fi
+          echo "Version OK: FrankMD::VERSION=$file_version matches tag $GITHUB_REF_NAME"

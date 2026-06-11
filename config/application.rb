@@ -18,6 +18,8 @@ require "action_view/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+require_relative "../lib/frankmd/version"
+
 module FrankMD
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
@@ -26,7 +28,9 @@ module FrankMD
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks])
+    # frankmd is require'd explicitly above (version.rb defines the
+    # FrankMD::VERSION constant, not a class), so Zeitwerk must skip it.
+    config.autoload_lib(ignore: %w[assets tasks frankmd])
 
     # Configuration for the application, engines, and railties goes here.
     #
