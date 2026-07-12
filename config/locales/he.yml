@@ -177,6 +177,8 @@ he:
     # דיאלוג סרטון
     video:
       title: "הוסף סרטון"
+      tab_drop: "גרירה"
+      drop_hint: "גררו ושחררו קובץ וידאו כאן"
       tab_url: "URL / קובץ"
       tab_search: "חיפוש YouTube"
       url_label: "URL או נתיב סרטון"
@@ -202,6 +204,8 @@ he:
     # דיאלוג בוחר תמונות
     image_picker:
       title: "הוסף תמונה"
+      tab_drop: "גרירה"
+      drop_hint: "גררו ושחררו תמונה כאן"
       tab_local: "מקומי"
       tab_folder: "תיקייה"
       tab_web: "חיפוש באינטרנט"

@@ -180,6 +180,8 @@ ja:
     # Video dialog
     video:
       title: "動画を挿入"
+      tab_drop: "ドロップ"
+      drop_hint: "ここに動画ファイルをドラッグ＆ドロップ"
       tab_url: "URL / ファイル"
       tab_search: "YouTube検索"
       url_label: "動画URLまたはパス"
@@ -205,6 +207,8 @@ ja:
     # Image picker dialog
     image_picker:
       title: "画像を挿入"
+      tab_drop: "ドロップ"
+      drop_hint: "ここに画像をドラッグ＆ドロップ"
       tab_local: "ローカル"
       tab_folder: "フォルダ"
       tab_web: "Web検索"

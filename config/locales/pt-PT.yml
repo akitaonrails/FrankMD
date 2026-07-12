@@ -180,6 +180,8 @@ pt-PT:
     # Diálogo de vídeo
     video:
       title: "Inserir Vídeo"
+      tab_drop: "Largar"
+      drop_hint: "Arraste e largue um ficheiro de vídeo aqui"
       tab_url: "URL / Ficheiro"
       tab_search: "Pesquisa YouTube"
       url_label: "URL ou Caminho do Vídeo"
@@ -205,6 +207,8 @@ pt-PT:
     # Diálogo do seletor de imagens
     image_picker:
       title: "Inserir Imagem"
+      tab_drop: "Largar"
+      drop_hint: "Arraste e largue uma imagem aqui"
       tab_local: "Local"
       tab_folder: "Pasta"
       tab_web: "Pesquisa Web"

@@ -180,6 +180,8 @@ ko:
     # 동영상 다이얼로그
     video:
       title: "동영상 삽입"
+      tab_drop: "드롭"
+      drop_hint: "여기에 동영상 파일을 끌어다 놓으세요"
       tab_url: "URL / 파일"
       tab_search: "YouTube 검색"
       url_label: "동영상 URL 또는 경로"
@@ -205,6 +207,8 @@ ko:
     # 이미지 선택 다이얼로그
     image_picker:
       title: "이미지 삽입"
+      tab_drop: "드롭"
+      drop_hint: "여기에 이미지를 끌어다 놓으세요"
       tab_local: "로컬"
       tab_folder: "폴더"
       tab_web: "웹 검색"

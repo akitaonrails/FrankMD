@@ -186,6 +186,8 @@ pt-BR:
     # Diálogo de vídeo
     video:
       title: "Inserir Vídeo"
+      tab_drop: "Soltar"
+      drop_hint: "Arraste e solte um arquivo de vídeo aqui"
       tab_url: "URL / Arquivo"
       tab_search: "Busca YouTube"
       url_label: "URL ou Caminho do Vídeo"
@@ -211,6 +213,8 @@ pt-BR:
     # Diálogo do seletor de imagens
     image_picker:
       title: "Inserir Imagem"
+      tab_drop: "Soltar"
+      drop_hint: "Arraste e solte uma imagem aqui"
       tab_local: "Local"
       tab_folder: "Pasta"
       tab_web: "Busca Web"

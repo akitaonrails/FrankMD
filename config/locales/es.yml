@@ -180,6 +180,8 @@ es:
     # Video dialog
     video:
       title: "Insertar Video"
+      tab_drop: "Soltar"
+      drop_hint: "Arrastra y suelta un archivo de vídeo aquí"
       tab_url: "URL / Archivo"
       tab_search: "Buscar en YouTube"
       url_label: "URL o Ruta del Video"
@@ -205,6 +207,8 @@ es:
     # Image picker dialog
     image_picker:
       title: "Insertar Imagen"
+      tab_drop: "Soltar"
+      drop_hint: "Arrastra y suelta una imagen aquí"
       tab_local: "Local"
       tab_folder: "Carpeta"
       tab_web: "Búsqueda Web"
