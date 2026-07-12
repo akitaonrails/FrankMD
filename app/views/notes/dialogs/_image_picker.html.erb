@@ -93,12 +93,14 @@
       class="p-4"
       data-image-picker-target="panelDrop"
       data-controller="drop-images"
-      data-action="drop-images:selected->image-picker#onSourceSelected"
+      data-action="drop-images:selected->image-picker#onSourceSelected drop-images:deselected->image-picker#onSourceDeselected"
     >
       <div
         data-drop-images-target="dropzone"
-        data-action="click->drop-images#openPicker dragover->drop-images#onDragover dragleave->drop-images#onDragleave drop->drop-images#onDrop"
-        class="border-2 border-dashed border-[var(--theme-border)] rounded-lg p-10 text-center text-sm text-[var(--theme-text-muted)] transition-colors cursor-pointer hover:border-[var(--theme-accent)]"
+        data-action="click->drop-images#openPicker keydown->drop-images#onDropzoneKeydown dragover->drop-images#onDragover dragleave->drop-images#onDragleave drop->drop-images#onDrop"
+        tabindex="0"
+        role="button"
+        class="border-2 border-dashed border-[var(--theme-border)] rounded-lg p-10 text-center text-sm text-[var(--theme-text-muted)] transition-colors cursor-pointer hover:border-[var(--theme-accent)] focus:outline-none focus:border-[var(--theme-accent)]"
       >
         <svg class="w-10 h-10 mx-auto mb-3 text-[var(--theme-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -113,7 +115,6 @@
         data-drop-images-target="fileInput"
         data-action="change->drop-images#onFileInputChange"
       >
-
 
       <div class="hidden mt-2 text-xs text-[var(--theme-warning)]" data-drop-images-target="feedback"></div>
 

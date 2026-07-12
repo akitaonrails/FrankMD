@@ -59,6 +59,21 @@ class MediaServiceTest < ActiveSupport::TestCase
 
     FileUtils.rm_f(@notes_path.join(result[:url]))
   end
+
+  test "save_upload neutralizes path traversal in the filename" do
+    result = MediaService.save_upload(uploaded("../../../etc/evil.mp4"))
+
+    assert result[:url], "expected a url, got #{result.inspect}"
+    assert result[:url].start_with?("videos/")
+    # Path separators are stripped, so the sanitized name is a single flat
+    # filename — the "../" segments can't escape the videos directory.
+    assert_equal "videos", File.dirname(result[:url]), "must be a flat name under videos/"
+
+    saved = @notes_path.join(result[:url]).cleanpath
+    assert saved.to_s.start_with?(@notes_path.join("videos").to_s + "/")
+    assert saved.exist?
+    FileUtils.rm_f(saved)
+  end
 end
 
 # S3 branch (with mocks)

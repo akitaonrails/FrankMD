@@ -3,7 +3,12 @@
 # Handles drag-and-drop video uploads.
 # Saves to notes/videos/ (served via NotesController#serve_asset) or to S3.
 # Unlike images, videos are never resized/re-encoded.
+#
+# Security-sensitive steps (extension allow-list, size cap, safe temp handling,
+# filename sanitizing) live in UploadStorage, shared with ImagesService.
 class MediaService
+  SUBDIR = "videos"
+
   VIDEO_MIME_TYPES = {
     ".mp4"  => "video/mp4",
     ".webm" => "video/webm",
@@ -20,55 +25,40 @@ class MediaService
     def save_upload(uploaded_file, upload_to_s3: false)
       return { error: "No file provided" } unless uploaded_file
 
-      extension = File.extname(uploaded_file.original_filename.to_s).downcase
-      allowed = Config.new.upload_extensions("video_upload_extensions")
-      unless allowed.include?(extension)
-        shown = extension.presence || "no extension"
-        return { error: "#{shown} is not an accepted video type. Accepted: #{allowed.join(', ')}" }
-      end
+      UploadStorage.enforce_size!(uploaded_file)
+      extension = UploadStorage.validate_extension!(uploaded_file, "video_upload_extensions", "video")
 
-      require "securerandom"
-      require "fileutils"
-
-      temp_dir = Rails.root.join("tmp", "uploads")
-      FileUtils.mkdir_p(temp_dir)
-      temp_path = temp_dir.join("#{SecureRandom.hex(8)}_#{uploaded_file.original_filename}")
-      File.binwrite(temp_path, uploaded_file.read)
-
-      begin
+      UploadStorage.with_temp_copy(uploaded_file, extension) do |temp_path|
         if upload_to_s3 && ImagesService.s3_enabled?
-          upload_to_s3(temp_path, uploaded_file.original_filename)
+          store_s3(temp_path, uploaded_file.original_filename)
         else
-          save_to_notes_directory(temp_path, uploaded_file.original_filename)
+          store_local(temp_path, uploaded_file.original_filename)
         end
-      ensure
-        FileUtils.rm_f(temp_path)
       end
+    rescue UploadStorage::RejectedError => e
+      { error: e.message }
     end
 
     private
 
-    def save_to_notes_directory(temp_path, original_filename)
+    def store_local(temp_path, original_filename)
       require "fileutils"
 
-      notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
-      videos_dir = notes_path.join("videos")
+      videos_dir = UploadStorage.notes_path.join(SUBDIR)
       FileUtils.mkdir_p(videos_dir)
 
-      timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
-      safe_name = original_filename.gsub(/[^a-zA-Z0-9._-]/, "_")
-      dest_filename = "#{timestamp}_#{safe_name}"
+      dest_filename = UploadStorage.dest_filename(original_filename)
       FileUtils.cp(temp_path, videos_dir.join(dest_filename))
 
-      { url: "videos/#{dest_filename}" }
+      { url: "#{SUBDIR}/#{dest_filename}" }
     end
 
-    def upload_to_s3(temp_path, original_filename)
+    def store_s3(temp_path, original_filename)
       require "aws-sdk-s3"
 
       cfg = Config.new
       bucket = cfg.get("aws_s3_bucket")
-      region = cfg.get("aws_region") || "us-east-1"
+      region = UploadStorage.s3_region
 
       client = Aws::S3::Client.new(
         access_key_id: cfg.get("aws_access_key_id"),
@@ -76,23 +66,14 @@ class MediaService
         region: region
       )
 
-      filename = original_filename.gsub(/[^a-zA-Z0-9._-]/, "_")
-      key = "frankmd/#{Time.current.strftime('%Y/%m')}/#{filename}"
-      content_type = VIDEO_MIME_TYPES[File.extname(filename).downcase] || "application/octet-stream"
+      key = UploadStorage.s3_key(original_filename)
+      content_type = VIDEO_MIME_TYPES[File.extname(key).downcase] || "application/octet-stream"
 
-      begin
-        client.put_object(
-          bucket: bucket,
-          key: key,
-          body: File.binread(temp_path),
-          content_type: content_type
-        )
-      rescue Aws::S3::Errors::AccessControlListNotSupported
-        # Bucket has ACLs disabled, which is fine
+      File.open(temp_path, "rb") do |io|
+        client.put_object(bucket: bucket, key: key, body: io, content_type: content_type)
       end
 
-      encoded_key = key.split("/").map { |part| ERB::Util.url_encode(part) }.join("/")
-      { url: "https://#{bucket}.s3.#{region}.amazonaws.com/#{encoded_key}" }
+      { url: UploadStorage.s3_url(bucket, region, key) }
     end
   end
 end

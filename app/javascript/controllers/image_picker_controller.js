@@ -221,6 +221,13 @@ export default class extends Controller {
     if (this.hasAltTarget) this.altTarget.value = alt || ""
   }
 
+  // A source cleared its selection (e.g. a second drop replaced the grid).
+  onSourceDeselected() {
+    this.selectedImageData = null
+    if (this.hasInsertBtnTarget) this.insertBtnTarget.disabled = true
+    if (this.hasSelectedNameTarget) this.selectedNameTarget.textContent = ""
+  }
+
   // Loading state
   showLoading(message) {
     if (this.hasLoadingTarget) {

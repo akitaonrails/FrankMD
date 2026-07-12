@@ -61,7 +61,7 @@ class ImagesController < ApplicationController
   rescue StandardError => e
     Rails.logger.error "File upload error: #{e.class} - #{e.message}"
     Rails.logger.error e.backtrace.first(10).join("\n")
-    render json: { error: "#{e.class}: #{e.message}" }, status: :unprocessable_entity
+    render json: { error: t("errors.upload_failed") }, status: :unprocessable_entity
   end
 
   # POST /images/upload_to_s3

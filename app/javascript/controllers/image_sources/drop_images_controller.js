@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { FolderImageSource, DEFAULT_IMAGE_EXTENSIONS } from "lib/image_sources/folder_images"
+import { highlightDropzone, unhighlightDropzone } from "lib/dropzone"
 
 // Drop Images Tab Controller
 // Accepts drag-and-dropped image files. Reuses FolderImageSource machinery
@@ -28,8 +29,11 @@ export default class extends Controller {
     return el ? this.application.getControllerForElementAndIdentifier(el, "s3-option") : null
   }
 
-  // Called by parent controller when tab becomes active
-  activate() {}
+  // Called by parent controller when tab becomes active; focus the dropzone
+  // so keyboard users land on the default tab's control.
+  activate() {
+    if (this.hasDropzoneTarget) this.dropzoneTarget.focus()
+  }
 
   configure(s3Enabled, imageExtensions = null) {
     this.s3EnabledValue = s3Enabled
@@ -38,17 +42,17 @@ export default class extends Controller {
 
   onDragover(event) {
     event.preventDefault()
-    this.dropzoneTarget.classList.add("border-[var(--theme-accent)]", "bg-[var(--theme-bg-tertiary)]")
+    highlightDropzone(this.dropzoneTarget)
   }
 
   onDragleave(event) {
     event.preventDefault()
-    this.dropzoneTarget.classList.remove("border-[var(--theme-accent)]", "bg-[var(--theme-bg-tertiary)]")
+    unhighlightDropzone(this.dropzoneTarget, event.relatedTarget)
   }
 
   async onDrop(event) {
     event.preventDefault()
-    this.dropzoneTarget.classList.remove("border-[var(--theme-accent)]", "bg-[var(--theme-bg-tertiary)]")
+    unhighlightDropzone(this.dropzoneTarget)
     await this.ingestFiles(event.dataTransfer.files)
   }
 
@@ -57,12 +61,27 @@ export default class extends Controller {
     if (this.hasFileInputTarget) this.fileInputTarget.click()
   }
 
+  // Enter/Space on the focused dropzone opens the native file picker.
+  onDropzoneKeydown(event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      this.openPicker()
+    }
+  }
+
   async onFileInputChange(event) {
     await this.ingestFiles(event.target.files)
     event.target.value = ""  // allow re-selecting the same file
   }
 
   async ingestFiles(fileList) {
+    // A fresh ingest replaces the grid; clear any prior selection so the
+    // parent's Insert button can't upload a stale, no-longer-visible file.
+    if (this.selectedImage) {
+      this.selectedImage = null
+      this.dispatch("deselected", { detail: { type: "drop" } })
+    }
+
     const { count, rejected } = await this.source.ingest(fileList, this.allowedExtensions)
 
     this.showRejected(rejected)

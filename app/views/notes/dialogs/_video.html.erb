@@ -60,8 +60,10 @@
       <div class="p-4" data-video-dialog-target="dropPanel">
         <div
           data-video-dialog-target="dropzone"
-          data-action="click->video-dialog#openPicker dragover->video-dialog#onDragover dragleave->video-dialog#onDragleave drop->video-dialog#onDrop"
-          class="border-2 border-dashed border-[var(--theme-border)] rounded-lg p-10 text-center text-sm text-[var(--theme-text-muted)] transition-colors cursor-pointer hover:border-[var(--theme-accent)]"
+          data-action="click->video-dialog#openPicker keydown->video-dialog#onDropzoneKeydown dragover->video-dialog#onDragover dragleave->video-dialog#onDragleave drop->video-dialog#onDrop"
+          tabindex="0"
+          role="button"
+          class="border-2 border-dashed border-[var(--theme-border)] rounded-lg p-10 text-center text-sm text-[var(--theme-text-muted)] transition-colors cursor-pointer hover:border-[var(--theme-accent)] focus:outline-none focus:border-[var(--theme-accent)]"
         >
           <svg class="w-10 h-10 mx-auto mb-3 text-[var(--theme-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -75,7 +77,6 @@
           data-video-dialog-target="dropFileInput"
           data-action="change->video-dialog#onFileInputChange"
         >
-
 
         <div class="hidden mt-2 text-xs text-[var(--theme-warning)]" data-video-dialog-target="dropFeedback"></div>
         <div class="hidden mt-4 p-3 bg-[var(--theme-bg-tertiary)] rounded-md text-sm" data-video-dialog-target="dropPreview"></div>

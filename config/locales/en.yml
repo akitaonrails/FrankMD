@@ -115,6 +115,7 @@ en:
     youtube_not_configured_js: "YouTube API not configured. Set YOUTUBE_API_KEY env variable."
     no_videos_found: "No videos found"
     search_failed_retry: "Search failed. Please try again."
+    upload_failed: "Upload failed. Please try again."
     enter_keywords_search: "Enter keywords and click Search or press Enter"
     type_to_search_regex: "Type to search in file contents (supports regex)"
     processing: "Processing..."

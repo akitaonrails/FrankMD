@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { get, post } from "@rails/request.js"
 import { escapeHtml } from "lib/text_utils"
 import { extractYouTubeId } from "lib/url_utils"
+import { highlightDropzone, unhighlightDropzone } from "lib/dropzone"
 
 const DEFAULT_VIDEO_EXTENSIONS = [".mp4", ".webm", ".mkv", ".mov", ".avi", ".m4v", ".ogv"]
 
@@ -127,6 +128,17 @@ export default class extends Controller {
     this.switchTab({ currentTarget: { dataset: { tab: "drop" } } })
 
     this.dialogTarget.showModal()
+
+    // Focus the dropzone so keyboard users land on the default tab's control.
+    if (this.hasDropzoneTarget) this.dropzoneTarget.focus()
+  }
+
+  // Enter/Space on the focused dropzone opens the native file picker.
+  onDropzoneKeydown(event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      this.openPicker()
+    }
   }
 
   close() {
@@ -217,17 +229,17 @@ export default class extends Controller {
   // Drag-and-drop upload
   onDragover(event) {
     event.preventDefault()
-    this.dropzoneTarget.classList.add("border-[var(--theme-accent)]", "bg-[var(--theme-bg-tertiary)]")
+    highlightDropzone(this.dropzoneTarget)
   }
 
   onDragleave(event) {
     event.preventDefault()
-    this.dropzoneTarget.classList.remove("border-[var(--theme-accent)]", "bg-[var(--theme-bg-tertiary)]")
+    unhighlightDropzone(this.dropzoneTarget, event.relatedTarget)
   }
 
   async onDrop(event) {
     event.preventDefault()
-    this.dropzoneTarget.classList.remove("border-[var(--theme-accent)]", "bg-[var(--theme-bg-tertiary)]")
+    unhighlightDropzone(this.dropzoneTarget)
     await this.uploadVideoFile(event.dataTransfer.files[0])
   }
 
@@ -243,6 +255,9 @@ export default class extends Controller {
 
   async uploadVideoFile(file) {
     if (!file) return
+    // Guard against a second drop/pick landing while the first upload is still
+    // in flight — concurrent POSTs race and the slower response would win.
+    if (this.uploading) return
 
     const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || "no extension"
     if (!this.videoExtensions.some(e => file.name.toLowerCase().endsWith(e))) {
@@ -252,9 +267,10 @@ export default class extends Controller {
       return
     }
 
+    this.uploading = true
     this.showDropFeedback("")
     this.dropPreviewTarget.classList.remove("hidden")
-    this.dropPreviewTarget.innerHTML = `<span class="text-[var(--theme-text-muted)]">${window.t("status.uploading") || "Uploading..."}</span>`
+    this.dropPreviewTarget.innerHTML = `<span class="text-[var(--theme-text-muted)]">${window.t("dialogs.video.uploading")}</span>`
 
     try {
       const s3 = this.dropS3Option
@@ -266,7 +282,7 @@ export default class extends Controller {
       const data = await response.json
 
       if (!response.ok) {
-        this.showDropFeedback(data.error || window.t("status.search_failed_retry"))
+        this.showDropFeedback(data.error || window.t("status.upload_failed"))
         this.dropPreviewTarget.classList.add("hidden")
         return
       }
@@ -288,8 +304,10 @@ export default class extends Controller {
       if (this.hasDropInsertBtnTarget) this.dropInsertBtnTarget.disabled = false
     } catch (error) {
       console.error("Video upload error:", error)
-      this.showDropFeedback(window.t("status.search_failed_retry"))
+      this.showDropFeedback(window.t("status.upload_failed"))
       this.dropPreviewTarget.classList.add("hidden")
+    } finally {
+      this.uploading = false
     }
   }
 
@@ -356,9 +374,8 @@ export default class extends Controller {
       return
     }
 
-    // Check for video file
-    const videoExtensions = [".mp4", ".webm", ".mkv", ".mov", ".avi", ".m4v", ".ogv"]
-    const isVideoFile = videoExtensions.some(ext => url.toLowerCase().endsWith(ext))
+    // Check for video file (same allow-list the drop tab uses)
+    const isVideoFile = this.videoExtensions.some(ext => url.toLowerCase().endsWith(ext))
 
     if (isVideoFile) {
       this.detectedVideoType = "file"

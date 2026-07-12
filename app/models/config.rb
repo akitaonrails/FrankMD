@@ -151,6 +151,17 @@ class Config
       ]
     },
     {
+      marker: "# Media Uploads",
+      lines: [
+        "",
+        "# Media Uploads (drag-and-drop)",
+        "",
+        "# Comma-separated file extensions accepted by the image/video drop tabs.",
+        "# image_upload_extensions = .jpg,.jpeg,.png,.gif,.webp,.bmp",
+        "# video_upload_extensions = .mp4,.webm,.mkv,.mov,.avi,.m4v,.ogv"
+      ]
+    },
+    {
       marker: "# AWS S3",
       lines: [
         "",

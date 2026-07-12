@@ -549,6 +549,58 @@ describe("VideoDialogController", () => {
       expect(controller.detectedVideoType).toBeNull()
       expect(controller.dropFeedbackTarget.textContent).toBe("boom")
     })
+
+    it("shows the localized uploading label, not a raw status key", async () => {
+      let resolve
+      global.fetch = vi.fn(() => new Promise((r) => {
+        resolve = () => r({ ok: true, json: () => Promise.resolve({ url: "videos/clip.mp4" }) })
+      }))
+
+      const inFlight = controller.onDrop(dropEvent("clip.mp4"))
+
+      // While uploading, the label uses a key that actually exists in the locales.
+      expect(window.t).toHaveBeenCalledWith("dialogs.video.uploading")
+      expect(window.t).not.toHaveBeenCalledWith("status.uploading")
+
+      resolve()
+      await inFlight
+    })
+
+    it("ignores a second drop while an upload is already in flight", async () => {
+      let resolve
+      const fetchSpy = vi.fn(() => new Promise((r) => {
+        resolve = () => r({ ok: true, json: () => Promise.resolve({ url: "videos/clip.mp4" }) })
+      }))
+      global.fetch = fetchSpy
+
+      const first = controller.onDrop(dropEvent("clip.mp4"))
+      await controller.onDrop(dropEvent("clip2.mp4")) // second drop before first resolves
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+      resolve()
+      await first
+    })
+  })
+
+  describe("onDropzoneKeydown()", () => {
+    it("opens the file picker on Enter", () => {
+      const spy = vi.spyOn(controller, "openPicker").mockImplementation(() => {})
+      controller.onDropzoneKeydown({ key: "Enter", preventDefault: vi.fn() })
+      expect(spy).toHaveBeenCalled()
+    })
+
+    it("opens the file picker on Space", () => {
+      const spy = vi.spyOn(controller, "openPicker").mockImplementation(() => {})
+      controller.onDropzoneKeydown({ key: " ", preventDefault: vi.fn() })
+      expect(spy).toHaveBeenCalled()
+    })
+
+    it("ignores other keys", () => {
+      const spy = vi.spyOn(controller, "openPicker").mockImplementation(() => {})
+      controller.onDropzoneKeydown({ key: "a", preventDefault: vi.fn() })
+      expect(spy).not.toHaveBeenCalled()
+    })
   })
 
   describe("openPicker() / onFileInputChange()", () => {
