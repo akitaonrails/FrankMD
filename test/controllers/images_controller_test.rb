@@ -17,6 +17,15 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
     assert_includes [ true, false ], data["pinterest_enabled"]
   end
 
+  test "config exposes accepted upload extensions" do
+    get images_config_url, as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_includes data["image_extensions"], ".png"
+    assert_includes data["video_extensions"], ".mp4"
+  end
+
   # === Web Search ===
 
   test "search_web returns error when query is blank" do
@@ -82,6 +91,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       @config_stub.stubs(:feature_available?).with(:local_images).returns(true)
       @config_stub.stubs(:feature_available?).with(:s3_upload).returns(false)
       @config_stub.stubs(:ui_settings).returns({})
+      @config_stub.stubs(:upload_extensions).returns([])
       Config.stubs(:new).returns(@config_stub)
     end
 
@@ -308,6 +318,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       @config_stub.stubs(:feature_available?).with(:local_images).returns(true)
       @config_stub.stubs(:feature_available?).with(:s3_upload).returns(true)
       @config_stub.stubs(:ui_settings).returns({})
+      @config_stub.stubs(:upload_extensions).returns([])
       Config.stubs(:new).returns(@config_stub)
 
       @mock_s3_client = stub("s3_client")
@@ -406,6 +417,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       @config_stub.stubs(:feature_available?).returns(false)
       @config_stub.stubs(:feature_available?).with(:local_images).returns(true)
       @config_stub.stubs(:ui_settings).returns({})
+      @config_stub.stubs(:upload_extensions).returns([])
       Config.stubs(:new).returns(@config_stub)
 
       WebMock.disable_net_connect!(allow_localhost: true)
@@ -577,6 +589,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       @config_stub.stubs(:get).returns(nil)
       @config_stub.stubs(:feature_available?).returns(false)
       @config_stub.stubs(:ui_settings).returns({})
+      @config_stub.stubs(:upload_extensions).returns([])
       Config.stubs(:new).returns(@config_stub)
     end
 
