@@ -124,24 +124,23 @@ class ImagesService
     def upload_file(uploaded_file, resize: nil, upload_to_s3: false)
       return { error: "No file provided" } unless uploaded_file
 
-      require "securerandom"
-      require "fileutils"
+      # Enforce the same allow-list + size cap as video uploads. Without this,
+      # an HTML/SVG file dropped here would be stored under the notes directory
+      # and served inline by NotesController#serve_asset (stored XSS), since
+      # that endpoint sets Content-Type from the file extension. See
+      # UploadStorage for the shared, single-source-of-truth checks.
+      UploadStorage.enforce_size!(uploaded_file)
+      extension = UploadStorage.validate_extension!(uploaded_file, "image_upload_extensions", "image")
 
-      # Create temp file
-      temp_dir = Rails.root.join("tmp", "uploads")
-      FileUtils.mkdir_p(temp_dir)
-      temp_path = temp_dir.join("#{SecureRandom.hex(8)}_#{uploaded_file.original_filename}")
-      File.binwrite(temp_path, uploaded_file.read)
-
-      begin
+      UploadStorage.with_temp_copy(uploaded_file, extension) do |temp_path|
         if upload_to_s3 && s3_enabled?
           upload_temp_to_s3(temp_path, uploaded_file.original_filename, resize: resize)
         else
           save_to_notes_directory(temp_path, uploaded_file.original_filename, resize: resize)
         end
-      ensure
-        FileUtils.rm_f(temp_path)
       end
+    rescue UploadStorage::RejectedError => e
+      { error: e.message }
     end
 
     # Upload base64 encoded image data (e.g., from AI image generation)

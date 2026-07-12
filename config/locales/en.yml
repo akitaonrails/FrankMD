@@ -115,6 +115,7 @@ en:
     youtube_not_configured_js: "YouTube API not configured. Set YOUTUBE_API_KEY env variable."
     no_videos_found: "No videos found"
     search_failed_retry: "Search failed. Please try again."
+    upload_failed: "Upload failed. Please try again."
     enter_keywords_search: "Enter keywords and click Search or press Enter"
     type_to_search_regex: "Type to search in file contents (supports regex)"
     processing: "Processing..."
@@ -186,8 +187,12 @@ en:
     # Video dialog
     video:
       title: "Insert Video"
+      tab_drop: "Drop"
       tab_url: "URL / File"
       tab_search: "YouTube Search"
+      drop_hint: "Drag & drop a video file here"
+      drop_rejected: "%{name}: %{ext} is not an accepted video type. Accepted: %{list}"
+      uploading: "Uploading..."
       url_label: "Video URL or Path"
       url_placeholder: "YouTube URL or video file path..."
       url_hint_youtube: "YouTube: https://youtube.com/watch?v=... or https://youtu.be/..."
@@ -211,6 +216,7 @@ en:
     # Image picker dialog
     image_picker:
       title: "Insert Image"
+      tab_drop: "Drop"
       tab_local: "Local"
       tab_folder: "Folder"
       tab_web: "Web Search"
@@ -224,6 +230,9 @@ en:
       link_label: "Link URL (optional, makes image clickable)"
       link_placeholder: "https://..."
       uploading_to_s3: "Uploading to S3..."
+      # Drag-and-drop
+      drop_hint: "Drag & drop an image here"
+      drop_rejected: "%{name}: %{ext} is not an accepted image type. Accepted: %{list}"
       # Local images
       local_path_required: "Local Images Path Required"
       local_path_description: "To browse local images, configure an images directory path."

@@ -115,6 +115,7 @@ ja:
     youtube_not_configured_js: "YouTube APIが設定されていません。YOUTUBE_API_KEY環境変数を設定してください。"
     no_videos_found: "動画が見つかりません"
     search_failed_retry: "検索に失敗しました。もう一度お試しください。"
+    upload_failed: "アップロードに失敗しました。もう一度お試しください。"
     enter_keywords_search: "キーワードを入力して検索またはEnterを押してください"
     type_to_search_regex: "ファイル内を検索（正規表現対応）"
     processing: "処理中..."
@@ -180,6 +181,10 @@ ja:
     # Video dialog
     video:
       title: "動画を挿入"
+      tab_drop: "ドロップ"
+      drop_hint: "ここに動画ファイルをドラッグ＆ドロップ"
+      drop_rejected: "%{name}: %{ext} は受け付けられない動画形式です。受付可能: %{list}"
+      uploading: "アップロード中..."
       tab_url: "URL / ファイル"
       tab_search: "YouTube検索"
       url_label: "動画URLまたはパス"
@@ -205,6 +210,9 @@ ja:
     # Image picker dialog
     image_picker:
       title: "画像を挿入"
+      tab_drop: "ドロップ"
+      drop_hint: "ここに画像をドラッグ＆ドロップ"
+      drop_rejected: "%{name}: %{ext} は受け付けられない画像形式です。受付可能: %{list}"
       tab_local: "ローカル"
       tab_folder: "フォルダ"
       tab_web: "Web検索"

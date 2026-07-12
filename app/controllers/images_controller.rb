@@ -9,12 +9,15 @@ class ImagesController < ApplicationController
 
   # GET /images/config
   def status
+    cfg = Config.new
     render json: {
       enabled: ImagesService.enabled?,
       s3_enabled: ImagesService.s3_enabled?,
       web_search_enabled: true,    # Uses DuckDuckGo/Bing (no API needed)
       google_enabled: google_api_configured?,  # Requires API keys
-      pinterest_enabled: true      # Uses DuckDuckGo with site filter (no API needed)
+      pinterest_enabled: true,     # Uses DuckDuckGo with site filter (no API needed)
+      image_extensions: cfg.upload_extensions("image_upload_extensions"),
+      video_extensions: cfg.upload_extensions("video_upload_extensions")
     }
   end
 
@@ -58,7 +61,7 @@ class ImagesController < ApplicationController
   rescue StandardError => e
     Rails.logger.error "File upload error: #{e.class} - #{e.message}"
     Rails.logger.error e.backtrace.first(10).join("\n")
-    render json: { error: "#{e.class}: #{e.message}" }, status: :unprocessable_entity
+    render json: { error: t("errors.upload_failed") }, status: :unprocessable_entity
   end
 
   # POST /images/upload_to_s3

@@ -2,8 +2,10 @@
     Parameters:
     - mode: "upload" (default) or "reupload"
     - description: optional custom description text
+    - show_resize: show the resize dropdown (default true; false for videos)
 %>
 <% mode ||= "upload" %>
+<% show_resize = true if show_resize.nil? %>
 <%
   label = mode == "reupload" ? t('dialogs.s3_option.reupload_to_s3') : t('dialogs.s3_option.upload_to_s3')
   description ||= mode == "reupload" ?
@@ -24,6 +26,7 @@
   <p class="text-xs text-[var(--theme-text-muted)] mt-1 ml-6">
     <%= description %>
   </p>
+  <% if show_resize %>
   <!-- Resize option (only when S3 is checked) -->
   <div class="hidden mt-2 ml-6" data-s3-option-target="resizeOption">
     <label class="flex items-center gap-2 text-sm">
@@ -40,4 +43,5 @@
       <span class="text-[var(--theme-text-muted)]"><%= t('dialogs.s3_option.compress') %></span>
     </label>
   </div>
+  <% end %>
 </div>

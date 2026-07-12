@@ -15,8 +15,16 @@ describe("VideoDialogController", () => {
     document.body.innerHTML = `
       <div data-controller="video-dialog">
         <dialog data-video-dialog-target="dialog"></dialog>
+        <button data-video-dialog-target="tabDrop" data-tab="drop"></button>
         <button data-video-dialog-target="tabUrl" data-tab="url"></button>
         <button data-video-dialog-target="tabSearch" data-tab="search"></button>
+        <div data-video-dialog-target="dropPanel">
+          <div data-video-dialog-target="dropzone"></div>
+          <input data-video-dialog-target="dropFileInput" type="file" />
+          <div data-video-dialog-target="dropFeedback" class="hidden"></div>
+          <div data-video-dialog-target="dropPreview" class="hidden"></div>
+          <button data-video-dialog-target="dropInsertBtn" disabled></button>
+        </div>
         <div data-video-dialog-target="urlPanel"></div>
         <div data-video-dialog-target="searchPanel" class="hidden"></div>
         <input data-video-dialog-target="videoUrl" type="text" />
@@ -493,6 +501,128 @@ describe("VideoDialogController", () => {
       controller.selectYoutubeVideo(event)
 
       expect(closeSpy).toHaveBeenCalled()
+    })
+  })
+
+  describe("onDrop() (drag-and-drop upload)", () => {
+    function dropEvent(fileName) {
+      return {
+        preventDefault: vi.fn(),
+        dataTransfer: { files: [ new File([ "data" ], fileName, { type: "video/mp4" }) ] }
+      }
+    }
+
+    it("rejects a disallowed extension with a reason and does not upload", async () => {
+      const fetchSpy = vi.fn()
+      global.fetch = fetchSpy
+
+      await controller.onDrop(dropEvent("notes.txt"))
+
+      expect(fetchSpy).not.toHaveBeenCalled()
+      expect(controller.detectedVideoType).toBeNull()
+      expect(controller.dropFeedbackTarget.classList.contains("hidden")).toBe(false)
+      expect(controller.dropFeedbackTarget.textContent).toBe("dialogs.video.drop_rejected")
+    })
+
+    it("uploads a valid video and enables the insert button", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ url: "videos/clip.mp4" })
+      })
+
+      await controller.onDrop(dropEvent("clip.mp4"))
+
+      expect(global.fetch).toHaveBeenCalledWith("/media/upload", expect.objectContaining({ method: "POST" }))
+      expect(controller.detectedVideoType).toBe("file")
+      expect(controller.detectedVideoData.url).toBe("videos/clip.mp4")
+      expect(controller.dropInsertBtnTarget.disabled).toBe(false)
+    })
+
+    it("surfaces the server error when upload fails", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: () => Promise.resolve({ error: "boom" })
+      })
+
+      await controller.onDrop(dropEvent("clip.mp4"))
+
+      expect(controller.detectedVideoType).toBeNull()
+      expect(controller.dropFeedbackTarget.textContent).toBe("boom")
+    })
+
+    it("shows the localized uploading label, not a raw status key", async () => {
+      let resolve
+      global.fetch = vi.fn(() => new Promise((r) => {
+        resolve = () => r({ ok: true, json: () => Promise.resolve({ url: "videos/clip.mp4" }) })
+      }))
+
+      const inFlight = controller.onDrop(dropEvent("clip.mp4"))
+
+      // While uploading, the label uses a key that actually exists in the locales.
+      expect(window.t).toHaveBeenCalledWith("dialogs.video.uploading")
+      expect(window.t).not.toHaveBeenCalledWith("status.uploading")
+
+      resolve()
+      await inFlight
+    })
+
+    it("ignores a second drop while an upload is already in flight", async () => {
+      let resolve
+      const fetchSpy = vi.fn(() => new Promise((r) => {
+        resolve = () => r({ ok: true, json: () => Promise.resolve({ url: "videos/clip.mp4" }) })
+      }))
+      global.fetch = fetchSpy
+
+      const first = controller.onDrop(dropEvent("clip.mp4"))
+      await controller.onDrop(dropEvent("clip2.mp4")) // second drop before first resolves
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+
+      resolve()
+      await first
+    })
+  })
+
+  describe("onDropzoneKeydown()", () => {
+    it("opens the file picker on Enter", () => {
+      const spy = vi.spyOn(controller, "openPicker").mockImplementation(() => {})
+      controller.onDropzoneKeydown({ key: "Enter", preventDefault: vi.fn() })
+      expect(spy).toHaveBeenCalled()
+    })
+
+    it("opens the file picker on Space", () => {
+      const spy = vi.spyOn(controller, "openPicker").mockImplementation(() => {})
+      controller.onDropzoneKeydown({ key: " ", preventDefault: vi.fn() })
+      expect(spy).toHaveBeenCalled()
+    })
+
+    it("ignores other keys", () => {
+      const spy = vi.spyOn(controller, "openPicker").mockImplementation(() => {})
+      controller.onDropzoneKeydown({ key: "a", preventDefault: vi.fn() })
+      expect(spy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("openPicker() / onFileInputChange()", () => {
+    it("opens the native file picker when the dropzone is clicked", () => {
+      const clickSpy = vi.spyOn(controller.dropFileInputTarget, "click").mockImplementation(() => {})
+      controller.openPicker()
+      expect(clickSpy).toHaveBeenCalled()
+    })
+
+    it("uploads a file selected via the picker", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ url: "videos/picked.mp4" })
+      })
+
+      await controller.onFileInputChange({
+        target: { files: [ new File([ "d" ], "picked.mp4", { type: "video/mp4" }) ], value: "picked.mp4" }
+      })
+
+      expect(controller.detectedVideoType).toBe("file")
+      expect(controller.detectedVideoData.url).toBe("videos/picked.mp4")
+      expect(controller.dropInsertBtnTarget.disabled).toBe(false)
     })
   })
 

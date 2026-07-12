@@ -28,9 +28,19 @@
           type="button"
           role="tab"
           data-action="click->video-dialog#switchTab keydown->video-dialog#onTabKeydown"
+          data-tab="drop"
+          data-video-dialog-target="tabDrop"
+          class="px-4 py-2 text-sm font-medium border-b-2 border-[var(--theme-accent)] text-[var(--theme-accent)]"
+        >
+          <%= t('dialogs.video.tab_drop') %>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          data-action="click->video-dialog#switchTab keydown->video-dialog#onTabKeydown"
           data-tab="url"
           data-video-dialog-target="tabUrl"
-          class="px-4 py-2 text-sm font-medium border-b-2 border-[var(--theme-accent)] text-[var(--theme-accent)]"
+          class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)]"
         >
           <%= t('dialogs.video.tab_url') %>
         </button>
@@ -46,8 +56,49 @@
         </button>
       </div>
 
+      <!-- Tab Content: Drop (drag-and-drop upload) -->
+      <div class="p-4" data-video-dialog-target="dropPanel">
+        <div
+          data-video-dialog-target="dropzone"
+          data-action="click->video-dialog#openPicker keydown->video-dialog#onDropzoneKeydown dragover->video-dialog#onDragover dragleave->video-dialog#onDragleave drop->video-dialog#onDrop"
+          tabindex="0"
+          role="button"
+          class="border-2 border-dashed border-[var(--theme-border)] rounded-lg p-10 text-center text-sm text-[var(--theme-text-muted)] transition-colors cursor-pointer hover:border-[var(--theme-accent)] focus:outline-none focus:border-[var(--theme-accent)]"
+        >
+          <svg class="w-10 h-10 mx-auto mb-3 text-[var(--theme-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <%= t('dialogs.video.drop_hint') %>
+        </div>
+        <input
+          type="file"
+          accept="video/*"
+          class="hidden"
+          data-video-dialog-target="dropFileInput"
+          data-action="change->video-dialog#onFileInputChange"
+        >
+
+        <div class="hidden mt-2 text-xs text-[var(--theme-warning)]" data-video-dialog-target="dropFeedback"></div>
+        <div class="hidden mt-4 p-3 bg-[var(--theme-bg-tertiary)] rounded-md text-sm" data-video-dialog-target="dropPreview"></div>
+
+        <%= render "notes/dialogs/s3_option", mode: "upload", show_resize: false %>
+
+        <div class="flex justify-end gap-2 mt-4">
+          <%= render "shared/button_secondary", label: t('common.cancel'), action: "click->video-dialog#close" %>
+          <button
+            type="button"
+            data-action="click->video-dialog#insertVideo"
+            data-video-dialog-target="dropInsertBtn"
+            class="px-3 py-1.5 text-sm rounded-md bg-[var(--theme-accent)] text-[var(--theme-accent-text)] hover:bg-[var(--theme-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled
+          >
+            <%= t('dialogs.video.insert_video') %>
+          </button>
+        </div>
+      </div>
+
       <!-- Tab Content: URL -->
-      <div class="p-4" data-video-dialog-target="urlPanel">
+      <div class="p-4 hidden" data-video-dialog-target="urlPanel">
         <div class="mb-4">
           <label class="block text-xs text-[var(--theme-text-muted)] mb-1"><%= t('dialogs.video.url_label') %></label>
           <input

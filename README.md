@@ -374,6 +374,8 @@ The `.fed` file appears in the explorer panel with a gear icon. You can click it
 | `sidebar_visible` | boolean | true | Show explorer panel on startup |
 | `typewriter_mode` | boolean | false | Enable typewriter mode on startup |
 | `images_path` | string | - | Local images directory path |
+| `image_upload_extensions` | string | `.jpg,.jpeg,.png,.gif,.webp,.bmp` | Comma-separated file extensions accepted by the image drag-and-drop upload |
+| `video_upload_extensions` | string | `.mp4,.webm,.mkv,.mov,.avi,.m4v,.ogv` | Comma-separated file extensions accepted by the video drag-and-drop upload |
 | `aws_access_key_id` | string | - | AWS access key for S3 |
 | `aws_secret_access_key` | string | - | AWS secret key for S3 |
 | `aws_s3_bucket` | string | - | S3 bucket name |
@@ -402,6 +404,8 @@ Environment variables are global defaults. Use them for Docker deployments or wh
 |----------|-------------|---------|
 | `NOTES_PATH` | Directory where notes are stored (must be writable by UID/GID when using Docker) | `./notes` |
 | `IMAGES_PATH` | Directory for local images | (disabled) |
+| `IMAGE_UPLOAD_EXTENSIONS` | Comma-separated file extensions accepted by the image drag-and-drop upload | `.jpg,.jpeg,.png,.gif,.webp,.bmp` |
+| `VIDEO_UPLOAD_EXTENSIONS` | Comma-separated file extensions accepted by the video drag-and-drop upload | `.mp4,.webm,.mkv,.mov,.avi,.m4v,.ogv` |
 | `FRANKMD_LOCALE` | Default language (en, pt-BR, pt-PT, es, he, ja, ko) | en |
 | `SECRET_KEY_BASE` | Rails secret key (required in production) | - |
 

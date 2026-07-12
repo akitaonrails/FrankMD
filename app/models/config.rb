@@ -23,6 +23,10 @@ class Config
     # Paths (ENV defaults)
     "images_path" => { default: nil, type: :string, env: "IMAGES_PATH" },
 
+    # Accepted drag-and-drop upload extensions (comma-separated)
+    "image_upload_extensions" => { default: ".jpg,.jpeg,.png,.gif,.webp,.bmp", type: :string, env: "IMAGE_UPLOAD_EXTENSIONS" },
+    "video_upload_extensions" => { default: ".mp4,.webm,.mkv,.mov,.avi,.m4v,.ogv", type: :string, env: "VIDEO_UPLOAD_EXTENSIONS" },
+
     # AWS S3 Settings (ENV defaults)
     "aws_access_key_id" => { default: nil, type: :string, env: "AWS_ACCESS_KEY_ID" },
     "aws_secret_access_key" => { default: nil, type: :string, env: "AWS_SECRET_ACCESS_KEY" },
@@ -147,6 +151,17 @@ class Config
       ]
     },
     {
+      marker: "# Media Uploads",
+      lines: [
+        "",
+        "# Media Uploads (drag-and-drop)",
+        "",
+        "# Comma-separated file extensions accepted by the image/video drop tabs.",
+        "# image_upload_extensions = .jpg,.jpeg,.png,.gif,.webp,.bmp",
+        "# video_upload_extensions = .mp4,.webm,.mkv,.mov,.avi,.m4v,.ogv"
+      ]
+    },
+    {
       marker: "# AWS S3",
       lines: [
         "",
@@ -248,6 +263,12 @@ class Config
     else
       SCHEMA[key][:default]
     end
+  end
+
+  # Parse a comma-separated extension config key into a normalized array
+  # (e.g. ".JPG, .png " -> [".jpg", ".png"])
+  def upload_extensions(key)
+    get(key).to_s.split(",").map { |e| e.strip.downcase }.reject(&:blank?)
   end
 
   # Set a configuration value and save to file

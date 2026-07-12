@@ -29,6 +29,9 @@ Rails.application.routes.draw do
   get "images/search_google", to: "images#search_google"
   get "images/search_pinterest", to: "images#search_pinterest"
 
+  # Media API (video drag-and-drop uploads)
+  post "media/upload", to: "media#upload"
+
   # YouTube API
   get "youtube/config", to: "youtube#status"
   get "youtube/search", to: "youtube#search"

@@ -4,6 +4,15 @@
 import { post } from "@rails/request.js"
 import { escapeHtml } from "lib/text_utils"
 
+// Fallback when no config-driven list is provided (e.g. direct API use).
+export const DEFAULT_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"]
+
+// Trailing extension of a filename (".png"), or a readable label when absent.
+export function extOf(filename) {
+  const match = filename.toLowerCase().match(/\.[^.]+$/)
+  return match ? match[0] : "no extension"
+}
+
 export class FolderImageSource {
   constructor() {
     this.displayedImages = []  // Images currently shown (with object URLs)
@@ -28,14 +37,14 @@ export class FolderImageSource {
     this.allImages = []
   }
 
-  async browse() {
+  async browse(allowedExtensions = DEFAULT_IMAGE_EXTENSIONS) {
     if (!this.isSupported) {
       return { error: "File System Access API not supported" }
     }
 
     try {
       const dirHandle = await window.showDirectoryPicker()
-      return await this.loadFromDirectory(dirHandle)
+      return await this.loadFromDirectory(dirHandle, allowedExtensions)
     } catch (err) {
       if (err.name === "AbortError") {
         return { cancelled: true }
@@ -45,10 +54,10 @@ export class FolderImageSource {
     }
   }
 
-  async loadFromDirectory(dirHandle) {
+  async loadFromDirectory(dirHandle, allowedExtensions = DEFAULT_IMAGE_EXTENSIONS) {
     this.cleanup()
 
-    const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"]
+    const imageExtensions = allowedExtensions.map(ext => ext.toLowerCase())
 
     try {
       for await (const entry of dirHandle.values()) {
@@ -77,6 +86,34 @@ export class FolderImageSource {
       console.error("Error reading folder:", err)
       return { error: "Error reading folder" }
     }
+  }
+
+  // Ingest dropped File objects (drag-and-drop). Reuses all folder machinery.
+  // Returns { count, rejected: [{ name, reason }] } so the caller can tell the
+  // user why any file was skipped instead of silently dropping it.
+  async ingest(fileList, allowedExtensions = DEFAULT_IMAGE_EXTENSIONS) {
+    this.cleanup()
+
+    const allowed = allowedExtensions.map(ext => ext.toLowerCase())
+    const rejected = []
+
+    for (const file of fileList) {
+      if (allowed.some(ext => file.name.toLowerCase().endsWith(ext))) {
+        this.allImages.push({
+          name: file.name,
+          file: file,
+          lastModified: file.lastModified,
+          size: file.size
+        })
+      } else {
+        rejected.push({ name: file.name, ext: extOf(file.name) })
+      }
+    }
+
+    this.allImages.sort((a, b) => b.lastModified - a.lastModified)
+    await this.filter("")
+
+    return { count: this.allImages.length, rejected }
   }
 
   async filter(searchTerm) {

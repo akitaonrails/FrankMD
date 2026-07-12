@@ -115,6 +115,7 @@ pt-PT:
     youtube_not_configured_js: "API do YouTube não configurada. Defina a variável YOUTUBE_API_KEY."
     no_videos_found: "Nenhum vídeo encontrado"
     search_failed_retry: "Falha na pesquisa. Tente novamente."
+    upload_failed: "Falha no envio. Tente novamente."
     enter_keywords_search: "Introduza palavras-chave e clique em Pesquisar ou prima Enter"
     type_to_search_regex: "Escreva para pesquisar no conteúdo dos ficheiros (suporta regex)"
     processing: "A processar..."
@@ -180,6 +181,10 @@ pt-PT:
     # Diálogo de vídeo
     video:
       title: "Inserir Vídeo"
+      tab_drop: "Largar"
+      drop_hint: "Arraste e largue um ficheiro de vídeo aqui"
+      drop_rejected: "%{name}: %{ext} não é um tipo de vídeo aceite. Aceites: %{list}"
+      uploading: "A enviar..."
       tab_url: "URL / Ficheiro"
       tab_search: "Pesquisa YouTube"
       url_label: "URL ou Caminho do Vídeo"
@@ -205,6 +210,9 @@ pt-PT:
     # Diálogo do seletor de imagens
     image_picker:
       title: "Inserir Imagem"
+      tab_drop: "Largar"
+      drop_hint: "Arraste e largue uma imagem aqui"
+      drop_rejected: "%{name}: %{ext} não é um tipo de imagem aceite. Aceites: %{list}"
       tab_local: "Local"
       tab_folder: "Pasta"
       tab_web: "Pesquisa Web"

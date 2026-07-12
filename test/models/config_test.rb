@@ -110,6 +110,33 @@ class ConfigTest < ActiveSupport::TestCase
     assert_nil config.get(:theme)
   end
 
+  # === Upload extensions ===
+
+  test "upload_extensions returns the default image list" do
+    config = Config.new(base_path: @test_dir)
+
+    exts = config.upload_extensions("image_upload_extensions")
+    assert_includes exts, ".png"
+    assert_includes exts, ".jpg"
+  end
+
+  test "upload_extensions returns the default video list" do
+    config = Config.new(base_path: @test_dir)
+
+    exts = config.upload_extensions("video_upload_extensions")
+    assert_includes exts, ".mp4"
+    assert_includes exts, ".webm"
+  end
+
+  test "upload_extensions normalizes whitespace and case" do
+    ENV["VIDEO_UPLOAD_EXTENSIONS"] = " .MP4 , .MOV "
+    config = Config.new(base_path: @test_dir)
+
+    assert_equal [ ".mp4", ".mov" ], config.upload_extensions("video_upload_extensions")
+  ensure
+    ENV.delete("VIDEO_UPLOAD_EXTENSIONS")
+  end
+
   # === Reading from File ===
 
   test "reads values from config file" do

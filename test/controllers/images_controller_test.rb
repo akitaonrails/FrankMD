@@ -17,6 +17,15 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
     assert_includes [ true, false ], data["pinterest_enabled"]
   end
 
+  test "config exposes accepted upload extensions" do
+    get images_config_url, as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_includes data["image_extensions"], ".png"
+    assert_includes data["video_extensions"], ".mp4"
+  end
+
   # === Web Search ===
 
   test "search_web returns error when query is blank" do
@@ -82,6 +91,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       @config_stub.stubs(:feature_available?).with(:local_images).returns(true)
       @config_stub.stubs(:feature_available?).with(:s3_upload).returns(false)
       @config_stub.stubs(:ui_settings).returns({})
+      @config_stub.stubs(:upload_extensions).returns([ ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" ])
       Config.stubs(:new).returns(@config_stub)
     end
 
@@ -178,6 +188,30 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       # Clean up
       created_file = notes_path.join(data["url"])
       FileUtils.rm_f(created_file) if created_file.exist?
+    end
+
+    test "upload rejects a disallowed extension and stores nothing (stored-XSS guard)" do
+      # An HTML file served inline by NotesController#serve_asset would be a
+      # stored XSS. The upload endpoint must reject it server-side, regardless
+      # of the client-side accept= filter.
+      file = Rack::Test::UploadedFile.new(
+        StringIO.new("<script>alert(1)</script>"),
+        "text/html",
+        original_filename: "evil.html"
+      )
+
+      notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
+      images_dir = notes_path.join("images")
+      before = Dir.glob(images_dir.join("*")).length
+
+      post "/images/upload", params: { file: file }
+
+      assert_response :unprocessable_entity
+      data = JSON.parse(response.body)
+      assert_includes data["error"], "not an accepted image type"
+
+      after = Dir.glob(images_dir.join("*")).length
+      assert_equal before, after, "no file should have been written"
     end
 
     test "upload returns error for S3 when not configured" do
@@ -308,6 +342,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       @config_stub.stubs(:feature_available?).with(:local_images).returns(true)
       @config_stub.stubs(:feature_available?).with(:s3_upload).returns(true)
       @config_stub.stubs(:ui_settings).returns({})
+      @config_stub.stubs(:upload_extensions).returns([ ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" ])
       Config.stubs(:new).returns(@config_stub)
 
       @mock_s3_client = stub("s3_client")
@@ -406,6 +441,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       @config_stub.stubs(:feature_available?).returns(false)
       @config_stub.stubs(:feature_available?).with(:local_images).returns(true)
       @config_stub.stubs(:ui_settings).returns({})
+      @config_stub.stubs(:upload_extensions).returns([ ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" ])
       Config.stubs(:new).returns(@config_stub)
 
       WebMock.disable_net_connect!(allow_localhost: true)
@@ -577,6 +613,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       @config_stub.stubs(:get).returns(nil)
       @config_stub.stubs(:feature_available?).returns(false)
       @config_stub.stubs(:ui_settings).returns({})
+      @config_stub.stubs(:upload_extensions).returns([ ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" ])
       Config.stubs(:new).returns(@config_stub)
     end
 

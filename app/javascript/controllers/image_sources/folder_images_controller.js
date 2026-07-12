@@ -32,8 +32,9 @@ export default class extends Controller {
     this.setupUI()
   }
 
-  configure(s3Enabled) {
+  configure(s3Enabled, imageExtensions = null) {
     this.s3EnabledValue = s3Enabled
+    if (imageExtensions) this.allowedExtensions = imageExtensions
   }
 
   setupUI() {
@@ -52,7 +53,7 @@ export default class extends Controller {
   }
 
   async browse() {
-    const result = await this.source.browse()
+    const result = await this.source.browse(this.allowedExtensions)
     if (!result.error && !result.cancelled) {
       this.setupUI()
       this.source.renderGrid(

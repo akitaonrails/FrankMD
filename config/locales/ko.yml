@@ -115,6 +115,7 @@ ko:
     youtube_not_configured_js: "YouTube API가 설정되지 않았습니다. YOUTUBE_API_KEY 환경 변수를 설정하세요."
     no_videos_found: "동영상을 찾을 수 없습니다"
     search_failed_retry: "검색에 실패했습니다. 다시 시도해주세요."
+    upload_failed: "업로드에 실패했습니다. 다시 시도해주세요."
     enter_keywords_search: "검색어를 입력하고 검색을 클릭하거나 Enter를 누르세요"
     type_to_search_regex: "파일 내용 검색 (정규식 지원)"
     processing: "처리 중..."
@@ -180,6 +181,10 @@ ko:
     # 동영상 다이얼로그
     video:
       title: "동영상 삽입"
+      tab_drop: "드롭"
+      drop_hint: "여기에 동영상 파일을 끌어다 놓으세요"
+      drop_rejected: "%{name}: %{ext}은(는) 허용되지 않는 동영상 형식입니다. 허용: %{list}"
+      uploading: "업로드 중..."
       tab_url: "URL / 파일"
       tab_search: "YouTube 검색"
       url_label: "동영상 URL 또는 경로"
@@ -205,6 +210,9 @@ ko:
     # 이미지 선택 다이얼로그
     image_picker:
       title: "이미지 삽입"
+      tab_drop: "드롭"
+      drop_hint: "여기에 이미지를 끌어다 놓으세요"
+      drop_rejected: "%{name}: %{ext}은(는) 허용되지 않는 이미지 형식입니다. 허용: %{list}"
       tab_local: "로컬"
       tab_folder: "폴더"
       tab_web: "웹 검색"
