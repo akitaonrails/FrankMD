@@ -202,7 +202,6 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
 
       notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
       images_dir = notes_path.join("images")
-      before = Dir.glob(images_dir.join("*")).length
 
       post "/images/upload", params: { file: file }
 
@@ -210,8 +209,11 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       data = JSON.parse(response.body)
       assert_includes data["error"], "not an accepted image type"
 
-      after = Dir.glob(images_dir.join("*")).length
-      assert_equal before, after, "no file should have been written"
+      # No .html file may have been written. (Checked by extension rather than a
+      # total-count diff so it can't race with other upload tests writing .png
+      # files to this shared directory in parallel.)
+      html_files = Dir.glob(images_dir.join("*.html"))
+      assert_empty html_files, "the rejected HTML upload must not be stored"
     end
 
     test "upload returns error for S3 when not configured" do
