@@ -14,7 +14,7 @@ export default class extends Controller {
     "dialog",
     "tabDrop", "tabUrl", "tabSearch",
     "dropPanel", "urlPanel", "searchPanel",
-    "dropzone", "dropPreview", "dropFeedback", "dropInsertBtn",
+    "dropzone", "dropFileInput", "dropPreview", "dropFeedback", "dropInsertBtn",
     "videoUrl", "videoPreview", "insertVideoBtn",
     "youtubeSearchInput", "youtubeSearchBtn",
     "youtubeSearchStatus", "youtubeSearchResults",
@@ -228,8 +228,20 @@ export default class extends Controller {
   async onDrop(event) {
     event.preventDefault()
     this.dropzoneTarget.classList.remove("border-[var(--theme-accent)]", "bg-[var(--theme-bg-tertiary)]")
+    await this.uploadVideoFile(event.dataTransfer.files[0])
+  }
 
-    const file = event.dataTransfer.files[0]
+  // Clicking the dropzone opens the native file picker
+  openPicker() {
+    if (this.hasDropFileInputTarget) this.dropFileInputTarget.click()
+  }
+
+  async onFileInputChange(event) {
+    await this.uploadVideoFile(event.target.files[0])
+    event.target.value = ""  // allow re-selecting the same file
+  }
+
+  async uploadVideoFile(file) {
     if (!file) return
 
     const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || "no extension"

@@ -97,14 +97,23 @@
     >
       <div
         data-drop-images-target="dropzone"
-        data-action="dragover->drop-images#onDragover dragleave->drop-images#onDragleave drop->drop-images#onDrop"
-        class="border-2 border-dashed border-[var(--theme-border)] rounded-lg p-10 text-center text-sm text-[var(--theme-text-muted)] transition-colors"
+        data-action="click->drop-images#openPicker dragover->drop-images#onDragover dragleave->drop-images#onDragleave drop->drop-images#onDrop"
+        class="border-2 border-dashed border-[var(--theme-border)] rounded-lg p-10 text-center text-sm text-[var(--theme-text-muted)] transition-colors cursor-pointer hover:border-[var(--theme-accent)]"
       >
         <svg class="w-10 h-10 mx-auto mb-3 text-[var(--theme-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
         <%= t('dialogs.image_picker.drop_hint') %>
       </div>
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        class="hidden"
+        data-drop-images-target="fileInput"
+        data-action="change->drop-images#onFileInputChange"
+      >
+
 
       <div class="hidden mt-2 text-xs text-[var(--theme-warning)]" data-drop-images-target="feedback"></div>
 

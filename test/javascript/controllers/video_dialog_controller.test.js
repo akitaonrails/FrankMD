@@ -20,6 +20,7 @@ describe("VideoDialogController", () => {
         <button data-video-dialog-target="tabSearch" data-tab="search"></button>
         <div data-video-dialog-target="dropPanel">
           <div data-video-dialog-target="dropzone"></div>
+          <input data-video-dialog-target="dropFileInput" type="file" />
           <div data-video-dialog-target="dropFeedback" class="hidden"></div>
           <div data-video-dialog-target="dropPreview" class="hidden"></div>
           <button data-video-dialog-target="dropInsertBtn" disabled></button>
@@ -547,6 +548,29 @@ describe("VideoDialogController", () => {
 
       expect(controller.detectedVideoType).toBeNull()
       expect(controller.dropFeedbackTarget.textContent).toBe("boom")
+    })
+  })
+
+  describe("openPicker() / onFileInputChange()", () => {
+    it("opens the native file picker when the dropzone is clicked", () => {
+      const clickSpy = vi.spyOn(controller.dropFileInputTarget, "click").mockImplementation(() => {})
+      controller.openPicker()
+      expect(clickSpy).toHaveBeenCalled()
+    })
+
+    it("uploads a file selected via the picker", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ url: "videos/picked.mp4" })
+      })
+
+      await controller.onFileInputChange({
+        target: { files: [ new File([ "d" ], "picked.mp4", { type: "video/mp4" }) ], value: "picked.mp4" }
+      })
+
+      expect(controller.detectedVideoType).toBe("file")
+      expect(controller.detectedVideoData.url).toBe("videos/picked.mp4")
+      expect(controller.dropInsertBtnTarget.disabled).toBe(false)
     })
   })
 

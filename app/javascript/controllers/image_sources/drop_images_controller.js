@@ -7,7 +7,7 @@ import { FolderImageSource, DEFAULT_IMAGE_EXTENSIONS } from "lib/image_sources/f
 // the folder picker produces.
 
 export default class extends Controller {
-  static targets = ["dropzone", "container", "grid", "status", "feedback"]
+  static targets = ["dropzone", "fileInput", "container", "grid", "status", "feedback"]
 
   static values = {
     s3Enabled: Boolean
@@ -49,8 +49,21 @@ export default class extends Controller {
   async onDrop(event) {
     event.preventDefault()
     this.dropzoneTarget.classList.remove("border-[var(--theme-accent)]", "bg-[var(--theme-bg-tertiary)]")
+    await this.ingestFiles(event.dataTransfer.files)
+  }
 
-    const { count, rejected } = await this.source.ingest(event.dataTransfer.files, this.allowedExtensions)
+  // Clicking the dropzone opens the native file picker
+  openPicker() {
+    if (this.hasFileInputTarget) this.fileInputTarget.click()
+  }
+
+  async onFileInputChange(event) {
+    await this.ingestFiles(event.target.files)
+    event.target.value = ""  // allow re-selecting the same file
+  }
+
+  async ingestFiles(fileList) {
+    const { count, rejected } = await this.source.ingest(fileList, this.allowedExtensions)
 
     this.showRejected(rejected)
 
