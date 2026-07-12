@@ -17,9 +17,19 @@
         type="button"
         role="tab"
         data-action="click->image-picker#switchTab keydown->image-picker#onTabKeydown"
+        data-tab="drop"
+        data-image-picker-target="tabDrop"
+        class="px-4 py-2 text-sm font-medium border-b-2 border-[var(--theme-accent)] text-[var(--theme-accent)]"
+      >
+        <%= t('dialogs.image_picker.tab_drop') %>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        data-action="click->image-picker#switchTab keydown->image-picker#onTabKeydown"
         data-tab="local"
         data-image-picker-target="tabLocal"
-        class="px-4 py-2 text-sm font-medium border-b-2 border-[var(--theme-accent)] text-[var(--theme-accent)]"
+        class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)]"
       >
         <%= t('dialogs.image_picker.tab_local') %>
       </button>
@@ -78,9 +88,37 @@
     <!-- Scrollable Content Area -->
     <div class="flex-1 min-h-0 overflow-y-auto">
 
-    <!-- Tab Content: Local Images (server-side images_path) -->
+    <!-- Tab Content: Drop (drag-and-drop upload) -->
     <div
       class="p-4"
+      data-image-picker-target="panelDrop"
+      data-controller="drop-images"
+      data-action="drop-images:selected->image-picker#onSourceSelected"
+    >
+      <div
+        data-drop-images-target="dropzone"
+        data-action="dragover->drop-images#onDragover dragleave->drop-images#onDragleave drop->drop-images#onDrop"
+        class="border-2 border-dashed border-[var(--theme-border)] rounded-lg p-10 text-center text-sm text-[var(--theme-text-muted)] transition-colors"
+      >
+        <svg class="w-10 h-10 mx-auto mb-3 text-[var(--theme-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <%= t('dialogs.image_picker.drop_hint') %>
+      </div>
+
+      <div class="hidden mt-2 text-xs text-[var(--theme-warning)]" data-drop-images-target="feedback"></div>
+
+      <div class="hidden mt-3" data-drop-images-target="container">
+        <div class="grid grid-cols-5 gap-2 mb-2 max-h-[300px] overflow-y-auto" data-drop-images-target="grid"></div>
+        <div class="text-xs text-[var(--theme-text-muted)]" data-drop-images-target="status"></div>
+      </div>
+
+      <%= render "notes/dialogs/s3_option", mode: "upload" %>
+    </div>
+
+    <!-- Tab Content: Local Images (server-side images_path) -->
+    <div
+      class="p-4 hidden"
       data-image-picker-target="panelLocal"
       data-controller="local-images"
       data-action="local-images:selected->image-picker#onSourceSelected"

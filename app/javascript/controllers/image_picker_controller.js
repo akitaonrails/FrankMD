@@ -9,16 +9,16 @@ export default class extends Controller {
   static targets = [
     "dialog",
     // Tab buttons
-    "tabLocal", "tabFolder", "tabWeb", "tabGoogle", "tabPinterest", "tabAi",
+    "tabDrop", "tabLocal", "tabFolder", "tabWeb", "tabGoogle", "tabPinterest", "tabAi",
     // Tab panels (contain nested controllers)
-    "panelLocal", "panelFolder", "panelWeb", "panelGoogle", "panelPinterest", "panelAi",
+    "panelDrop", "panelLocal", "panelFolder", "panelWeb", "panelGoogle", "panelPinterest", "panelAi",
     // Common options
     "options", "selectedName", "alt", "link",
     "loading", "loadingText", "insertBtn"
   ]
 
   connect() {
-    this.currentTab = "local"
+    this.currentTab = "drop"
     this.selectedSource = null
     this.selectedImageData = null
 
@@ -42,11 +42,14 @@ export default class extends Controller {
   }
 
   configureSourceControllers() {
+    const dropCtrl = this.getSourceController("drop-images")
+    if (dropCtrl) dropCtrl.configure(this.config.s3_enabled, this.config.image_extensions)
+
     const localCtrl = this.getSourceController("local-images")
     if (localCtrl) localCtrl.configure(this.config.enabled, this.config.s3_enabled)
 
     const folderCtrl = this.getSourceController("folder-images")
-    if (folderCtrl) folderCtrl.configure(this.config.s3_enabled)
+    if (folderCtrl) folderCtrl.configure(this.config.s3_enabled, this.config.image_extensions)
 
     const webCtrl = this.getSourceController("web-images")
     if (webCtrl) webCtrl.configure(this.config.s3_enabled)
@@ -75,11 +78,11 @@ export default class extends Controller {
   // Dialog management
   async open() {
     this.resetAll()
-    this.switchTab({ currentTarget: { dataset: { tab: "local" } } })
+    this.switchTab({ currentTarget: { dataset: { tab: "drop" } } })
 
-    // Activate the local tab
-    const localCtrl = this.getSourceController("local-images")
-    if (localCtrl) await localCtrl.activate()
+    // Activate the drop tab (default)
+    const dropCtrl = this.getSourceController("drop-images")
+    if (dropCtrl) await dropCtrl.activate()
 
     this.dialogTarget.showModal()
   }
@@ -98,7 +101,7 @@ export default class extends Controller {
   resetAll() {
     this.selectedSource = null
     this.selectedImageData = null
-    this.currentTab = "local"
+    this.currentTab = "drop"
 
     // Reset common UI
     if (this.hasAltTarget) this.altTarget.value = ""
@@ -107,7 +110,7 @@ export default class extends Controller {
     if (this.hasInsertBtnTarget) this.insertBtnTarget.disabled = true
 
     // Reset each source controller
-    const sources = ["local-images", "folder-images", "web-images", "google-images", "pinterest-images", "ai-images"]
+    const sources = ["drop-images", "local-images", "folder-images", "web-images", "google-images", "pinterest-images", "ai-images"]
     sources.forEach(name => {
       const ctrl = this.getSourceController(name)
       if (ctrl) ctrl.reset()
@@ -127,7 +130,7 @@ export default class extends Controller {
     const activeClasses = "border-[var(--theme-accent)] text-[var(--theme-accent)]"
     const inactiveClasses = "border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)]"
 
-    const tabs = ["Local", "Folder", "Web", "Google", "Pinterest", "Ai"]
+    const tabs = ["Drop", "Local", "Folder", "Web", "Google", "Pinterest", "Ai"]
     tabs.forEach(t => {
       const tabTarget = this[`hasTab${t}Target`] ? this[`tab${t}Target`] : null
       const panelTarget = this[`hasPanel${t}Target`] ? this[`panel${t}Target`] : null
@@ -142,6 +145,7 @@ export default class extends Controller {
 
     // Activate the selected tab's controller
     const controllerMap = {
+      drop: "drop-images",
       local: "local-images",
       folder: "folder-images",
       web: "web-images",
@@ -156,7 +160,7 @@ export default class extends Controller {
 
   // Get ordered list of tab names
   getTabOrder() {
-    return ["local", "folder", "web", "google", "pinterest", "ai"]
+    return ["drop", "local", "folder", "web", "google", "pinterest", "ai"]
   }
 
   // Handle arrow key navigation on tab buttons
