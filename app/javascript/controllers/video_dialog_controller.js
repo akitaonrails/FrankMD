@@ -1,7 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
-import { get } from "@rails/request.js"
+import { get, post } from "@rails/request.js"
 import { escapeHtml } from "lib/text_utils"
 import { extractYouTubeId } from "lib/url_utils"
+
+const DEFAULT_VIDEO_EXTENSIONS = [".mp4", ".webm", ".mkv", ".mov", ".avi", ".m4v", ".ogv"]
 
 // Video Dialog Controller
 // Handles video embedding from URLs and YouTube search
@@ -10,8 +12,9 @@ import { extractYouTubeId } from "lib/url_utils"
 export default class extends Controller {
   static targets = [
     "dialog",
-    "tabUrl", "tabSearch",
-    "urlPanel", "searchPanel",
+    "tabDrop", "tabUrl", "tabSearch",
+    "dropPanel", "urlPanel", "searchPanel",
+    "dropzone", "dropPreview", "dropFeedback", "dropInsertBtn",
     "videoUrl", "videoPreview", "insertVideoBtn",
     "youtubeSearchInput", "youtubeSearchBtn",
     "youtubeSearchStatus", "youtubeSearchResults",
@@ -25,9 +28,32 @@ export default class extends Controller {
     this.youtubeApiEnabled = false
     this.detectedVideoType = null
     this.detectedVideoData = null
-    this.currentTab = "url"
+    this.currentTab = "drop"
+    this.s3Enabled = false
+    this.videoExtensions = DEFAULT_VIDEO_EXTENSIONS
 
     this.checkYoutubeApiEnabled()
+    this.loadMediaConfig()
+  }
+
+  async loadMediaConfig() {
+    try {
+      const response = await get("/images/config", { responseKind: "json" })
+      if (response.ok) {
+        const data = await response.json
+        this.s3Enabled = data.s3_enabled
+        if (data.video_extensions && data.video_extensions.length) {
+          this.videoExtensions = data.video_extensions
+        }
+      }
+    } catch (error) {
+      this.s3Enabled = false
+    }
+  }
+
+  get dropS3Option() {
+    const el = this.hasDropPanelTarget ? this.dropPanelTarget.querySelector('[data-controller="s3-option"]') : null
+    return el ? this.application.getControllerForElementAndIdentifier(el, "s3-option") : null
   }
 
   get useHugoShortcode() {
@@ -67,6 +93,9 @@ export default class extends Controller {
   }
 
   open() {
+    // Reset drop tab
+    this.resetDropTab()
+
     // Reset URL tab
     this.videoUrlTarget.value = ""
     this.videoPreviewTarget.innerHTML = `<span class="text-[var(--theme-text-muted)]">${window.t("dialogs.video.preview_hint")}</span>`
@@ -94,11 +123,10 @@ export default class extends Controller {
       this.youtubeSearchFormTarget.classList.toggle("hidden", !youtubeConfigured)
     }
 
-    // Reset to URL tab
-    this.switchTab({ currentTarget: { dataset: { tab: "url" } } })
+    // Reset to Drop tab (default)
+    this.switchTab({ currentTarget: { dataset: { tab: "drop" } } })
 
     this.dialogTarget.showModal()
-    this.videoUrlTarget.focus()
   }
 
   close() {
@@ -114,18 +142,16 @@ export default class extends Controller {
   switchToTab(tab) {
     this.currentTab = tab
 
-    // Update tab buttons
-    const urlTabClasses = tab === "url"
-      ? "border-[var(--theme-accent)] text-[var(--theme-accent)]"
-      : "border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)]"
-    const searchTabClasses = tab === "search"
-      ? "border-[var(--theme-accent)] text-[var(--theme-accent)]"
-      : "border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)]"
+    const active = "border-[var(--theme-accent)] text-[var(--theme-accent)]"
+    const inactive = "border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text-secondary)]"
+    const base = "px-4 py-2 text-sm font-medium border-b-2 "
 
-    this.tabUrlTarget.className = `px-4 py-2 text-sm font-medium border-b-2 ${urlTabClasses}`
-    this.tabSearchTarget.className = `px-4 py-2 text-sm font-medium border-b-2 ${searchTabClasses}`
+    if (this.hasTabDropTarget) this.tabDropTarget.className = base + (tab === "drop" ? active : inactive)
+    this.tabUrlTarget.className = base + (tab === "url" ? active : inactive)
+    this.tabSearchTarget.className = base + (tab === "search" ? active : inactive)
 
     // Show/hide panels
+    if (this.hasDropPanelTarget) this.dropPanelTarget.classList.toggle("hidden", tab !== "drop")
     this.urlPanelTarget.classList.toggle("hidden", tab !== "url")
     this.searchPanelTarget.classList.toggle("hidden", tab !== "search")
 
@@ -139,7 +165,7 @@ export default class extends Controller {
 
   // Get ordered list of tab names
   getTabOrder() {
-    return ["url", "search"]
+    return ["drop", "url", "search"]
   }
 
   // Handle arrow key navigation on tab buttons
@@ -186,6 +212,95 @@ export default class extends Controller {
     }
 
     this.switchToTab(tabs[newIndex])
+  }
+
+  // Drag-and-drop upload
+  onDragover(event) {
+    event.preventDefault()
+    this.dropzoneTarget.classList.add("border-[var(--theme-accent)]", "bg-[var(--theme-bg-tertiary)]")
+  }
+
+  onDragleave(event) {
+    event.preventDefault()
+    this.dropzoneTarget.classList.remove("border-[var(--theme-accent)]", "bg-[var(--theme-bg-tertiary)]")
+  }
+
+  async onDrop(event) {
+    event.preventDefault()
+    this.dropzoneTarget.classList.remove("border-[var(--theme-accent)]", "bg-[var(--theme-bg-tertiary)]")
+
+    const file = event.dataTransfer.files[0]
+    if (!file) return
+
+    const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || "no extension"
+    if (!this.videoExtensions.some(e => file.name.toLowerCase().endsWith(e))) {
+      this.showDropFeedback(window.t("dialogs.video.drop_rejected", {
+        name: file.name, ext, list: this.videoExtensions.join(", ")
+      }))
+      return
+    }
+
+    this.showDropFeedback("")
+    this.dropPreviewTarget.classList.remove("hidden")
+    this.dropPreviewTarget.innerHTML = `<span class="text-[var(--theme-text-muted)]">${window.t("status.uploading") || "Uploading..."}</span>`
+
+    try {
+      const s3 = this.dropS3Option
+      const formData = new FormData()
+      formData.append("file", file)
+      if (this.s3Enabled && s3?.isChecked) formData.append("upload_to_s3", "true")
+
+      const response = await post("/media/upload", { body: formData, responseKind: "json" })
+      const data = await response.json
+
+      if (!response.ok) {
+        this.showDropFeedback(data.error || window.t("status.search_failed_retry"))
+        this.dropPreviewTarget.classList.add("hidden")
+        return
+      }
+
+      this.detectedVideoType = "file"
+      this.detectedVideoData = { url: data.url }
+      this.dropPreviewTarget.innerHTML = `
+        <div class="flex items-center gap-3">
+          <svg class="w-8 h-8 text-[var(--theme-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="min-w-0">
+            <div class="font-medium text-[var(--theme-text-primary)]">${window.t("dialogs.video.tab_drop")}</div>
+            <div class="text-xs text-[var(--theme-text-muted)] truncate max-w-[350px]">${escapeHtml(file.name)}</div>
+          </div>
+        </div>
+      `
+      if (this.hasDropInsertBtnTarget) this.dropInsertBtnTarget.disabled = false
+    } catch (error) {
+      console.error("Video upload error:", error)
+      this.showDropFeedback(window.t("status.search_failed_retry"))
+      this.dropPreviewTarget.classList.add("hidden")
+    }
+  }
+
+  showDropFeedback(message) {
+    if (!this.hasDropFeedbackTarget) return
+    this.dropFeedbackTarget.textContent = message
+    this.dropFeedbackTarget.classList.toggle("hidden", !message)
+  }
+
+  resetDropTab() {
+    this.showDropFeedback("")
+    if (this.hasDropPreviewTarget) {
+      this.dropPreviewTarget.innerHTML = ""
+      this.dropPreviewTarget.classList.add("hidden")
+    }
+    if (this.hasDropInsertBtnTarget) this.dropInsertBtnTarget.disabled = true
+
+    // Video uploads at drop time, so the S3 choice must be visible before the drop.
+    const s3 = this.dropS3Option
+    if (s3) {
+      s3.reset()
+      if (this.s3Enabled) s3.show(); else s3.hide()
+    }
   }
 
   onVideoUrlInput() {

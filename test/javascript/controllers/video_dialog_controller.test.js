@@ -15,8 +15,15 @@ describe("VideoDialogController", () => {
     document.body.innerHTML = `
       <div data-controller="video-dialog">
         <dialog data-video-dialog-target="dialog"></dialog>
+        <button data-video-dialog-target="tabDrop" data-tab="drop"></button>
         <button data-video-dialog-target="tabUrl" data-tab="url"></button>
         <button data-video-dialog-target="tabSearch" data-tab="search"></button>
+        <div data-video-dialog-target="dropPanel">
+          <div data-video-dialog-target="dropzone"></div>
+          <div data-video-dialog-target="dropFeedback" class="hidden"></div>
+          <div data-video-dialog-target="dropPreview" class="hidden"></div>
+          <button data-video-dialog-target="dropInsertBtn" disabled></button>
+        </div>
         <div data-video-dialog-target="urlPanel"></div>
         <div data-video-dialog-target="searchPanel" class="hidden"></div>
         <input data-video-dialog-target="videoUrl" type="text" />
@@ -493,6 +500,53 @@ describe("VideoDialogController", () => {
       controller.selectYoutubeVideo(event)
 
       expect(closeSpy).toHaveBeenCalled()
+    })
+  })
+
+  describe("onDrop() (drag-and-drop upload)", () => {
+    function dropEvent(fileName) {
+      return {
+        preventDefault: vi.fn(),
+        dataTransfer: { files: [ new File([ "data" ], fileName, { type: "video/mp4" }) ] }
+      }
+    }
+
+    it("rejects a disallowed extension with a reason and does not upload", async () => {
+      const fetchSpy = vi.fn()
+      global.fetch = fetchSpy
+
+      await controller.onDrop(dropEvent("notes.txt"))
+
+      expect(fetchSpy).not.toHaveBeenCalled()
+      expect(controller.detectedVideoType).toBeNull()
+      expect(controller.dropFeedbackTarget.classList.contains("hidden")).toBe(false)
+      expect(controller.dropFeedbackTarget.textContent).toBe("dialogs.video.drop_rejected")
+    })
+
+    it("uploads a valid video and enables the insert button", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ url: "videos/clip.mp4" })
+      })
+
+      await controller.onDrop(dropEvent("clip.mp4"))
+
+      expect(global.fetch).toHaveBeenCalledWith("/media/upload", expect.objectContaining({ method: "POST" }))
+      expect(controller.detectedVideoType).toBe("file")
+      expect(controller.detectedVideoData.url).toBe("videos/clip.mp4")
+      expect(controller.dropInsertBtnTarget.disabled).toBe(false)
+    })
+
+    it("surfaces the server error when upload fails", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: () => Promise.resolve({ error: "boom" })
+      })
+
+      await controller.onDrop(dropEvent("clip.mp4"))
+
+      expect(controller.detectedVideoType).toBeNull()
+      expect(controller.dropFeedbackTarget.textContent).toBe("boom")
     })
   })
 
