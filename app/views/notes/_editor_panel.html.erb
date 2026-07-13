@@ -130,7 +130,7 @@
     </div>
     <div class="h-full hidden relative" data-app-target="editor"
          data-controller="codemirror typewriter"
-         data-action="codemirror:change->app#onEditorChange codemirror:selection-change->app#onEditorSelectionChange codemirror:scroll->scroll-sync#onEditorScroll typewriter:toggled->app#onTypewriterToggled">
+         data-action="codemirror:change->app#onEditorChange codemirror:selection-change->app#onEditorSelectionChange codemirror:scroll->scroll-sync#onEditorScroll codemirror:image-pasted->app#onImagePaste typewriter:toggled->app#onTypewriterToggled">
       <div class="h-full flex editor-wrapper" data-app-target="editorWrapper" data-typewriter-target="wrapper">
         <div class="flex-1 h-full editor-body" data-app-target="editorBody" data-typewriter-target="body">
           <!-- CodeMirror container -->

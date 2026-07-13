@@ -87,6 +87,19 @@ export default class extends Controller {
     this.dialogTarget.showModal()
   }
 
+  async openWithFile(file) {
+    await this.open()
+    const dropCtrl = this.getSourceController("drop-images")
+    if (!dropCtrl) return
+    this.showLoading(window.t("dialogs.image_picker.processing_image_paste"))
+    try {
+      await dropCtrl.loadExternalFile(file)
+    } finally {
+      // Never leave the loading overlay stuck over the dialog if ingest throws.
+      this.hideLoading()
+    }
+  }
+
   close() {
     const folderCtrl = this.getSourceController("folder-images")
     if (folderCtrl) folderCtrl.source.cleanup()

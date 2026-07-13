@@ -233,6 +233,7 @@ en:
       # Drag-and-drop
       drop_hint: "Drag & drop an image here"
       drop_rejected: "%{name}: %{ext} is not an accepted image type. Accepted: %{list}"
+      processing_image_paste: "Processing image..."
       # Local images
       local_path_required: "Local Images Path Required"
       local_path_description: "To browse local images, configure an images directory path."

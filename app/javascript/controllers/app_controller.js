@@ -668,6 +668,12 @@ export default class extends Controller {
     if (this.hasImagePickerOutlet) this.imagePickerOutlet.open()
   }
 
+  // Route pasted images through the picker (pre-selected) so the normal Insert flow still applies
+  onImagePaste(event) {
+    const { file } = event.detail
+    if (file && this.hasImagePickerOutlet) this.imagePickerOutlet.openWithFile(file)
+  }
+
   // === Editor Customization - Delegates to customize_controller ===
   openCustomize() {
     if (this.hasCustomizeOutlet) {

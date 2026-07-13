@@ -10,6 +10,7 @@ import { searchKeymap, highlightSelectionMatches } from "@codemirror/search"
 import { createTheme } from "lib/codemirror_theme"
 import { LINE_NUMBER_MODES } from "lib/line_numbers"
 import { createWikilinkAutocomplete } from "lib/codemirror_wikilink"
+import { imageFileFromClipboard } from "lib/clipboard_image"
 
 // Re-export for convenience
 export { LINE_NUMBER_MODES }
@@ -158,6 +159,7 @@ const markdownKeymap = Prec.highest(keymap.of([
  * @param {Function} options.onUpdate - Callback for document updates
  * @param {Function} options.onSelectionChange - Callback for selection changes
  * @param {Function} options.onScroll - Callback for scroll events
+ * @param {Function} options.onPaste - Callback(file) when an image is pasted
  * @returns {Extension[]} - Array of CodeMirror extensions
  */
 export function createExtensions(options = {}) {
@@ -169,7 +171,8 @@ export function createExtensions(options = {}) {
     lineNumberMode = LINE_NUMBER_MODES.OFF,
     onUpdate = null,
     onSelectionChange = null,
-    onScroll = null
+    onScroll = null,
+    onPaste = null
   } = options
 
   const extensions = [
@@ -244,6 +247,22 @@ export function createExtensions(options = {}) {
       }
       destroy() {
         this.view.scrollDOM.removeEventListener("scroll", this.onScroll)
+      }
+    }))
+  }
+
+  // Intercept only when the clipboard carries an image; plain-text paste falls through to CodeMirror's default
+  if (onPaste) {
+    extensions.push(EditorView.domEventHandlers({
+      paste(event) {
+        const file = imageFileFromClipboard(event.clipboardData)
+        if (!file) return false
+        // Copying an image from a web page puts text/html on the clipboard too;
+        // prevent the default explicitly so that markup is never inserted into
+        // the document alongside opening the picker.
+        event.preventDefault()
+        onPaste(file)
+        return true
       }
     }))
   }
