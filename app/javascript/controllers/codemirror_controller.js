@@ -59,7 +59,8 @@ export default class extends Controller {
       lineNumberMode: this.lineNumberModeValue,
       onUpdate: (update) => this.onDocumentChange(update),
       onSelectionChange: (update) => this.onSelectionChange(update),
-      onScroll: (event, view) => this.onScroll(event, view)
+      onScroll: (event, view) => this.onScroll(event, view),
+      onPaste: (file) => this.onImagePaste(file)
     })
 
     // Add typewriter extension
@@ -167,6 +168,10 @@ export default class extends Controller {
         scrollRatio: this.getScrollRatio()
       }
     })
+  }
+
+  onImagePaste(file) {
+    this.dispatch("image-pasted", { detail: { file } })
   }
 
   // === Public API (textarea-compatible) ===
