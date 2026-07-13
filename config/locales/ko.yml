@@ -213,6 +213,7 @@ ko:
       tab_drop: "드롭"
       drop_hint: "여기에 이미지를 끌어다 놓으세요"
       drop_rejected: "%{name}: %{ext}은(는) 허용되지 않는 이미지 형식입니다. 허용: %{list}"
+      processing: "이미지 처리 중..."
       tab_local: "로컬"
       tab_folder: "폴더"
       tab_web: "웹 검색"

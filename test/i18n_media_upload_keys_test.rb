@@ -14,6 +14,7 @@ class I18nMediaUploadKeysTest < ActiveSupport::TestCase
     "dialogs.image_picker.tab_drop",
     "dialogs.image_picker.drop_hint",
     "dialogs.image_picker.drop_rejected",
+    "dialogs.image_picker.processing",
     "dialogs.video.tab_drop",
     "dialogs.video.drop_hint",
     "dialogs.video.drop_rejected",

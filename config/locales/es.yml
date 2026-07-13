@@ -213,6 +213,7 @@ es:
       tab_drop: "Soltar"
       drop_hint: "Arrastra y suelta una imagen aquí"
       drop_rejected: "%{name}: %{ext} no es un tipo de imagen aceptado. Aceptados: %{list}"
+      processing: "Procesando imagen..."
       tab_local: "Local"
       tab_folder: "Carpeta"
       tab_web: "Búsqueda Web"

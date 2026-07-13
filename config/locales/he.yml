@@ -210,6 +210,7 @@ he:
       tab_drop: "גרירה"
       drop_hint: "גררו ושחררו תמונה כאן"
       drop_rejected: "%{name}: %{ext} אינו סוג תמונה מקובל. מקובלים: %{list}"
+      processing: "מעבד תמונה..."
       tab_local: "מקומי"
       tab_folder: "תיקייה"
       tab_web: "חיפוש באינטרנט"
