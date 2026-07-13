@@ -1,5 +1,4 @@
-// Helpers for extracting a pasted image out of a clipboard event so it can be
-// fed into the image-picker Drop source (same File machinery as drag-and-drop).
+// Extract a pasted image from a clipboard event as a File the image-picker Drop source can ingest.
 
 const EXT_BY_MIME = {
   "image/png": ".png",
@@ -9,7 +8,6 @@ const EXT_BY_MIME = {
   "image/bmp": ".bmp"
 }
 
-// Return an image File from clipboard data, or null if there is no image.
 export function imageFileFromClipboard(clipboardData) {
   if (!clipboardData) return null
   for (const item of clipboardData.items || []) {

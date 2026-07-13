@@ -668,8 +668,7 @@ export default class extends Controller {
     if (this.hasImagePickerOutlet) this.imagePickerOutlet.open()
   }
 
-  // Image pasted into the editor: open the picker with it pre-selected, so the
-  // user finishes through the normal Insert flow (alt/link/S3 all still apply).
+  // Route pasted images through the picker (pre-selected) so the normal Insert flow still applies
   onImagePaste(event) {
     const { file } = event.detail
     if (file && this.hasImagePickerOutlet) this.imagePickerOutlet.openWithFile(file)

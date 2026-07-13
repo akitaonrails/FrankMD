@@ -251,8 +251,7 @@ export function createExtensions(options = {}) {
     }))
   }
 
-  // Paste listener - intercept only when the clipboard carries an image, so a
-  // plain-text paste falls through to CodeMirror's default handling untouched.
+  // Intercept only when the clipboard carries an image; plain-text paste falls through to CodeMirror's default
   if (onPaste) {
     extensions.push(EditorView.domEventHandlers({
       paste(event) {

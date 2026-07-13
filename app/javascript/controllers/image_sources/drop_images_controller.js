@@ -142,9 +142,7 @@ export default class extends Controller {
     })
   }
 
-  // Load a File that arrived from outside a drop event (e.g. a clipboard paste),
-  // then auto-select it so the picker opens ready to Insert. A rejected file
-  // renders no grid item; ingestFiles has already shown the reason.
+  // A rejected file renders no grid item; ingestFiles has already shown the reason.
   async loadExternalFile(file) {
     await this.ingestFiles([file])
     const el = this.gridTarget.querySelector('[data-index="0"]')

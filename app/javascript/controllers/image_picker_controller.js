@@ -87,8 +87,6 @@ export default class extends Controller {
     this.dialogTarget.showModal()
   }
 
-  // Open the picker with an externally-provided File (e.g. a pasted image),
-  // routed through the Drop source and pre-selected so Insert is ready.
   async openWithFile(file) {
     await this.open()
     const dropCtrl = this.getSourceController("drop-images")
