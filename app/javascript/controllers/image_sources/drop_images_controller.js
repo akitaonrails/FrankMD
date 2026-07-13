@@ -117,14 +117,17 @@ export default class extends Controller {
   }
 
   select(event) {
-    const index = parseInt(event.currentTarget.dataset.index)
+    this.selectByIndex(parseInt(event.currentTarget.dataset.index), event.currentTarget)
+  }
+
+  selectByIndex(index, el) {
     const image = this.source.getImage(index)
     if (!image) return
 
     this.selectedImage = { name: image.name, file: image.file }
 
     this.source.deselectAll(this.gridTarget)
-    event.currentTarget.classList.add("selected")
+    if (el) el.classList.add("selected")
 
     if (this.s3EnabledValue && this.s3Option) {
       this.s3Option.show()
@@ -137,6 +140,15 @@ export default class extends Controller {
         alt: image.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ")
       }
     })
+  }
+
+  // Load a File that arrived from outside a drop event (e.g. a clipboard paste),
+  // then auto-select it so the picker opens ready to Insert. A rejected file
+  // renders no grid item; ingestFiles has already shown the reason.
+  async loadExternalFile(file) {
+    await this.ingestFiles([file])
+    const el = this.gridTarget.querySelector('[data-index="0"]')
+    if (el) this.selectByIndex(0, el)
   }
 
   async getImageUrl() {

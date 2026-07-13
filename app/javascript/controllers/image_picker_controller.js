@@ -87,6 +87,17 @@ export default class extends Controller {
     this.dialogTarget.showModal()
   }
 
+  // Open the picker with an externally-provided File (e.g. a pasted image),
+  // routed through the Drop source and pre-selected so Insert is ready.
+  async openWithFile(file) {
+    await this.open()
+    const dropCtrl = this.getSourceController("drop-images")
+    if (!dropCtrl) return
+    this.showLoading(window.t("dialogs.image_picker.processing"))
+    await dropCtrl.loadExternalFile(file)
+    this.hideLoading()
+  }
+
   close() {
     const folderCtrl = this.getSourceController("folder-images")
     if (folderCtrl) folderCtrl.source.cleanup()
@@ -254,7 +265,7 @@ export default class extends Controller {
     if (!ctrl) return
 
     try {
-      this.showLoading("Processing image...")
+      this.showLoading(window.t("dialogs.image_picker.processing"))
       this.insertBtnTarget.disabled = true
 
       const imageUrl = await ctrl.getImageUrl()
