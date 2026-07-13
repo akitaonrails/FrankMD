@@ -105,6 +105,29 @@ describe("DropImagesController", () => {
     })
   })
 
+  describe("loadExternalFile()", () => {
+    it("ingests a pasted file and auto-selects it", async () => {
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+      await controller.loadExternalFile(file("pasted.png"))
+
+      expect(controller.selectedImage).toMatchObject({ name: "pasted.png" })
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        "selected",
+        expect.objectContaining({ detail: expect.objectContaining({ type: "drop", name: "pasted.png" }) })
+      )
+      expect(controller.gridTarget.querySelector('[data-index="0"]').classList.contains("selected")).toBe(true)
+    })
+
+    it("selects nothing and shows feedback when the file is rejected", async () => {
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+      await controller.loadExternalFile(file("notes.txt"))
+
+      expect(controller.selectedImage).toBeNull()
+      expect(dispatchSpy).not.toHaveBeenCalledWith("selected", expect.anything())
+      expect(controller.feedbackTarget.classList.contains("hidden")).toBe(false)
+    })
+  })
+
   describe("onDropzoneKeydown()", () => {
     it("opens the picker on Enter and Space, ignores others", () => {
       const spy = vi.spyOn(controller, "openPicker").mockImplementation(() => {})
