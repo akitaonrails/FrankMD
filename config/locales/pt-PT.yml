@@ -213,7 +213,7 @@ pt-PT:
       tab_drop: "Largar"
       drop_hint: "Arraste e largue uma imagem aqui"
       drop_rejected: "%{name}: %{ext} não é um tipo de imagem aceite. Aceites: %{list}"
-      processing: "A processar imagem..."
+      processing_image_paste: "A processar imagem..."
       tab_local: "Local"
       tab_folder: "Pasta"
       tab_web: "Pesquisa Web"

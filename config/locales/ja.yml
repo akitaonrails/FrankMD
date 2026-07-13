@@ -213,7 +213,7 @@ ja:
       tab_drop: "ドロップ"
       drop_hint: "ここに画像をドラッグ＆ドロップ"
       drop_rejected: "%{name}: %{ext} は受け付けられない画像形式です。受付可能: %{list}"
-      processing: "画像を処理中..."
+      processing_image_paste: "画像を処理中..."
       tab_local: "ローカル"
       tab_folder: "フォルダ"
       tab_web: "Web検索"

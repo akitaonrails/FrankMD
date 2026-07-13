@@ -219,7 +219,7 @@ pt-BR:
       tab_drop: "Soltar"
       drop_hint: "Arraste e solte uma imagem aqui"
       drop_rejected: "%{name}: %{ext} não é um tipo de imagem aceito. Aceitos: %{list}"
-      processing: "Processando imagem..."
+      processing_image_paste: "Processando imagem..."
       tab_local: "Local"
       tab_folder: "Pasta"
       tab_web: "Busca Web"

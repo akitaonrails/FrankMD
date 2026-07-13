@@ -93,7 +93,7 @@ export default class extends Controller {
     await this.open()
     const dropCtrl = this.getSourceController("drop-images")
     if (!dropCtrl) return
-    this.showLoading(window.t("dialogs.image_picker.processing"))
+    this.showLoading(window.t("dialogs.image_picker.processing_image_paste"))
     await dropCtrl.loadExternalFile(file)
     this.hideLoading()
   }
@@ -265,7 +265,7 @@ export default class extends Controller {
     if (!ctrl) return
 
     try {
-      this.showLoading(window.t("dialogs.image_picker.processing"))
+      this.showLoading("Processing image...")
       this.insertBtnTarget.disabled = true
 
       const imageUrl = await ctrl.getImageUrl()

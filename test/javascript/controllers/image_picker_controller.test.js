@@ -56,7 +56,7 @@ describe("ImagePickerController#openWithFile", () => {
 
     expect(controller.open).toHaveBeenCalled()
     expect(controller.getSourceController).toHaveBeenCalledWith("drop-images")
-    expect(showLoading).toHaveBeenCalledWith("dialogs.image_picker.processing")
+    expect(showLoading).toHaveBeenCalledWith("dialogs.image_picker.processing_image_paste")
     expect(dropCtrl.loadExternalFile).toHaveBeenCalledWith(file)
     expect(hideLoading).toHaveBeenCalled()
   })
