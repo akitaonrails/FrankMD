@@ -70,4 +70,14 @@ describe("ImagePickerController#openWithFile", () => {
     expect(controller.open).toHaveBeenCalled()
     expect(showLoading).not.toHaveBeenCalled()
   })
+
+  it("hides the loading overlay even when ingest throws", async () => {
+    const dropCtrl = { loadExternalFile: vi.fn().mockRejectedValue(new Error("boom")) }
+    controller.getSourceController = vi.fn(() => dropCtrl)
+    const hideLoading = vi.spyOn(controller, "hideLoading")
+
+    await expect(controller.openWithFile({ name: "pasted.png" })).rejects.toThrow("boom")
+
+    expect(hideLoading).toHaveBeenCalled()
+  })
 })

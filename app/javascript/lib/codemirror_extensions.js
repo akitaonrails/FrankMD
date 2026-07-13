@@ -257,6 +257,10 @@ export function createExtensions(options = {}) {
       paste(event) {
         const file = imageFileFromClipboard(event.clipboardData)
         if (!file) return false
+        // Copying an image from a web page puts text/html on the clipboard too;
+        // prevent the default explicitly so that markup is never inserted into
+        // the document alongside opening the picker.
+        event.preventDefault()
         onPaste(file)
         return true
       }

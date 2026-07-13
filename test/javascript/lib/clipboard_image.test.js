@@ -42,4 +42,13 @@ describe("normalizeImageFile()", () => {
     const named = new File(["x"], "photo.jpg", { type: "image/jpeg" })
     expect(normalizeImageFile(named)).toBe(named)
   })
+
+  it("derives the extension from the MIME subtype for unknown image types", () => {
+    // Not faked as .png — the allow-list should reject these with honest feedback.
+    const tiff = new File(["x"], "", { type: "image/tiff" })
+    expect(normalizeImageFile(tiff).name).toMatch(/\.tiff$/)
+
+    const svg = new File(["x"], "", { type: "image/svg+xml" })
+    expect(normalizeImageFile(svg).name).toMatch(/\.svg$/)
+  })
 })
