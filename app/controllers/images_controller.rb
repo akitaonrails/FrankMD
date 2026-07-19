@@ -51,7 +51,7 @@ class ImagesController < ApplicationController
     end
 
     resize_ratio = parse_resize_ratio(resize)
-    result = ImagesService.upload_file(file, resize: resize_ratio, upload_to_s3: upload_to_s3)
+    result = ImagesService.upload_file(file, resize: resize_ratio, upload_to_s3: upload_to_s3, s3_key: params[:s3_key])
 
     if result[:url]
       render json: { url: result[:url] }
@@ -72,7 +72,7 @@ class ImagesController < ApplicationController
 
     path = params[:path]
     resize_ratio = parse_resize_ratio(params[:resize])
-    s3_url = ImagesService.upload_to_s3(path, resize: resize_ratio)
+    s3_url = ImagesService.upload_to_s3(path, resize: resize_ratio, custom_key: params[:s3_key])
 
     if s3_url
       render json: { url: s3_url }
@@ -97,7 +97,7 @@ class ImagesController < ApplicationController
     end
 
     resize_ratio = parse_resize_ratio(params[:resize])
-    s3_url = ImagesService.download_and_upload_to_s3(url, resize: resize_ratio)
+    s3_url = ImagesService.download_and_upload_to_s3(url, resize: resize_ratio, custom_prefix: params[:s3_prefix])
     if s3_url
       render json: { url: s3_url }
     else
@@ -124,7 +124,8 @@ class ImagesController < ApplicationController
       data,
       mime_type: mime_type,
       filename: filename,
-      upload_to_s3: upload_to_s3
+      upload_to_s3: upload_to_s3,
+      s3_prefix: params[:s3_prefix]
     )
 
     if result[:url]
