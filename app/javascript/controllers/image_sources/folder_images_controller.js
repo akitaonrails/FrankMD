@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { FolderImageSource } from "lib/image_sources/folder_images"
+import { defaultS3Key } from "lib/s3_key"
 
 // Folder Images Tab Controller
 // Handles browsing and selecting images from local filesystem via File System Access API
@@ -96,6 +97,7 @@ export default class extends Controller {
     // Show S3 options if enabled
     if (this.s3EnabledValue && this.s3Option) {
       this.s3Option.show()
+      this.s3Option.setDefaultKey(defaultS3Key(image.name))
     }
 
     // Dispatch selection event to parent
@@ -118,7 +120,8 @@ export default class extends Controller {
     const data = await this.source.upload(
       this.selectedImage.file,
       resizeRatio,
-      uploadToS3
+      uploadToS3,
+      s3?.keyValue || ""
     )
     return data.url
   }

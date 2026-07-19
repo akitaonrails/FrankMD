@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { FolderImageSource, DEFAULT_IMAGE_EXTENSIONS } from "lib/image_sources/folder_images"
 import { highlightDropzone, unhighlightDropzone } from "lib/dropzone"
+import { defaultS3Key } from "lib/s3_key"
 
 // Drop Images Tab Controller
 // Accepts drag-and-dropped image files. Reuses FolderImageSource machinery
@@ -131,6 +132,7 @@ export default class extends Controller {
 
     if (this.s3EnabledValue && this.s3Option) {
       this.s3Option.show()
+      this.s3Option.setDefaultKey(defaultS3Key(image.name))
     }
 
     this.dispatch("selected", {
@@ -156,7 +158,7 @@ export default class extends Controller {
     const uploadToS3 = this.s3EnabledValue && s3?.isChecked
     const resizeRatio = s3?.resizeRatio || ""
 
-    const data = await this.source.upload(this.selectedImage.file, resizeRatio, uploadToS3)
+    const data = await this.source.upload(this.selectedImage.file, resizeRatio, uploadToS3, s3?.keyValue || "")
     return data.url
   }
 

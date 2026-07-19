@@ -217,11 +217,12 @@ export class FolderImageSource {
     }
   }
 
-  async upload(file, resize, uploadToS3) {
+  async upload(file, resize, uploadToS3, s3Key = "") {
     const formData = new FormData()
     formData.append("file", file)
     if (resize) formData.append("resize", resize)
     if (uploadToS3) formData.append("upload_to_s3", "true")
+    if (uploadToS3 && s3Key) formData.append("s3_key", s3Key)
 
     const response = await post("/images/upload", {
       body: formData,

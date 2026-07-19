@@ -276,7 +276,10 @@ export default class extends Controller {
       const s3 = this.dropS3Option
       const formData = new FormData()
       formData.append("file", file)
-      if (this.s3Enabled && s3?.isChecked) formData.append("upload_to_s3", "true")
+      if (this.s3Enabled && s3?.isChecked) {
+        formData.append("upload_to_s3", "true")
+        if (s3.keyValue) formData.append("s3_prefix", s3.keyValue)
+      }
 
       const response = await post("/media/upload", { body: formData, responseKind: "json" })
       const data = await response.json

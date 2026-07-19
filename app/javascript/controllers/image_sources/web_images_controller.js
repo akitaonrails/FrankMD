@@ -94,7 +94,7 @@ export default class extends Controller {
     const resizeRatio = s3?.resizeRatio || ""
 
     if (reuploadToS3) {
-      const data = await this.source.uploadToS3(this.selectedImage.url, resizeRatio)
+      const data = await this.source.uploadToS3(this.selectedImage.url, resizeRatio, s3?.keyValue || "")
       return data.url
     }
 
