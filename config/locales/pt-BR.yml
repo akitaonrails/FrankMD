@@ -297,6 +297,10 @@ pt-BR:
       half_size: "1/2 do tamanho (50%)"
       two_thirds_size: "2/3 do tamanho (67%)"
       compress: "+ comprimir"
+      custom_key: "Chave de destino"
+      custom_key_hint: "Chave completa do objeto S3. Edite para mudar onde o arquivo é salvo."
+      custom_prefix: "Pasta de destino"
+      custom_prefix_hint: "Prefixo da chave S3. O nome do arquivo é anexado automaticamente."
 
     # Diálogo de ajuda
     help:

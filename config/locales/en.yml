@@ -298,6 +298,10 @@ en:
       half_size: "1/2 size (50%)"
       two_thirds_size: "2/3 size (67%)"
       compress: "+ compress"
+      custom_key: "Destination key"
+      custom_key_hint: "Full S3 object key. Edit to change where the file is stored."
+      custom_prefix: "Destination folder"
+      custom_prefix_hint: "S3 key prefix. The filename is appended automatically."
 
     # Help dialog
     help:

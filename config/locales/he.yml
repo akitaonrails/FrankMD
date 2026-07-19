@@ -288,6 +288,10 @@ he:
       half_size: "חצי גודל (50%)"
       two_thirds_size: "שני שלישים (67%)"
       compress: "+ דחוס"
+      custom_key: "מפתח יעד"
+      custom_key_hint: "מפתח האובייקט המלא ב-S3. ערוך כדי לשנות היכן הקובץ יישמר."
+      custom_prefix: "תיקיית יעד"
+      custom_prefix_hint: "קידומת מפתח S3. שם הקובץ מתווסף אוטומטית."
 
     # דיאלוג עזרה
     help:

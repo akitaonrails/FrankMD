@@ -291,6 +291,10 @@ ko:
       half_size: "1/2 크기 (50%)"
       two_thirds_size: "2/3 크기 (67%)"
       compress: "+ 압축"
+      custom_key: "대상 키"
+      custom_key_hint: "전체 S3 오브젝트 키입니다. 저장 위치를 바꾸려면 수정하세요."
+      custom_prefix: "대상 폴더"
+      custom_prefix_hint: "S3 키 접두사입니다. 파일 이름이 자동으로 추가됩니다."
 
     # 도움말 다이얼로그
     help:
