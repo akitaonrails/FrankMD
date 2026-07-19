@@ -74,7 +74,7 @@ class ImagesService
       full_path
     end
 
-    def upload_to_s3(path, resize: nil)
+    def upload_to_s3(path, resize: nil, custom_key: nil)
       return nil unless s3_enabled?
 
       full_path = find_image(path)
@@ -83,10 +83,11 @@ class ImagesService
       require "aws-sdk-s3"
 
       cfg = Config.new
+      region = UploadStorage.s3_region
       client = Aws::S3::Client.new(
         access_key_id: cfg.get("aws_access_key_id"),
         secret_access_key: cfg.get("aws_secret_access_key"),
-        region: cfg.get("aws_region") || "us-east-1"
+        region: region
       )
 
       # Process image if resize ratio provided
@@ -99,8 +100,7 @@ class ImagesService
       end
 
       bucket = cfg.get("aws_s3_bucket")
-      region = cfg.get("aws_region") || "us-east-1"
-      key = "frankmd/#{Time.current.strftime('%Y/%m')}/#{filename}"
+      key = UploadStorage.s3_key(filename, custom_key: custom_key)
 
       # Upload without ACL first (works with buckets that have ACLs disabled)
       begin
@@ -115,13 +115,12 @@ class ImagesService
         # The object was still uploaded successfully
       end
 
-      encoded_key = key.split("/").map { |part| ERB::Util.url_encode(part) }.join("/")
-      "https://#{bucket}.s3.#{region}.amazonaws.com/#{encoded_key}"
+      UploadStorage.s3_url(bucket, region, key)
     end
 
     # Upload a file from browser (local folder picker)
     # Saves to notes/images/ directory or uploads to S3
-    def upload_file(uploaded_file, resize: nil, upload_to_s3: false)
+    def upload_file(uploaded_file, resize: nil, upload_to_s3: false, s3_key: nil)
       return { error: "No file provided" } unless uploaded_file
 
       # Enforce the same allow-list + size cap as video uploads. Without this,
@@ -134,7 +133,7 @@ class ImagesService
 
       UploadStorage.with_temp_copy(uploaded_file, extension) do |temp_path|
         if upload_to_s3 && s3_enabled?
-          upload_temp_to_s3(temp_path, uploaded_file.original_filename, resize: resize)
+          upload_temp_to_s3(temp_path, uploaded_file.original_filename, resize: resize, custom_key: s3_key)
         else
           save_to_notes_directory(temp_path, uploaded_file.original_filename, resize: resize)
         end
@@ -144,7 +143,7 @@ class ImagesService
     end
 
     # Upload base64 encoded image data (e.g., from AI image generation)
-    def upload_base64_data(base64_data, mime_type: nil, filename: nil, upload_to_s3: false)
+    def upload_base64_data(base64_data, mime_type: nil, filename: nil, upload_to_s3: false, s3_prefix: nil)
       require "base64"
       require "securerandom"
       require "fileutils"
@@ -175,7 +174,7 @@ class ImagesService
 
       begin
         if upload_to_s3 && s3_enabled?
-          upload_temp_to_s3(temp_path, filename, resize: nil)
+          upload_temp_to_s3(temp_path, filename, resize: nil, custom_prefix: s3_prefix)
         else
           save_to_notes_directory(temp_path, filename, resize: nil)
         end
@@ -184,7 +183,7 @@ class ImagesService
       end
     end
 
-    def download_and_upload_to_s3(url, resize: nil)
+    def download_and_upload_to_s3(url, resize: nil, custom_prefix: nil)
       return nil unless s3_enabled?
 
       require "aws-sdk-s3"
@@ -236,7 +235,7 @@ class ImagesService
 
       cfg = Config.new
       bucket = cfg.get("aws_s3_bucket")
-      region = cfg.get("aws_region") || "us-east-1"
+      region = UploadStorage.s3_region
 
       client = Aws::S3::Client.new(
         access_key_id: cfg.get("aws_access_key_id"),
@@ -244,7 +243,7 @@ class ImagesService
         region: region
       )
 
-      key = "frankmd/#{Time.current.strftime('%Y/%m')}/#{original_name}"
+      key = UploadStorage.s3_key(original_name, custom_prefix: custom_prefix)
 
       begin
         client.put_object(
@@ -257,8 +256,7 @@ class ImagesService
         # Bucket has ACLs disabled, which is fine
       end
 
-      encoded_key = key.split("/").map { |part| ERB::Util.url_encode(part) }.join("/")
-      "https://#{bucket}.s3.#{region}.amazonaws.com/#{encoded_key}"
+      UploadStorage.s3_url(bucket, region, key)
     end
 
     private
@@ -406,12 +404,12 @@ class ImagesService
     end
 
     # Upload a temp file to S3
-    def upload_temp_to_s3(temp_path, original_filename, resize: nil)
+    def upload_temp_to_s3(temp_path, original_filename, resize: nil, custom_key: nil, custom_prefix: nil)
       require "aws-sdk-s3"
 
       cfg = Config.new
       bucket = cfg.get("aws_s3_bucket")
-      region = cfg.get("aws_region") || "us-east-1"
+      region = UploadStorage.s3_region
 
       client = Aws::S3::Client.new(
         access_key_id: cfg.get("aws_access_key_id"),
@@ -428,7 +426,7 @@ class ImagesService
         filename = original_filename
       end
 
-      key = "frankmd/#{Time.current.strftime('%Y/%m')}/#{filename}"
+      key = UploadStorage.s3_key(filename, custom_key: custom_key, custom_prefix: custom_prefix)
 
       begin
         client.put_object(
@@ -441,8 +439,7 @@ class ImagesService
         # Bucket has ACLs disabled, which is fine
       end
 
-      encoded_key = key.split("/").map { |part| ERB::Util.url_encode(part) }.join("/")
-      { url: "https://#{bucket}.s3.#{region}.amazonaws.com/#{encoded_key}" }
+      { url: UploadStorage.s3_url(bucket, region, key) }
     end
   end
 end

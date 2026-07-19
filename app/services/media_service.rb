@@ -22,7 +22,7 @@ class MediaService
   class << self
     # Save an uploaded video file locally or to S3.
     # Returns { url: "..." } on success or { error: "..." } on failure.
-    def save_upload(uploaded_file, upload_to_s3: false)
+    def save_upload(uploaded_file, upload_to_s3: false, s3_prefix: nil)
       return { error: "No file provided" } unless uploaded_file
 
       UploadStorage.enforce_size!(uploaded_file)
@@ -30,7 +30,7 @@ class MediaService
 
       UploadStorage.with_temp_copy(uploaded_file, extension) do |temp_path|
         if upload_to_s3 && ImagesService.s3_enabled?
-          store_s3(temp_path, uploaded_file.original_filename)
+          store_s3(temp_path, uploaded_file.original_filename, custom_prefix: s3_prefix)
         else
           store_local(temp_path, uploaded_file.original_filename)
         end
@@ -53,7 +53,7 @@ class MediaService
       { url: "#{SUBDIR}/#{dest_filename}" }
     end
 
-    def store_s3(temp_path, original_filename)
+    def store_s3(temp_path, original_filename, custom_prefix: nil)
       require "aws-sdk-s3"
 
       cfg = Config.new
@@ -66,7 +66,7 @@ class MediaService
         region: region
       )
 
-      key = UploadStorage.s3_key(original_filename)
+      key = UploadStorage.s3_key(original_filename, custom_prefix: custom_prefix)
       content_type = VIDEO_MIME_TYPES[File.extname(key).downcase] || "application/octet-stream"
 
       File.open(temp_path, "rb") do |io|

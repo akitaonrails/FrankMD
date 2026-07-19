@@ -88,9 +88,36 @@ module UploadStorage
     Config.new.get("aws_region").presence || DEFAULT_S3_REGION
   end
 
-  def s3_key(original_filename)
+  # Build the S3 object key for an upload.
+  #
+  # - custom_key: the user typed the whole key (drop/folder/local flows, where
+  #   the client knows the filename). Sanitized and used verbatim.
+  # - custom_prefix: the user typed only the folder (external/AI/video flows,
+  #   where the server owns the filename). Sanitized, then the safe filename is
+  #   appended.
+  # - neither: the default "frankmd/YYYY/MM/<filename>".
+  #
+  # Custom values that sanitize down to nothing fall back to the default rather
+  # than producing a bare or malformed key.
+  def s3_key(original_filename, custom_key: nil, custom_prefix: nil)
+    key = sanitize_s3_key(custom_key)
+    return key if key.present?
+
     safe = original_filename.to_s.gsub(SANITIZE_RE, "_")
-    "#{S3_KEY_PREFIX}/#{Time.current.strftime('%Y/%m')}/#{safe}"
+    prefix = sanitize_s3_key(custom_prefix)
+    prefix = "#{S3_KEY_PREFIX}/#{Time.current.strftime('%Y/%m')}" if prefix.blank?
+    "#{prefix}/#{safe}"
+  end
+
+  # Sanitize a user-supplied key or prefix. Unlike SANITIZE_RE alone (which
+  # turns "/" into "_"), this keeps "/" so nested prefixes work, while dropping
+  # empty, "." and ".." segments so a client can't produce a leading slash,
+  # "//", or "../" traversal in the destination.
+  def sanitize_s3_key(value)
+    value.to_s.split("/").filter_map do |segment|
+      next if segment.empty? || segment == "." || segment == ".."
+      segment.gsub(SANITIZE_RE, "_")
+    end.join("/")
   end
 
   def s3_url(bucket, region, key)
