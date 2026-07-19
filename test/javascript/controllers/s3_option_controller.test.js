@@ -12,7 +12,7 @@ describe("S3OptionController", () => {
     setupJsdomGlobals()
 
     document.body.innerHTML = `
-      <div data-controller="s3-option">
+      <div data-controller="s3-option" data-s3-option-key-mode-value="full">
         <input type="checkbox" data-s3-option-target="checkbox" />
         <div data-s3-option-target="resizeOption" class="">
           <select data-s3-option-target="resizeSelect">
@@ -21,6 +21,9 @@ describe("S3OptionController", () => {
             <option value="0.75">75%</option>
             <option value="1">100%</option>
           </select>
+        </div>
+        <div data-s3-option-target="keyOption" class="hidden">
+          <input type="text" data-s3-option-target="keyInput" />
         </div>
       </div>
     `
@@ -116,6 +119,47 @@ describe("S3OptionController", () => {
       controller.checkboxTarget.checked = true
       controller.resizeSelectTarget.value = "0.75"
       expect(controller.resizeRatio).toBe("0.75")
+    })
+  })
+
+  describe("destination key", () => {
+    it("reveals the key option and pre-fills the default key when checked", () => {
+      controller.setDefaultKey("frankmd/2026/07/photo.png")
+      controller.onCheckboxChange({ target: { checked: true } })
+
+      expect(controller.keyOptionTarget.classList.contains("hidden")).toBe(false)
+      expect(controller.keyInputTarget.value).toBe("frankmd/2026/07/photo.png")
+    })
+
+    it("keyValue returns the trimmed input only when checked", () => {
+      controller.keyInputTarget.value = "  blog/hero.png  "
+      controller.checkboxTarget.checked = false
+      expect(controller.keyValue).toBe("")
+
+      controller.checkboxTarget.checked = true
+      expect(controller.keyValue).toBe("blog/hero.png")
+    })
+
+    it("does not clobber a manual edit when the selection changes", () => {
+      controller.checkboxTarget.checked = true
+      controller.setDefaultKey("frankmd/2026/07/a.png")
+      controller.onCheckboxChange({ target: { checked: true } })
+
+      // User edits the key, then a different image is selected.
+      controller.keyInputTarget.value = "custom/place.png"
+      controller.onKeyInput()
+      controller.setDefaultKey("frankmd/2026/07/b.png")
+
+      expect(controller.keyInputTarget.value).toBe("custom/place.png")
+    })
+
+    it("hides the key option and clears the input on reset", () => {
+      controller.keyInputTarget.value = "blog/hero.png"
+      controller.keyOptionTarget.classList.remove("hidden")
+      controller.reset()
+
+      expect(controller.keyOptionTarget.classList.contains("hidden")).toBe(true)
+      expect(controller.keyInputTarget.value).toBe("")
     })
   })
 

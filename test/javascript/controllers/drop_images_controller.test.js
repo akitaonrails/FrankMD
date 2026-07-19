@@ -128,6 +128,22 @@ describe("DropImagesController", () => {
     })
   })
 
+  describe("getImageUrl()", () => {
+    it("forwards the chosen S3 key to the upload", async () => {
+      controller.s3EnabledValue = true
+      controller.selectedImage = { name: "a.png", file: file("a.png") }
+      vi.spyOn(controller, "s3Option", "get").mockReturnValue({
+        isChecked: true, resizeRatio: "", keyValue: "blog/hero.png"
+      })
+      const uploadSpy = vi.spyOn(controller.source, "upload").mockResolvedValue({ url: "https://s3/x" })
+
+      const url = await controller.getImageUrl()
+
+      expect(uploadSpy).toHaveBeenCalledWith(controller.selectedImage.file, "", true, "blog/hero.png")
+      expect(url).toBe("https://s3/x")
+    })
+  })
+
   describe("onDropzoneKeydown()", () => {
     it("opens the picker on Enter and Space, ignores others", () => {
       const spy = vi.spyOn(controller, "openPicker").mockImplementation(() => {})
