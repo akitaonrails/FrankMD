@@ -291,6 +291,10 @@ es:
       half_size: "1/2 del tamaño (50%)"
       two_thirds_size: "2/3 del tamaño (67%)"
       compress: "+ comprimir"
+      custom_key: "Clave de destino"
+      custom_key_hint: "Clave completa del objeto S3. Edítala para cambiar dónde se guarda el archivo."
+      custom_prefix: "Carpeta de destino"
+      custom_prefix_hint: "Prefijo de la clave S3. El nombre del archivo se añade automáticamente."
 
     # Help dialog
     help:

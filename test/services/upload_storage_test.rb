@@ -67,6 +67,58 @@ class UploadStorageTest < ActiveSupport::TestCase
     assert name.end_with?(".mp4")
   end
 
+  # === sanitize_s3_key ===
+
+  test "sanitize_s3_key keeps nested prefixes" do
+    assert_equal "blog/2026/hero", UploadStorage.sanitize_s3_key("blog/2026/hero")
+  end
+
+  test "sanitize_s3_key strips traversal, leading and doubled slashes" do
+    assert_equal "etc/passwd", UploadStorage.sanitize_s3_key("../../etc/passwd")
+    assert_equal "a/b", UploadStorage.sanitize_s3_key("/a//b/")
+    assert_equal "a/b", UploadStorage.sanitize_s3_key("a/./b")
+  end
+
+  test "sanitize_s3_key replaces unsafe characters per segment" do
+    assert_equal "my_folder/a_b", UploadStorage.sanitize_s3_key("my folder/a b")
+  end
+
+  test "sanitize_s3_key returns empty string when nothing survives" do
+    assert_equal "", UploadStorage.sanitize_s3_key("../..")
+    assert_equal "", UploadStorage.sanitize_s3_key(nil)
+  end
+
+  # === s3_key ===
+
+  test "s3_key builds the default frankmd/YYYY/MM/<filename> when no custom value" do
+    assert_match %r{\Afrankmd/\d{4}/\d{2}/photo\.png\z}, UploadStorage.s3_key("photo.png")
+  end
+
+  test "s3_key sanitizes the filename in the default path" do
+    key = UploadStorage.s3_key("../ev il.png")
+    assert_match %r{\Afrankmd/\d{4}/\d{2}/}, key
+    assert key.end_with?("/.._ev_il.png")
+  end
+
+  test "s3_key uses a sanitized custom_key verbatim, ignoring the default and prefix" do
+    key = UploadStorage.s3_key("photo.png", custom_key: "blog/2026/hero.png", custom_prefix: "ignored")
+    assert_equal "blog/2026/hero.png", key
+  end
+
+  test "s3_key appends the safe filename to a custom_prefix" do
+    assert_equal "blog/2026/photo.png", UploadStorage.s3_key("photo.png", custom_prefix: "blog/2026")
+  end
+
+  test "s3_key blocks traversal in a custom_key" do
+    key = UploadStorage.s3_key("photo.png", custom_key: "../../etc/passwd")
+    assert_equal "etc/passwd", key
+  end
+
+  test "s3_key falls back to the default when a custom value sanitizes to empty" do
+    assert_match %r{\Afrankmd/\d{4}/\d{2}/photo\.png\z}, UploadStorage.s3_key("photo.png", custom_key: "../..")
+    assert_match %r{\Afrankmd/\d{4}/\d{2}/photo\.png\z}, UploadStorage.s3_key("photo.png", custom_prefix: "///")
+  end
+
   # === with_temp_copy ===
 
   test "with_temp_copy writes to a random name (not the client filename) and cleans up" do

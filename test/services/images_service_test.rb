@@ -387,7 +387,7 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     assert_match %r{^https://test-bucket\.s3\.us-east-1\.amazonaws\.com/frankmd/\d{4}/\d{2}/upload_test\.jpg$}, result
   end
 
-  test "upload_to_s3 encodes special characters in URL" do
+  test "upload_to_s3 sanitizes special characters in the object key" do
     create_test_image("my photo (1).jpg", "image content")
 
     mock_client = stub
@@ -398,7 +398,10 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     result = ImagesService.upload_to_s3("my photo (1).jpg")
 
     assert result.present?
-    assert_includes result, "my%20photo%20%281%29.jpg"
+    # S3 keys now route through UploadStorage.s3_key, which sanitizes the
+    # filename the same way the video path always has (image/video parity).
+    # Spaces and parens become "_", so there is nothing left to URL-encode.
+    assert_includes result, "my_photo__1_.jpg"
     refute_includes result, " "
   end
 

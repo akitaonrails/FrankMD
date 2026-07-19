@@ -85,9 +85,11 @@ export class WebImageSource {
     }
   }
 
-  async uploadToS3(url, resize) {
+  async uploadToS3(url, resize, s3Prefix = "") {
+    const body = { url, resize }
+    if (s3Prefix) body.s3_prefix = s3Prefix
     const response = await post("/images/upload_external_to_s3", {
-      body: { url, resize },
+      body,
       responseKind: "json"
     })
 

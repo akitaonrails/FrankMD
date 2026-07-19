@@ -123,7 +123,7 @@
         <div class="text-xs text-[var(--theme-text-muted)]" data-drop-images-target="status"></div>
       </div>
 
-      <%= render "notes/dialogs/s3_option", mode: "upload" %>
+      <%= render "notes/dialogs/s3_option", mode: "upload", key_mode: "full" %>
     </div>
 
     <!-- Tab Content: Local Images (server-side images_path) -->
@@ -171,7 +171,7 @@
         </div>
       </div>
 
-      <%= render "notes/dialogs/s3_option", mode: "upload" %>
+      <%= render "notes/dialogs/s3_option", mode: "upload", key_mode: "full" %>
     </div>
 
     <!-- Tab Content: Folder (browser folder picker) -->
@@ -252,7 +252,7 @@
         </div>
       </div>
 
-      <%= render "notes/dialogs/s3_option", mode: "upload", description: t('dialogs.s3_option.upload_description') %>
+      <%= render "notes/dialogs/s3_option", mode: "upload", key_mode: "full", description: t('dialogs.s3_option.upload_description') %>
     </div>
 
     <!-- Tab Content: Web Search (Bing/DuckDuckGo) -->
@@ -566,6 +566,7 @@
                     name="aiImageSaveOption"
                     value="local"
                     checked
+                    data-action="change->ai-images#onSaveOptionChange"
                     class="text-[var(--theme-accent)] focus:ring-[var(--theme-accent)]"
                   >
                   <span><%= t('dialogs.image_picker.save_local') %></span>
@@ -576,10 +577,22 @@
                     name="aiImageSaveOption"
                     value="s3"
                     data-ai-images-target="saveS3"
+                    data-action="change->ai-images#onSaveOptionChange"
                     class="text-[var(--theme-accent)] focus:ring-[var(--theme-accent)]"
                   >
                   <span><%= t('dialogs.image_picker.save_s3') %></span>
                 </label>
+                <div class="hidden ml-6" data-ai-images-target="keyOption">
+                  <label class="block text-sm">
+                    <span><%= t('dialogs.s3_option.custom_prefix') %></span>
+                    <input
+                      type="text"
+                      data-ai-images-target="keyInput"
+                      class="mt-1 w-full px-2 py-1 text-sm border border-[var(--theme-border)] rounded bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+                    >
+                  </label>
+                  <p class="text-xs text-[var(--theme-text-muted)] mt-1"><%= t('dialogs.s3_option.custom_prefix_hint') %></p>
+                </div>
               </div>
             </div>
           </div>

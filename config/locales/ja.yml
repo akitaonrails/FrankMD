@@ -291,6 +291,10 @@ ja:
       half_size: "1/2サイズ（50%）"
       two_thirds_size: "2/3サイズ（67%）"
       compress: "+ 圧縮"
+      custom_key: "保存先キー"
+      custom_key_hint: "S3オブジェクトの完全なキー。編集すると保存先を変更できます。"
+      custom_prefix: "保存先フォルダ"
+      custom_prefix_hint: "S3キーのプレフィックス。ファイル名は自動的に追加されます。"
 
     # Help dialog
     help:

@@ -3,17 +3,23 @@
     - mode: "upload" (default) or "reupload"
     - description: optional custom description text
     - show_resize: show the resize dropdown (default true; false for videos)
+    - key_mode: "prefix" (default) or "full". "full" pre-fills the whole object
+      key incl. filename (flows where the client holds the file); "prefix"
+      pre-fills only the folder and the server appends the filename.
 %>
 <% mode ||= "upload" %>
 <% show_resize = true if show_resize.nil? %>
+<% key_mode ||= "prefix" %>
 <%
   label = mode == "reupload" ? t('dialogs.s3_option.reupload_to_s3') : t('dialogs.s3_option.upload_to_s3')
   description ||= mode == "reupload" ?
     t('dialogs.s3_option.reupload_description') :
     t('dialogs.s3_option.upload_description')
+  key_label = key_mode == "full" ? t('dialogs.s3_option.custom_key') : t('dialogs.s3_option.custom_prefix')
+  key_hint = key_mode == "full" ? t('dialogs.s3_option.custom_key_hint') : t('dialogs.s3_option.custom_prefix_hint')
 %>
 
-<div class="hidden" data-controller="s3-option">
+<div class="hidden" data-controller="s3-option" data-s3-option-key-mode-value="<%= key_mode %>">
   <label class="flex items-center gap-2 text-sm cursor-pointer">
     <input
       type="checkbox"
@@ -26,6 +32,20 @@
   <p class="text-xs text-[var(--theme-text-muted)] mt-1 ml-6">
     <%= description %>
   </p>
+
+  <!-- Destination key/prefix (only when S3 is checked) -->
+  <div class="hidden mt-2 ml-6" data-s3-option-target="keyOption">
+    <label class="block text-sm">
+      <span><%= key_label %></span>
+      <input
+        type="text"
+        data-s3-option-target="keyInput"
+        data-action="input->s3-option#onKeyInput"
+        class="mt-1 w-full px-2 py-1 text-sm border border-[var(--theme-border)] rounded bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+      >
+    </label>
+    <p class="text-xs text-[var(--theme-text-muted)] mt-1"><%= key_hint %></p>
+  </div>
   <% if show_resize %>
   <!-- Resize option (only when S3 is checked) -->
   <div class="hidden mt-2 ml-6" data-s3-option-target="resizeOption">

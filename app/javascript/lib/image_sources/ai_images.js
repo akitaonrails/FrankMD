@@ -150,7 +150,7 @@ export class AiImageSource {
     container.innerHTML = html
   }
 
-  async save(uploadToS3) {
+  async save(uploadToS3, s3Prefix = "") {
     if (!this.generatedData) {
       return { error: "No generated image data available" }
     }
@@ -158,13 +158,15 @@ export class AiImageSource {
     try {
       if (this.generatedData.data) {
         // Base64 image data
+        const body = {
+          data: this.generatedData.data,
+          mime_type: this.generatedData.mime_type,
+          filename: `ai_${Date.now()}.png`,
+          upload_to_s3: uploadToS3
+        }
+        if (uploadToS3 && s3Prefix) body.s3_prefix = s3Prefix
         const response = await post("/images/upload_base64", {
-          body: {
-            data: this.generatedData.data,
-            mime_type: this.generatedData.mime_type,
-            filename: `ai_${Date.now()}.png`,
-            upload_to_s3: uploadToS3
-          },
+          body,
           responseKind: "json"
         })
 
@@ -177,8 +179,10 @@ export class AiImageSource {
       } else if (this.generatedData.url) {
         // URL image
         if (uploadToS3) {
+          const body = { url: this.generatedData.url }
+          if (s3Prefix) body.s3_prefix = s3Prefix
           const response = await post("/images/upload_external_to_s3", {
-            body: { url: this.generatedData.url },
+            body,
             responseKind: "json"
           })
 

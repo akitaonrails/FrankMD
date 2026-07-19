@@ -3,7 +3,19 @@
 require "test_helper"
 
 class LogsControllerTest < ActionDispatch::IntegrationTest
+  # Serialize this class across parallel test worker processes. These tests
+  # mutate the shared log/<env>.log — one even renames it away — which races
+  # sibling tests running in other forked processes. That race was the source
+  # of a long-standing intermittent CI failure: the controller's missing-file
+  # branch has no "environment" key, so the reader test saw nil whenever the
+  # rename test held the file hostage mid-request.
+  LOCK_FILE = Rails.root.join("tmp", "logs_controller_test.lock")
+
   def setup
+    FileUtils.mkdir_p(LOCK_FILE.dirname)
+    @lock = File.open(LOCK_FILE, File::CREAT | File::RDWR)
+    @lock.flock(File::LOCK_EX)
+
     @log_file = Rails.root.join("log", "#{Rails.env}.log")
     @original_content = File.read(@log_file) if File.exist?(@log_file)
   end
@@ -12,6 +24,11 @@ class LogsControllerTest < ActionDispatch::IntegrationTest
     # Restore original log content
     if @original_content
       File.write(@log_file, @original_content)
+    end
+  ensure
+    if @lock
+      @lock.flock(File::LOCK_UN)
+      @lock.close
     end
   end
 

@@ -13,7 +13,7 @@ class MediaController < ApplicationController
       return render json: { error: t("errors.no_file_upload") }, status: :unprocessable_entity
     end
 
-    result = MediaService.save_upload(file, upload_to_s3: upload_to_s3)
+    result = MediaService.save_upload(file, upload_to_s3: upload_to_s3, s3_prefix: params[:s3_prefix])
 
     if result[:url]
       render json: { url: result[:url] }

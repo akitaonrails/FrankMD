@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { LocalImageSource } from "lib/image_sources/local_images"
+import { defaultS3Key } from "lib/s3_key"
 
 // Local Images Tab Controller
 // Handles searching and selecting images from the server's images directory
@@ -73,6 +74,7 @@ export default class extends Controller {
     // Show S3 options if enabled
     if (this.s3EnabledValue && this.s3Option) {
       this.s3Option.show()
+      this.s3Option.setDefaultKey(defaultS3Key(name))
     }
 
     // Dispatch selection event to parent
@@ -95,7 +97,7 @@ export default class extends Controller {
     if (!path) return null
 
     if (uploadToS3) {
-      const data = await this.source.uploadToS3(path, resizeRatio)
+      const data = await this.source.uploadToS3(path, resizeRatio, s3?.keyValue || "")
       return data.url
     }
 
