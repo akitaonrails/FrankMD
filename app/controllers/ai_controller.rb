@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class AiController < ApplicationController
-  skip_forgery_protection only: [ :fix_grammar, :generate_image ]
-
   # GET /ai/config
   def status
     render json: AiService.provider_info

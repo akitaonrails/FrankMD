@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class MediaController < ApplicationController
-  skip_forgery_protection only: [ :upload ]
-
   # POST /media/upload
   # Upload a video file from browser drag-and-drop
   def upload
