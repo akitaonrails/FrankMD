@@ -123,7 +123,7 @@
         <div class="text-xs text-[var(--theme-text-muted)]" data-drop-images-target="status"></div>
       </div>
 
-      <%= render "notes/dialogs/s3_option", mode: "upload" %>
+      <%= render "notes/dialogs/s3_option", mode: "upload", key_mode: "full" %>
     </div>
 
     <!-- Tab Content: Local Images (server-side images_path) -->
@@ -171,7 +171,7 @@
         </div>
       </div>
 
-      <%= render "notes/dialogs/s3_option", mode: "upload" %>
+      <%= render "notes/dialogs/s3_option", mode: "upload", key_mode: "full" %>
     </div>
 
     <!-- Tab Content: Folder (browser folder picker) -->
@@ -252,7 +252,7 @@
         </div>
       </div>
 
-      <%= render "notes/dialogs/s3_option", mode: "upload", description: t('dialogs.s3_option.upload_description') %>
+      <%= render "notes/dialogs/s3_option", mode: "upload", key_mode: "full", description: t('dialogs.s3_option.upload_description') %>
     </div>
 
     <!-- Tab Content: Web Search (Bing/DuckDuckGo) -->
