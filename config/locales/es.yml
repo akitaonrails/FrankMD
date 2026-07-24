@@ -138,6 +138,8 @@ es:
       placeholder: "Nombre"
       note_placeholder: "Nombre de la nota"
       folder_placeholder: "Nombre de la carpeta"
+      creating_in: "En:"
+      root_location: "carpeta raíz"
 
     # Note type dialog
     note_type:

@@ -135,6 +135,8 @@ he:
       placeholder: "שם"
       note_placeholder: "שם ההערה"
       folder_placeholder: "שם התיקייה"
+      creating_in: "ב־"
+      root_location: "תיקיית השורש"
 
     # דיאלוג סוג הערה
     note_type:
