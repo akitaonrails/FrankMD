@@ -313,6 +313,23 @@ class NotesServiceTest < ActiveSupport::TestCase
     assert_equal 1, results.length
   end
 
+  test "search_content does not fail on a file with invalid UTF-8 bytes" do
+    # A Latin-1/binary .md anywhere in the tree must not take down the whole search.
+    File.binwrite(@test_notes_dir.join("bad.md"), "hello \xFF\xFE world\n")
+    create_test_note("good.md", "hello world")
+
+    results = nil
+    assert_nothing_raised { results = @service.search_content("world") }
+    assert_includes results.map { |r| r[:path] }, "good.md"
+  end
+
+  test "search_content matches text in a file with invalid UTF-8, scrubbing bad bytes" do
+    File.binwrite(@test_notes_dir.join("bad.md"), "target_word \xFF here\n")
+
+    results = @service.search_content("target_word")
+    assert_includes results.map { |r| r[:path] }, "bad.md"
+  end
+
   test "search_content supports regex patterns" do
     create_test_note("note.md", "foo123bar\nfoo456bar\nhello world")
 
