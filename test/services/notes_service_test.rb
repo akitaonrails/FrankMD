@@ -157,6 +157,54 @@ class NotesServiceTest < ActiveSupport::TestCase
     assert @test_notes_dir.join("deep/nested/note.md").exist?
   end
 
+  test "write does not leave temp files behind" do
+    @service.write("note.md", "content")
+
+    temps = Dir.children(@test_notes_dir).select { |f| f.end_with?(".tmp") }
+    assert_empty temps, "atomic write should clean up its temp file"
+  end
+
+  test "write preserves the existing note's file mode across the atomic swap" do
+    path = create_test_note("note.md", "original")
+    File.chmod(0o600, path)
+
+    @service.write("note.md", "updated")
+
+    assert_equal 0o600, File.stat(path).mode & 0o777,
+      "atomic write must not reset the note's permission bits"
+    assert_equal "updated", File.read(path)
+  end
+
+  test "write lands its temp file in the target's own directory (same-filesystem rename)" do
+    create_test_folder("sub")
+    dest_dir = @test_notes_dir.join("sub").to_s
+
+    # The atomicity guarantee only holds if the temp shares the destination's
+    # filesystem — i.e. lives in the destination directory, not Dir.tmpdir.
+    captured_from = nil
+    File.stubs(:rename).with { |from, _to| captured_from = from; true }.returns(0)
+
+    @service.write("sub/note.md", "content")
+
+    assert_equal dest_dir, File.dirname(captured_from),
+      "temp file must be created in the destination directory"
+  ensure
+    File.unstub(:rename)
+  end
+
+  test "write preserves the original note when the atomic rename fails" do
+    create_test_note("note.md", "Original content")
+    File.stubs(:rename).raises(Errno::ENOSPC)
+
+    assert_raises(Errno::ENOSPC) { @service.write("note.md", "New content that fails") }
+
+    # The write was atomic: the original is untouched (not truncated/corrupted)
+    # and the temp file was cleaned up.
+    assert_equal "Original content", File.read(@test_notes_dir.join("note.md"))
+    temps = Dir.children(@test_notes_dir).select { |f| f.end_with?(".tmp") }
+    assert_empty temps, "failed atomic write should not leave a temp file behind"
+  end
+
   test "write creates Hugo blog post directory structure" do
     # Hugo blog posts use YYYY/MM/DD/slug/index.md structure
     hugo_path = "2026/01/30/my-first-post/index.md"
@@ -277,14 +325,21 @@ class NotesServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "sanitizes paths with double dots" do
-    # The service should either reject or sanitize paths with ..
+  test "rejects paths that traverse out of the base directory" do
     create_test_note("safe.md", "Safe content")
 
-    # This should not allow escaping the base directory
-    assert_raises(NotesService::NotFoundError) do
+    # ".." that escapes the base is rejected outright, not silently sanitized
+    # (the old gsub approach also mangled legitimate filenames containing "..").
+    assert_raises(NotesService::InvalidPathError) do
       @service.read("folder/../../../etc/passwd")
     end
+  end
+
+  test "allows a filename that legitimately contains double dots" do
+    @service.write("notes..v2.md", "kept intact")
+
+    assert_equal "kept intact", @service.read("notes..v2.md")
+    assert @test_notes_dir.join("notes..v2.md").exist?
   end
 
   # === search_content ===
@@ -311,6 +366,40 @@ class NotesServiceTest < ActiveSupport::TestCase
 
     results = @service.search_content("WORLD")
     assert_equal 1, results.length
+  end
+
+  test "search_content does not fail on a file with invalid UTF-8 bytes" do
+    # A Latin-1/binary .md anywhere in the tree must not take down the whole search.
+    File.binwrite(@test_notes_dir.join("bad.md"), "hello \xFF\xFE world\n")
+    create_test_note("good.md", "hello world")
+
+    results = nil
+    assert_nothing_raised { results = @service.search_content("world") }
+    assert_includes results.map { |r| r[:path] }, "good.md"
+  end
+
+  test "search_content matches text in a file with invalid UTF-8, scrubbing bad bytes" do
+    File.binwrite(@test_notes_dir.join("bad.md"), "target_word \xFF here\n")
+
+    results = @service.search_content("target_word")
+    assert_includes results.map { |r| r[:path] }, "bad.md"
+  end
+
+  test "search_content skips a file it cannot read and keeps searching the rest" do
+    # A file that raises a SystemCallError mid-read (e.g. EACCES, or vanished
+    # between listing and read) must be skipped, not abort the whole search.
+    create_test_note("good.md", "findme here")
+    create_test_note("locked.md", "findme too")
+
+    IO.stubs(:readlines).with { |p, *| p.to_s.end_with?("locked.md") }.raises(Errno::EACCES)
+    IO.stubs(:readlines).with { |p, *| !p.to_s.end_with?("locked.md") }.returns([ "findme here\n" ])
+
+    results = nil
+    assert_nothing_raised { results = @service.search_content("findme") }
+    assert_includes results.map { |r| r[:path] }, "good.md"
+    refute_includes results.map { |r| r[:path] }, "locked.md"
+  ensure
+    IO.unstub(:readlines)
   end
 
   test "search_content supports regex patterns" do

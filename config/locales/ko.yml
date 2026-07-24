@@ -138,6 +138,8 @@ ko:
       placeholder: "이름"
       note_placeholder: "노트 이름"
       folder_placeholder: "폴더 이름"
+      creating_in: "위치:"
+      root_location: "루트 폴더"
 
     # 노트 유형 다이얼로그
     note_type:

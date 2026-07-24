@@ -144,6 +144,8 @@ en:
       placeholder: "Name"
       note_placeholder: "Note name"
       folder_placeholder: "Folder name"
+      creating_in: "In:"
+      root_location: "root folder"
 
     # Note type dialog
     note_type:

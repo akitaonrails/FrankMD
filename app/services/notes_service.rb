@@ -23,7 +23,7 @@ class NotesService
   def write(path, content)
     full_path = safe_path(path, must_exist: false)
     FileUtils.mkdir_p(full_path.dirname)
-    full_path.write(content)
+    atomic_write(full_path, content)
     true
   end
 
@@ -117,6 +117,26 @@ class NotesService
 
   private
 
+  # Write atomically: write to a temp file in the same directory, then rename it
+  # over the target. A failed or partial write (e.g. ENOSPC / disk full) never
+  # leaves the existing note truncated — the original stays intact until the
+  # atomic rename succeeds. The temp file is on the same filesystem as the
+  # target, so File.rename is atomic.
+  def atomic_write(full_path, content)
+    tmp = full_path.dirname.join(".#{full_path.basename}.#{SecureRandom.hex(6)}.tmp")
+    begin
+      tmp.write(content)
+      # A fresh temp file gets a umask-derived mode (e.g. 0644). Renaming it over
+      # an existing note would silently reset a mode the operator had changed, so
+      # copy the existing note's permission bits onto the temp before the swap.
+      File.chmod(full_path.stat.mode & 0o777, tmp.to_s) if full_path.exist?
+      File.rename(tmp.to_s, full_path.to_s)
+    rescue StandardError
+      tmp.delete if tmp.exist?
+      raise
+    end
+  end
+
   # Collect files sorted by modification time (for file finder/tree display)
   def collect_markdown_files(dir)
     files = []
@@ -153,7 +173,10 @@ class NotesService
 
   def search_file(file_path, regex, context_lines, max_matches)
     matches = []
-    lines = file_path.readlines(chomp: true)
+    # scrub replaces invalid UTF-8 bytes with the replacement character, so a
+    # single Latin-1/binary .md file cannot raise "invalid byte sequence in
+    # UTF-8" from line.match? and take down the entire content search.
+    lines = file_path.readlines(chomp: true).map(&:scrub)
 
     lines.each_with_index do |line, index|
       next unless line.match?(regex)
@@ -176,15 +199,15 @@ class NotesService
     end
 
     matches
+  rescue SystemCallError
+    # File vanished between listing and read (TOCTOU), or another I/O error —
+    # skip this file rather than failing the whole search.
+    []
   end
 
   def safe_path(path, must_exist: true)
-    normalized = Pathname.new(path.to_s.gsub(/\.\./, "")).cleanpath
-    full_path = @base_path.join(normalized)
-
-    unless full_path.to_s.start_with?(@base_path.to_s)
-      raise InvalidPathError, "Invalid path: #{path}"
-    end
+    full_path = PathSafety.contain(@base_path, path)
+    raise InvalidPathError, "Invalid path: #{path}" if full_path.nil?
 
     if must_exist && !full_path.exist?
       raise NotFoundError, "Path not found: #{path}"

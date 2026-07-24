@@ -14,7 +14,8 @@ export default class extends Controller {
     "noteTypeDialog",
     "newItemDialog",
     "newItemTitle",
-    "newItemInput"
+    "newItemInput",
+    "newItemLocation"
   ]
 
   connect() {
@@ -117,8 +118,11 @@ export default class extends Controller {
     }
   }
 
-  // New Note
+  // New Note (root). Clear any parent left over from a prior folder-scoped
+  // "New Note in Folder" that was cancelled, so a root note is created at the
+  // root — and the location line reflects that.
   newNote() {
+    this.newItemParent = ""
     if (this.hasNoteTypeDialogTarget) {
       this.noteTypeDialogTarget.showModal()
     }
@@ -172,6 +176,14 @@ export default class extends Controller {
     if (this.hasNewItemTitleTarget) {
       const titleKey = type === "folder" ? "dialogs.new_item.new_folder" : "dialogs.new_item.new_note"
       this.newItemTitleTarget.textContent = window.t(titleKey)
+    }
+
+    if (this.hasNewItemLocationTarget) {
+      const where = this.newItemParent && this.newItemParent.length
+        ? this.newItemParent
+        : window.t("dialogs.new_item.root_location")
+      this.newItemLocationTarget.textContent = `${window.t("dialogs.new_item.creating_in")} ${where}`
+      this.newItemLocationTarget.title = where
     }
 
     if (this.hasNewItemInputTarget) {

@@ -118,7 +118,11 @@
     data-file-operations-target="newItemDialog"
   >
     <form method="dialog" class="p-4 w-80 text-[var(--theme-text-primary)]">
-      <h3 class="text-sm font-semibold mb-3" data-file-operations-target="newItemTitle"><%= t('dialogs.new_item.new_note') %></h3>
+      <h3 class="text-sm font-semibold mb-1" data-file-operations-target="newItemTitle"><%= t('dialogs.new_item.new_note') %></h3>
+      <p
+        class="text-xs text-[var(--theme-text-muted)] mb-3 truncate"
+        data-file-operations-target="newItemLocation"
+      ></p>
       <input
         type="text"
         data-file-operations-target="newItemInput"

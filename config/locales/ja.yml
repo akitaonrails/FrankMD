@@ -138,6 +138,8 @@ ja:
       placeholder: "名前"
       note_placeholder: "ノート名"
       folder_placeholder: "フォルダ名"
+      creating_in: "作成先:"
+      root_location: "ルートフォルダ"
 
     # Note type dialog
     note_type:

@@ -166,6 +166,13 @@ class ImagesService
         filename = "#{filename}#{extension}"
       end
 
+      # Enforce the same allow-list + size cap as the multipart upload path. This
+      # route previously skipped both, so mime_type=image/svg+xml (-> .svg) or a
+      # caller-supplied .html filename could be stored under the notes dir and
+      # served inline by NotesController#serve_asset (stored XSS). See UploadStorage.
+      UploadStorage.enforce_bytes!(file_content.bytesize)
+      UploadStorage.validate_filename!(filename, "image_upload_extensions", "image")
+
       # Create temp file
       temp_dir = Rails.root.join("tmp", "uploads")
       FileUtils.mkdir_p(temp_dir)
@@ -181,6 +188,8 @@ class ImagesService
       ensure
         FileUtils.rm_f(temp_path)
       end
+    rescue UploadStorage::RejectedError => e
+      { error: e.message }
     end
 
     def download_and_upload_to_s3(url, resize: nil, custom_prefix: nil)
@@ -280,16 +289,7 @@ class ImagesService
     def safe_path(path)
       return nil if path.blank?
 
-      # Prevent path traversal
-      clean_path = Pathname.new(path).cleanpath
-      return nil if clean_path.to_s.start_with?("..")
-
-      full_path = images_path.join(clean_path)
-
-      # Ensure the path is within images_path
-      return nil unless full_path.to_s.start_with?(images_path.to_s)
-
-      full_path
+      PathSafety.contain(images_path, path)
     end
 
     def content_type_for(path)
