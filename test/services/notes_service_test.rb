@@ -277,14 +277,21 @@ class NotesServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "sanitizes paths with double dots" do
-    # The service should either reject or sanitize paths with ..
+  test "rejects paths that traverse out of the base directory" do
     create_test_note("safe.md", "Safe content")
 
-    # This should not allow escaping the base directory
-    assert_raises(NotesService::NotFoundError) do
+    # ".." that escapes the base is rejected outright, not silently sanitized
+    # (the old gsub approach also mangled legitimate filenames containing "..").
+    assert_raises(NotesService::InvalidPathError) do
       @service.read("folder/../../../etc/passwd")
     end
+  end
+
+  test "allows a filename that legitimately contains double dots" do
+    @service.write("notes..v2.md", "kept intact")
+
+    assert_equal "kept intact", @service.read("notes..v2.md")
+    assert @test_notes_dir.join("notes..v2.md").exist?
   end
 
   # === search_content ===

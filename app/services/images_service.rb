@@ -289,16 +289,7 @@ class ImagesService
     def safe_path(path)
       return nil if path.blank?
 
-      # Prevent path traversal
-      clean_path = Pathname.new(path).cleanpath
-      return nil if clean_path.to_s.start_with?("..")
-
-      full_path = images_path.join(clean_path)
-
-      # Ensure the path is within images_path
-      return nil unless full_path.to_s.start_with?(images_path.to_s)
-
-      full_path
+      PathSafety.contain(images_path, path)
     end
 
     def content_type_for(path)

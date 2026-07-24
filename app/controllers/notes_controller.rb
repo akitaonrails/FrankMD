@@ -149,10 +149,9 @@ class NotesController < ApplicationController
 
   def serve_asset(path)
     notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
-    full_path = notes_path.join(path).cleanpath
+    full_path = PathSafety.contain(notes_path, path)
 
-    # Prevent path traversal
-    unless full_path.to_s.start_with?(notes_path.to_s)
+    if full_path.nil?
       head :forbidden
       return
     end

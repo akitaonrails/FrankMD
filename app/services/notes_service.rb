@@ -179,12 +179,8 @@ class NotesService
   end
 
   def safe_path(path, must_exist: true)
-    normalized = Pathname.new(path.to_s.gsub(/\.\./, "")).cleanpath
-    full_path = @base_path.join(normalized)
-
-    unless full_path.to_s.start_with?(@base_path.to_s)
-      raise InvalidPathError, "Invalid path: #{path}"
-    end
+    full_path = PathSafety.contain(@base_path, path)
+    raise InvalidPathError, "Invalid path: #{path}" if full_path.nil?
 
     if must_exist && !full_path.exist?
       raise NotFoundError, "Path not found: #{path}"
