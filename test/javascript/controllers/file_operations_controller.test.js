@@ -32,6 +32,7 @@ describe("FileOperationsController", () => {
         <dialog data-file-operations-target="noteTypeDialog"></dialog>
         <dialog data-file-operations-target="newItemDialog">
           <h3 data-file-operations-target="newItemTitle"></h3>
+          <p data-file-operations-target="newItemLocation"></p>
           <input data-file-operations-target="newItemInput" type="text" />
         </dialog>
       </div>
@@ -195,6 +196,21 @@ describe("FileOperationsController", () => {
       controller.newFolder()
 
       expect(openSpy).toHaveBeenCalledWith("folder", "")
+    })
+  })
+
+  describe("openNewItemDialog() location", () => {
+    it("shows the parent path when creating inside a folder", () => {
+      controller.openNewItemDialog("folder", "docs/guides")
+
+      expect(controller.newItemLocationTarget.textContent).toContain("docs/guides")
+      expect(controller.newItemLocationTarget.title).toBe("docs/guides")
+    })
+
+    it("shows the root location label when creating at the root", () => {
+      controller.openNewItemDialog("folder", "")
+
+      expect(controller.newItemLocationTarget.textContent).toContain("dialogs.new_item.root_location")
     })
   })
 

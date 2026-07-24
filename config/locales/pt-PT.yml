@@ -138,6 +138,8 @@ pt-PT:
       placeholder: "Nome"
       note_placeholder: "Nome da nota"
       folder_placeholder: "Nome da pasta"
+      creating_in: "Em:"
+      root_location: "pasta raiz"
 
     # Diálogo de tipo de nota
     note_type:
