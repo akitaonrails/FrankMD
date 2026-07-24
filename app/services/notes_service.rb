@@ -169,7 +169,10 @@ class NotesService
 
   def search_file(file_path, regex, context_lines, max_matches)
     matches = []
-    lines = file_path.readlines(chomp: true)
+    # scrub replaces invalid UTF-8 bytes with the replacement character, so a
+    # single Latin-1/binary .md file cannot raise "invalid byte sequence in
+    # UTF-8" from line.match? and take down the entire content search.
+    lines = file_path.readlines(chomp: true).map(&:scrub)
 
     lines.each_with_index do |line, index|
       next unless line.match?(regex)
@@ -192,6 +195,10 @@ class NotesService
     end
 
     matches
+  rescue SystemCallError
+    # File vanished between listing and read (TOCTOU), or another I/O error —
+    # skip this file rather than failing the whole search.
+    []
   end
 
   def safe_path(path, must_exist: true)
