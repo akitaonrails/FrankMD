@@ -156,6 +156,15 @@ describe("FileOperationsController", () => {
 
       expect(controller.noteTypeDialogTarget.showModal).toHaveBeenCalled()
     })
+
+    it("clears a stale parent from a prior folder-scoped new note", () => {
+      // Simulate a cancelled "New Note in Folder" having left a parent behind.
+      controller.newItemParent = "some/folder"
+
+      controller.newNote()
+
+      expect(controller.newItemParent).toBe("")
+    })
   })
 
   describe("closeNoteTypeDialog()", () => {

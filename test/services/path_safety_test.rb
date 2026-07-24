@@ -51,6 +51,22 @@ class PathSafetyTest < ActiveSupport::TestCase
     end
   end
 
+  test "rejects a path through a symlinked directory that points outside base" do
+    Dir.mktmpdir do |raw|
+      tmp = File.realpath(raw)
+      base = File.join(tmp, "notes")
+      outside = File.join(tmp, "outside")
+      FileUtils.mkdir_p(base)
+      FileUtils.mkdir_p(outside)
+      File.write(File.join(outside, "secret.txt"), "x")
+      # A symlinked DIRECTORY inside base used as a path prefix must not let the
+      # leaf escape (base/escape/secret.txt -> outside/secret.txt).
+      File.symlink(outside, File.join(base, "escape"))
+
+      assert_nil PathSafety.contain(base, "escape/secret.txt")
+    end
+  end
+
   test "allows a real file inside base" do
     Dir.mktmpdir do |raw|
       tmp = File.realpath(raw)

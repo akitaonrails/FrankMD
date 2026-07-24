@@ -118,8 +118,11 @@ export default class extends Controller {
     }
   }
 
-  // New Note
+  // New Note (root). Clear any parent left over from a prior folder-scoped
+  // "New Note in Folder" that was cancelled, so a root note is created at the
+  // root — and the location line reflects that.
   newNote() {
+    this.newItemParent = ""
     if (this.hasNoteTypeDialogTarget) {
       this.noteTypeDialogTarget.showModal()
     }

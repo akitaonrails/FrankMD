@@ -126,6 +126,10 @@ class NotesService
     tmp = full_path.dirname.join(".#{full_path.basename}.#{SecureRandom.hex(6)}.tmp")
     begin
       tmp.write(content)
+      # A fresh temp file gets a umask-derived mode (e.g. 0644). Renaming it over
+      # an existing note would silently reset a mode the operator had changed, so
+      # copy the existing note's permission bits onto the temp before the swap.
+      File.chmod(full_path.stat.mode & 0o777, tmp.to_s) if full_path.exist?
       File.rename(tmp.to_s, full_path.to_s)
     rescue StandardError
       tmp.delete if tmp.exist?

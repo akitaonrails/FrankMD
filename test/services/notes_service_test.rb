@@ -164,6 +164,34 @@ class NotesServiceTest < ActiveSupport::TestCase
     assert_empty temps, "atomic write should clean up its temp file"
   end
 
+  test "write preserves the existing note's file mode across the atomic swap" do
+    path = create_test_note("note.md", "original")
+    File.chmod(0o600, path)
+
+    @service.write("note.md", "updated")
+
+    assert_equal 0o600, File.stat(path).mode & 0o777,
+      "atomic write must not reset the note's permission bits"
+    assert_equal "updated", File.read(path)
+  end
+
+  test "write lands its temp file in the target's own directory (same-filesystem rename)" do
+    create_test_folder("sub")
+    dest_dir = @test_notes_dir.join("sub").to_s
+
+    # The atomicity guarantee only holds if the temp shares the destination's
+    # filesystem — i.e. lives in the destination directory, not Dir.tmpdir.
+    captured_from = nil
+    File.stubs(:rename).with { |from, _to| captured_from = from; true }.returns(0)
+
+    @service.write("sub/note.md", "content")
+
+    assert_equal dest_dir, File.dirname(captured_from),
+      "temp file must be created in the destination directory"
+  ensure
+    File.unstub(:rename)
+  end
+
   test "write preserves the original note when the atomic rename fails" do
     create_test_note("note.md", "Original content")
     File.stubs(:rename).raises(Errno::ENOSPC)
@@ -355,6 +383,23 @@ class NotesServiceTest < ActiveSupport::TestCase
 
     results = @service.search_content("target_word")
     assert_includes results.map { |r| r[:path] }, "bad.md"
+  end
+
+  test "search_content skips a file it cannot read and keeps searching the rest" do
+    # A file that raises a SystemCallError mid-read (e.g. EACCES, or vanished
+    # between listing and read) must be skipped, not abort the whole search.
+    create_test_note("good.md", "findme here")
+    create_test_note("locked.md", "findme too")
+
+    IO.stubs(:readlines).with { |p, *| p.to_s.end_with?("locked.md") }.raises(Errno::EACCES)
+    IO.stubs(:readlines).with { |p, *| !p.to_s.end_with?("locked.md") }.returns([ "findme here\n" ])
+
+    results = nil
+    assert_nothing_raised { results = @service.search_content("findme") }
+    assert_includes results.map { |r| r[:path] }, "good.md"
+    refute_includes results.map { |r| r[:path] }, "locked.md"
+  ensure
+    IO.unstub(:readlines)
   end
 
   test "search_content supports regex patterns" do

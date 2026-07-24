@@ -192,11 +192,15 @@ class ImagesServiceTest < ActiveSupport::TestCase
 
   test "upload_base64_data rejects an html filename (stored-XSS vector)" do
     data = Base64.strict_encode64("<html><script>alert(1)</script></html>")
+    notes_dir = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes"))).join("images")
+    before = Dir.glob(notes_dir.join("*.html").to_s).size
 
     result = ImagesService.upload_base64_data(data, mime_type: "image/png", filename: "evil.html")
 
     assert result[:error], "an .html filename must be rejected"
     assert_includes result[:error], "not an accepted"
+    assert_equal before, Dir.glob(notes_dir.join("*.html").to_s).size,
+      "a rejected upload must not write an .html file under the notes dir"
   end
 
   test "upload_base64_data generates filename when not provided" do
