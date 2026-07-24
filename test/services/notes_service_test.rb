@@ -157,6 +157,26 @@ class NotesServiceTest < ActiveSupport::TestCase
     assert @test_notes_dir.join("deep/nested/note.md").exist?
   end
 
+  test "write does not leave temp files behind" do
+    @service.write("note.md", "content")
+
+    temps = Dir.children(@test_notes_dir).select { |f| f.end_with?(".tmp") }
+    assert_empty temps, "atomic write should clean up its temp file"
+  end
+
+  test "write preserves the original note when the atomic rename fails" do
+    create_test_note("note.md", "Original content")
+    File.stubs(:rename).raises(Errno::ENOSPC)
+
+    assert_raises(Errno::ENOSPC) { @service.write("note.md", "New content that fails") }
+
+    # The write was atomic: the original is untouched (not truncated/corrupted)
+    # and the temp file was cleaned up.
+    assert_equal "Original content", File.read(@test_notes_dir.join("note.md"))
+    temps = Dir.children(@test_notes_dir).select { |f| f.end_with?(".tmp") }
+    assert_empty temps, "failed atomic write should not leave a temp file behind"
+  end
+
   test "write creates Hugo blog post directory structure" do
     # Hugo blog posts use YYYY/MM/DD/slug/index.md structure
     hugo_path = "2026/01/30/my-first-post/index.md"

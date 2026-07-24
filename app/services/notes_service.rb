@@ -23,7 +23,7 @@ class NotesService
   def write(path, content)
     full_path = safe_path(path, must_exist: false)
     FileUtils.mkdir_p(full_path.dirname)
-    full_path.write(content)
+    atomic_write(full_path, content)
     true
   end
 
@@ -116,6 +116,22 @@ class NotesService
   end
 
   private
+
+  # Write atomically: write to a temp file in the same directory, then rename it
+  # over the target. A failed or partial write (e.g. ENOSPC / disk full) never
+  # leaves the existing note truncated — the original stays intact until the
+  # atomic rename succeeds. The temp file is on the same filesystem as the
+  # target, so File.rename is atomic.
+  def atomic_write(full_path, content)
+    tmp = full_path.dirname.join(".#{full_path.basename}.#{SecureRandom.hex(6)}.tmp")
+    begin
+      tmp.write(content)
+      File.rename(tmp.to_s, full_path.to_s)
+    rescue StandardError
+      tmp.delete if tmp.exist?
+      raise
+    end
+  end
 
   # Collect files sorted by modification time (for file finder/tree display)
   def collect_markdown_files(dir)
