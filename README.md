@@ -36,6 +36,7 @@
 - Syntax highlighting for markdown
 - Auto-save with visual feedback
 - Typewriter mode for focused writing (cursor stays centered)
+- Optional Vim mode (modal editing, `:` ex-commands) — off by default
 - Customizable fonts and sizes
 - Multiple color themes (light/dark variants)
 
@@ -373,6 +374,7 @@ The `.fed` file appears in the explorer panel with a gear icon. You can click it
 | `preview_zoom` | integer | 100 | Preview zoom percentage (50-200) |
 | `sidebar_visible` | boolean | true | Show explorer panel on startup |
 | `typewriter_mode` | boolean | false | Enable typewriter mode on startup |
+| `vim_mode` | boolean | false | Enable Vim mode on startup |
 | `images_path` | string | - | Local images directory path |
 | `image_upload_extensions` | string | `.jpg,.jpeg,.png,.gif,.webp,.bmp` | Comma-separated file extensions accepted by the image drag-and-drop upload |
 | `video_upload_extensions` | string | `.mp4,.webm,.mkv,.mov,.avi,.m4v,.ogv` | Comma-separated file extensions accepted by the video drag-and-drop upload |
@@ -655,6 +657,25 @@ Typewriter mode (`Ctrl+\`) keeps the editor centered for long writing sessions:
   <br>
   <em>Typewriter mode: distraction-free writing with centered cursor</em>
 </p>
+
+## Vim Mode
+
+Vim mode is **off by default**. Toggle it from the header button (the `Vi` glyph) or set `vim_mode = true` in your `.fed` file. When on, the editor uses modal editing (powered by the CodeMirror Vim keymap) with a status indicator showing the current mode. Existing app shortcuts (`Ctrl+S`, `Ctrl+P`, …) keep working alongside it.
+
+Standard Vim motions and editing work (`hjkl`, `w/b/e`, `d/c/y/p`, `v`/`V`, `/`, `n`, `.`, counts, registers, macros, …). In addition, these `:` ex-commands map to FrankMD features:
+
+| Command | Action |
+|---|---|
+| `:w` / `:write` | Save the note |
+| `:q` / `:quit` | Close open menus / dialogs |
+| `:wq` / `:x` | Save, then close menus |
+| `:e` / `:find` | Open the file finder |
+| `:Explore` | Toggle the sidebar |
+| `:n` / `:next` | Open the next note |
+| `:prev` | Open the previous note |
+| `:help` | Open the in-app help (Vim tab) |
+
+Notes autosave, so `:w` simply forces an immediate save. There is no Lua/plugin engine — this is modal editing and ex-commands only. See the **Vim Mode** tab in the in-app help (`:help` or F1) for the full reference.
 
 This keeps your typing position steady on the page, which reduces eye movement during longer writing sessions.
 

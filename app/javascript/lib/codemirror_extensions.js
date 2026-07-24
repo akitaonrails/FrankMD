@@ -11,6 +11,7 @@ import { createTheme } from "lib/codemirror_theme"
 import { LINE_NUMBER_MODES } from "lib/line_numbers"
 import { createWikilinkAutocomplete } from "lib/codemirror_wikilink"
 import { imageFileFromClipboard } from "lib/clipboard_image"
+import { vim } from "@replit/codemirror-vim"
 
 // Re-export for convenience
 export { LINE_NUMBER_MODES }
@@ -19,6 +20,18 @@ export { LINE_NUMBER_MODES }
 export const themeCompartment = new Compartment()
 export const lineNumbersCompartment = new Compartment()
 export const readOnlyCompartment = new Compartment()
+export const vimCompartment = new Compartment()
+
+/**
+ * Vim-mode extension. Enabled -> the @replit/codemirror-vim keymap with its
+ * built-in status/ex-command line; disabled -> nothing (byte-for-byte the
+ * default editor). Kept in a compartment so it can be toggled live.
+ * @param {boolean} enabled
+ * @returns {Extension}
+ */
+export function createVimExtension(enabled) {
+  return enabled ? vim({ status: true }) : []
+}
 
 /**
  * Create line numbers extension based on mode
@@ -169,6 +182,7 @@ export function createExtensions(options = {}) {
     fontSize = "14px",
     lineHeight = "1.6",
     lineNumberMode = LINE_NUMBER_MODES.OFF,
+    vimMode = false,
     onUpdate = null,
     onSelectionChange = null,
     onScroll = null,
@@ -176,6 +190,10 @@ export function createExtensions(options = {}) {
   } = options
 
   const extensions = [
+    // Vim keymap FIRST so, when enabled, its modal bindings take precedence over
+    // the default keymap. Empty when disabled. (In a compartment for live toggle.)
+    vimCompartment.of(createVimExtension(vimMode)),
+
     // Theme (in compartment for dynamic switching)
     themeCompartment.of(createTheme({ fontFamily, fontSize, lineHeight })),
 
