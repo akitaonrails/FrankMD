@@ -31,7 +31,14 @@ module UploadStorage
   # Returns the normalized (downcased) extension, or raises RejectedError with
   # a user-facing message. `kind` is "image" or "video" for the message.
   def validate_extension!(uploaded_file, config_key, kind)
-    extension = File.extname(uploaded_file.original_filename.to_s).downcase
+    validate_filename!(uploaded_file.original_filename.to_s, config_key, kind)
+  end
+
+  # Same allow-list check for a bare filename string — for uploads that have no
+  # UploadedFile object (e.g. base64 / AI-generated images). Returns the
+  # normalized (downcased) extension, or raises RejectedError.
+  def validate_filename!(filename, config_key, kind)
+    extension = File.extname(filename.to_s).downcase
     allowed = Config.new.upload_extensions(config_key)
     unless allowed.include?(extension)
       shown = extension.presence || "no extension"
@@ -44,6 +51,11 @@ module UploadStorage
   # or copy them to disk.
   def enforce_size!(uploaded_file)
     size = uploaded_file.size if uploaded_file.respond_to?(:size)
+    enforce_bytes!(size)
+  end
+
+  # Same cap for an already-known byte size (e.g. decoded base64 content).
+  def enforce_bytes!(size)
     return unless size && size > MAX_UPLOAD_BYTES
 
     raise RejectedError, "File is too large (max #{MAX_UPLOAD_BYTES / (1024 * 1024)} MB)."

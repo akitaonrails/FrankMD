@@ -12,6 +12,7 @@ class ImagesServiceTest < ActiveSupport::TestCase
     @config_stub = stub("config")
     @config_stub.stubs(:get).returns(nil)
     @config_stub.stubs(:get).with("images_path").returns(@temp_dir.to_s)
+    @config_stub.stubs(:upload_extensions).with("image_upload_extensions").returns(%w[.jpg .jpeg .png .gif .webp .bmp])
     Config.stubs(:new).returns(@config_stub)
   end
 
@@ -174,6 +175,28 @@ class ImagesServiceTest < ActiveSupport::TestCase
     result = ImagesService.upload_base64_data("not valid base64!!!", mime_type: "image/png")
     assert result[:error]
     assert_includes result[:error], "Invalid base64"
+  end
+
+  test "upload_base64_data rejects an SVG mime type (stored-XSS vector)" do
+    svg = Base64.strict_encode64("<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>")
+    notes_dir = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes"))).join("images")
+    before = Dir.glob(notes_dir.join("*").to_s).size
+
+    result = ImagesService.upload_base64_data(svg, mime_type: "image/svg+xml", filename: "x.svg")
+
+    assert result[:error], "SVG upload must be rejected (not in the image allow-list)"
+    assert_includes result[:error], "not an accepted"
+    assert_equal before, Dir.glob(notes_dir.join("*").to_s).size,
+      "a rejected upload must not write a file under the notes dir"
+  end
+
+  test "upload_base64_data rejects an html filename (stored-XSS vector)" do
+    data = Base64.strict_encode64("<html><script>alert(1)</script></html>")
+
+    result = ImagesService.upload_base64_data(data, mime_type: "image/png", filename: "evil.html")
+
+    assert result[:error], "an .html filename must be rejected"
+    assert_includes result[:error], "not an accepted"
   end
 
   test "upload_base64_data generates filename when not provided" do
