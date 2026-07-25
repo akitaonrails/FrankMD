@@ -200,9 +200,17 @@ class ImagesService
       require "securerandom"
       require "tempfile"
 
-      # Download the image
-      uri = URI(url)
+      # Only fetch public http(s) addresses: this URL comes from the client, so
+      # without a check the server can be used to reach cloud metadata
+      # (169.254.169.254), localhost, or private hosts it can see and the caller
+      # cannot. Redirects are not followed (only Net::HTTPSuccess is accepted),
+      # so there is no redirect bypass to re-validate.
+      uri, pinned_ip = EgressPolicy.checked_target(url)
+
       http = Net::HTTP.new(uri.host, uri.port)
+      # Connect to the address we validated (hostname is kept for Host/SNI), so a
+      # DNS record that changes between check and connect can't redirect us.
+      http.ipaddr = pinned_ip
       http.use_ssl = uri.scheme == "https"
       http.open_timeout = 10
       http.read_timeout = 30
@@ -266,6 +274,9 @@ class ImagesService
       end
 
       UploadStorage.s3_url(bucket, region, key)
+    rescue EgressPolicy::BlockedError => e
+      Rails.logger.warn "Refused to fetch external image: #{e.message}"
+      nil
     end
 
     private

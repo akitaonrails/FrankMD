@@ -360,6 +360,10 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     @config_stub.stubs(:get).with("aws_s3_bucket").returns("test-bucket")
     Config.stubs(:new).returns(@config_stub)
 
+    # The external-image fetch resolves the host to enforce the egress policy.
+    # Stub the lookup so the suite stays hermetic (WebMock intercepts HTTP, not DNS).
+    EgressPolicy.stubs(:resolve).returns([ IPAddr.new("93.184.216.34") ])
+
     WebMock.disable_net_connect!(allow_localhost: true)
   end
 
@@ -521,5 +525,18 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     result = ImagesService.download_and_upload_to_s3("https://example.com/missing.jpg")
 
     assert_nil result
+  end
+
+  test "download_and_upload_to_s3 refuses a host resolving to a non-public address (SSRF)" do
+    EgressPolicy.stubs(:resolve).returns([ IPAddr.new("169.254.169.254") ])
+
+    result = ImagesService.download_and_upload_to_s3("http://169.254.169.254/latest/meta-data/iam/")
+
+    assert_nil result
+    assert_not_requested :get, "http://169.254.169.254/latest/meta-data/iam/"
+  end
+
+  test "download_and_upload_to_s3 refuses a non-http scheme (SSRF)" do
+    assert_nil ImagesService.download_and_upload_to_s3("file:///etc/passwd")
   end
 end
