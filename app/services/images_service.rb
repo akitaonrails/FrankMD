@@ -50,7 +50,7 @@ class ImagesService
       require "open3"
 
       # Use ImageMagick identify to get dimensions
-      stdout, stderr, status = Open3.capture3("identify", "-format", "%wx%h", path.to_s)
+      stdout, stderr, status = Open3.capture3(*imagemagick_cmd("identify"), "-format", "%wx%h", path.to_s)
 
       if status.success? && stdout.present?
         match = stdout.strip.match(/(\d+)x(\d+)/)
@@ -338,7 +338,7 @@ class ImagesService
         FileUtils.cp(source_path.to_s, source_file.path)
 
         cmd = [
-          "convert",
+          *imagemagick_cmd("convert"),
           source_file.path,
           "-resize", resize_arg,
           "-quality", "95",
@@ -356,6 +356,11 @@ class ImagesService
 
         file_content = File.binread(output_file.path)
         [ file_content, "image/jpeg", output_name ]
+      rescue Errno::ENOENT => e
+        # No ImageMagick binary at all — degrade to the original file instead of
+        # failing the whole upload (same fallback as a failed resize).
+        Rails.logger.error "ImageMagick not available, skipping resize: #{e.message}"
+        [ source_path.binread, content_type_for(source_path), original_name ]
       ensure
         source_file.unlink
         output_file.unlink
@@ -388,6 +393,27 @@ class ImagesService
         dest_path = images_dir.join(dest_filename)
         FileUtils.cp(temp_path, dest_path)
         { url: "images/#{dest_filename}" }
+      end
+    end
+
+    # ImageMagick 7 replaced the separate `convert` / `identify` binaries with a
+    # single `magick` entrypoint, and several IM7 packages (Homebrew, recent
+    # Debian) ship no `convert` at all — invoking it raises Errno::ENOENT and
+    # breaks image resizing. Resolve the right invocation at call time: prefer
+    # IM7 (`magick`, with `magick identify` for the sub-tool) and fall back to
+    # the IM6 names when only those are installed.
+    def imagemagick_cmd(tool)
+      return [ tool ] unless executable_on_path?("magick")
+
+      tool == "convert" ? [ "magick" ] : [ "magick", tool ]
+    end
+
+    def executable_on_path?(name)
+      ENV.fetch("PATH", "").split(File::PATH_SEPARATOR).any? do |dir|
+        next false if dir.empty?
+
+        candidate = File.join(dir, name)
+        File.file?(candidate) && File.executable?(candidate)
       end
     end
 

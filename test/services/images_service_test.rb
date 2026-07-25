@@ -286,6 +286,42 @@ class ImagesServiceTest < ActiveSupport::TestCase
     assert_includes %w[image/jpeg image/png], content_type
   end
 
+  test "resize_and_compress falls back to the original file when ImageMagick is missing" do
+    png_data = [
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+      0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xDE, 0x00, 0x00, 0x00,
+      0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00,
+      0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0x05, 0xFE, 0xD4, 0xE7, 0x00, 0x00,
+      0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+    ].pack("C*")
+    path = create_test_image("source.png", png_data)
+    Open3.stubs(:capture3).raises(Errno::ENOENT.new("magick"))
+
+    content, content_type, filename = ImagesService.send(:resize_and_compress, path, "source.png", 0.5)
+
+    # Degrades to the original instead of raising and 500ing the upload
+    assert_equal png_data, content
+    assert_equal "image/png", content_type
+    assert_equal "source.png", filename
+  end
+
+  # === imagemagick_cmd (IM6 / IM7 compatibility) ===
+
+  test "imagemagick_cmd uses the magick entrypoint when ImageMagick 7 is installed" do
+    ImagesService.stubs(:executable_on_path?).with("magick").returns(true)
+
+    assert_equal [ "magick" ], ImagesService.send(:imagemagick_cmd, "convert")
+    assert_equal [ "magick", "identify" ], ImagesService.send(:imagemagick_cmd, "identify")
+  end
+
+  test "imagemagick_cmd falls back to the legacy binaries without ImageMagick 7" do
+    ImagesService.stubs(:executable_on_path?).with("magick").returns(false)
+
+    assert_equal [ "convert" ], ImagesService.send(:imagemagick_cmd, "convert")
+    assert_equal [ "identify" ], ImagesService.send(:imagemagick_cmd, "identify")
+  end
+
   # === imagemagick_resize_arg (whitelist) ===
 
   test "imagemagick_resize_arg returns correct percentage for known ratios" do
