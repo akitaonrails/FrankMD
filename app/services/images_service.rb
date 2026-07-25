@@ -4,6 +4,12 @@ class ImagesService
   SUPPORTED_EXTENSIONS = %w[.jpg .jpeg .png .gif .webp .svg .bmp].freeze
   MAX_RESULTS = 10
 
+  # Cap external-image downloads so a hostile (but public) URL can't OOM the
+  # server with a multi-GB body. Enforced on both Content-Length and the
+  # streamed byte count.
+  MAX_EXTERNAL_IMAGE_BYTES = 25 * 1024 * 1024 # 25 MB
+  MAX_EXTERNAL_IMAGE_REDIRECTS = 5
+
   class << self
     def enabled?
       resolved_images_path.present?
@@ -200,37 +206,18 @@ class ImagesService
       require "securerandom"
       require "tempfile"
 
-      # Only fetch public http(s) addresses: this URL comes from the client, so
-      # without a check the server can be used to reach cloud metadata
-      # (169.254.169.254), localhost, or private hosts it can see and the caller
-      # cannot. Redirects are not followed (only Net::HTTPSuccess is accepted),
-      # so there is no redirect bypass to re-validate.
-      uri, pinned_ip = EgressPolicy.checked_target(url)
+      # Fetch the client-supplied URL through the SSRF guard (EgressPolicy),
+      # following redirects with per-hop re-validation and a streamed size cap.
+      result = fetch_external_image(url)
+      return nil unless result
 
-      http = Net::HTTP.new(uri.host, uri.port)
-      # Connect to the address we validated (hostname is kept for Host/SNI), so a
-      # DNS record that changes between check and connect can't redirect us.
-      http.ipaddr = pinned_ip
-      http.use_ssl = uri.scheme == "https"
-      http.open_timeout = 10
-      http.read_timeout = 30
-
-      request = Net::HTTP::Get.new(uri)
-      request["User-Agent"] = "Mozilla/5.0 (compatible; FrankMD/1.0)"
-
-      response = http.request(request)
-
-      unless response.is_a?(Net::HTTPSuccess)
-        Rails.logger.error "Failed to download image: #{response.code}"
-        return nil
-      end
-
-      file_content = response.body
-      content_type = response["Content-Type"] || "image/jpeg"
+      file_content = result[:body]
+      content_type = result[:content_type]
+      source_uri = result[:uri]
 
       # Generate filename from URL or use random name
       extension = extension_for_content_type(content_type)
-      original_name = File.basename(uri.path).gsub(/[^a-zA-Z0-9._-]/, "_")
+      original_name = File.basename(source_uri.path).gsub(/[^a-zA-Z0-9._-]/, "_")
       if original_name.blank? || original_name == "_" || !original_name.match?(/\.\w+$/)
         original_name = "#{SecureRandom.hex(8)}#{extension}"
       end
@@ -438,6 +425,64 @@ class ImagesService
       when "1", "1.0", "1.00", "100", "100%" then "100%"
       else "50%"
       end
+    end
+
+    # Fetch a client-supplied image URL safely: every hop (including redirects)
+    # is validated by EgressPolicy and the connection is pinned to the validated
+    # IP; the body is streamed with a hard size cap. Returns { body:, content_type: }
+    # or nil. EgressPolicy::BlockedError propagates (the controller renders it).
+    def fetch_external_image(url)
+      require "net/http"
+
+      current = url
+      (MAX_EXTERNAL_IMAGE_REDIRECTS + 1).times do
+        uri, pinned_ip = EgressPolicy.checked_target(current)
+
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.ipaddr = pinned_ip # connect to the validated IP (no DNS re-resolution)
+        http.use_ssl = uri.scheme == "https"
+        http.open_timeout = 10
+        http.read_timeout = 30
+
+        request = Net::HTTP::Get.new(uri)
+        request["User-Agent"] = "Mozilla/5.0 (compatible; FrankMD/1.0)"
+
+        # Net::HTTP#request with a block returns the response, not the block's
+        # value, so capture what we need in these outer variables instead.
+        fetched = nil
+        redirect_to = nil
+        http.start do |conn|
+          conn.request(request) do |response|
+            if response.is_a?(Net::HTTPRedirection) && response["location"].present?
+              # Re-validate the redirect target on the next loop iteration.
+              redirect_to = URI.join(uri, response["location"]).to_s
+            elsif !response.is_a?(Net::HTTPSuccess)
+              Rails.logger.error "Failed to download image: #{response.code}"
+            elsif response.content_length && response.content_length > MAX_EXTERNAL_IMAGE_BYTES
+              Rails.logger.error "External image exceeds size cap (Content-Length)"
+            else
+              body = "".b
+              oversized = false
+              response.read_body do |chunk|
+                body << chunk
+                if body.bytesize > MAX_EXTERNAL_IMAGE_BYTES
+                  oversized = true
+                  break
+                end
+              end
+              fetched = { body: body, content_type: response["Content-Type"] || "image/jpeg", uri: uri } unless oversized
+            end
+          end
+        end
+
+        return fetched if fetched
+        return nil unless redirect_to
+
+        current = redirect_to
+      end
+
+      Rails.logger.error "External image exceeded #{MAX_EXTERNAL_IMAGE_REDIRECTS} redirects"
+      nil
     end
 
     # Upload a temp file to S3

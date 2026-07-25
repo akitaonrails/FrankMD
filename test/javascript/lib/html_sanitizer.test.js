@@ -86,6 +86,24 @@ describe("sanitizeHtml", () => {
       expect(sanitizeHtml('<iframe src="https://www.youtube-nocookie.com/embed/a"></iframe>')).toContain("youtube-nocookie")
       expect(sanitizeHtml('<iframe src="https://player.vimeo.com/video/1"></iframe>')).toContain("player.vimeo.com")
     })
+
+    it("defeats host-confusion tricks on the iframe allowlist", () => {
+      // userinfo: the real host is evil.com
+      expect(sanitizeHtml('<iframe src="https://www.youtube.com@evil.com/embed/a"></iframe>')).not.toContain("evil.com")
+      // subdomain: youtube.com is only a label of evil.com
+      expect(sanitizeHtml('<iframe src="https://www.youtube.com.evil.com/embed/a"></iframe>')).not.toContain("evil.com")
+      // protocol-relative to an untrusted host
+      expect(sanitizeHtml('<iframe src="//evil.com/embed/a"></iframe>')).not.toContain("evil.com")
+    })
+  })
+
+  describe("strips interactive form controls (phishing/UI-redress)", () => {
+    it("removes form and input tags but keeps their text content", () => {
+      const out = sanitizeHtml('<form action="https://evil.com"><input name="p"><button>Go</button></form>')
+      expect(out).not.toContain("<form")
+      expect(out).not.toContain("<input")
+      expect(out).not.toContain("<button")
+    })
   })
 
   it("returns an empty string for empty input", () => {

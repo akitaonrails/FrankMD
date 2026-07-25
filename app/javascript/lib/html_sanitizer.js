@@ -23,7 +23,11 @@ const ALLOWED_EMBED_HOSTS = new Set([
 // dialog emits — but never "srcdoc", which is an XSS vector in itself.
 const SANITIZE_CONFIG = {
   ADD_TAGS: ["iframe"],
-  ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "referrerpolicy"]
+  ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "referrerpolicy"],
+  // Notes never legitimately contain interactive form controls; DOMPurify keeps
+  // them by default, which would let a synced/shared note render a phishing form
+  // or a UI-redress button in the preview. Strip them.
+  FORBID_TAGS: ["form", "input", "button", "textarea", "select", "option"]
 }
 
 let purifier = null

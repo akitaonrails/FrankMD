@@ -565,6 +565,48 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     assert_nil result
   end
 
+  test "download_and_upload_to_s3 rejects a body over the size cap (Content-Length)" do
+    stub_request(:get, "https://example.com/huge.jpg")
+      .to_return(
+        status: 200,
+        body: "x",
+        headers: {
+          "Content-Type" => "image/jpeg",
+          "Content-Length" => (ImagesService::MAX_EXTERNAL_IMAGE_BYTES + 1).to_s
+        }
+      )
+
+    assert_nil ImagesService.download_and_upload_to_s3("https://example.com/huge.jpg")
+  end
+
+  test "download_and_upload_to_s3 follows a redirect, re-validating the target" do
+    stub_request(:get, "https://example.com/go.jpg")
+      .to_return(status: 302, headers: { "Location" => "https://cdn.example.com/real.jpg" })
+    stub_request(:get, "https://cdn.example.com/real.jpg")
+      .to_return(status: 200, body: "fake image content", headers: { "Content-Type" => "image/jpeg" })
+    Aws::S3::Client.any_instance.stubs(:put_object).returns(true)
+
+    result = ImagesService.download_and_upload_to_s3("https://example.com/go.jpg")
+
+    assert result, "expected the redirect to be followed to a public target"
+    assert_requested :get, "https://cdn.example.com/real.jpg"
+  end
+
+  test "download_and_upload_to_s3 blocks a redirect to a non-public address (SSRF via redirect)" do
+    stub_request(:get, "https://example.com/rebind.jpg")
+      .to_return(status: 302, headers: { "Location" => "http://169.254.169.254/latest/meta-data/" })
+    # Replace the blanket resolve stub with explicit per-host answers: the first
+    # host is public, the redirect target resolves to the cloud-metadata address.
+    EgressPolicy.unstub(:resolve)
+    EgressPolicy.stubs(:resolve).with("example.com").returns([ IPAddr.new("93.184.216.34") ])
+    EgressPolicy.stubs(:resolve).with("169.254.169.254").returns([ IPAddr.new("169.254.169.254") ])
+
+    # The service rescues the blocked-target error and returns nil; the key
+    # guarantee is that the metadata host is never actually requested.
+    assert_nil ImagesService.download_and_upload_to_s3("https://example.com/rebind.jpg")
+    assert_not_requested :get, "http://169.254.169.254/latest/meta-data/"
+  end
+
   test "download_and_upload_to_s3 refuses a host resolving to a non-public address (SSRF)" do
     EgressPolicy.stubs(:resolve).returns([ IPAddr.new("169.254.169.254") ])
 
