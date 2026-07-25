@@ -677,6 +677,8 @@ Standard Vim motions and editing work (`hjkl`, `w/b/e`, `d/c/y/p`, `v`/`V`, `/`,
 
 Notes autosave, so `:w` simply forces an immediate save. There is no Lua/plugin engine — this is modal editing and ex-commands only. See the **Vim Mode** tab in the in-app help (`:help` or F1) for the full reference.
 
+On Windows and Linux, where FrankMD binds `Ctrl`, the shortcuts the app already owns stay with the app rather than Vim: `Ctrl+F`, `Ctrl+N`, `Ctrl+P`, `Ctrl+E`, `Ctrl+B`, `Ctrl+I` and `Ctrl+V`. `Ctrl+D`/`Ctrl+U` still page, and `Ctrl+Q` gives blockwise visual in place of `Ctrl+V`. macOS is unaffected, since app shortcuts use `Cmd` there.
+
 This keeps your typing position steady on the page, which reduces eye movement during longer writing sessions.
 
 ## Hugo Blog Post Support
