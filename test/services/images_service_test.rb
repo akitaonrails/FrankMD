@@ -180,26 +180,28 @@ class ImagesServiceTest < ActiveSupport::TestCase
   test "upload_base64_data rejects an SVG mime type (stored-XSS vector)" do
     svg = Base64.strict_encode64("<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>")
     notes_dir = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes"))).join("images")
-    before = Dir.glob(notes_dir.join("*").to_s).size
+    # Unique name: this directory is shared with the other upload specs (and with
+    # parallel workers), so assert on our own file rather than a directory count.
+    name = "xss_#{SecureRandom.hex(4)}.svg"
 
-    result = ImagesService.upload_base64_data(svg, mime_type: "image/svg+xml", filename: "x.svg")
+    result = ImagesService.upload_base64_data(svg, mime_type: "image/svg+xml", filename: name)
 
     assert result[:error], "SVG upload must be rejected (not in the image allow-list)"
     assert_includes result[:error], "not an accepted"
-    assert_equal before, Dir.glob(notes_dir.join("*").to_s).size,
+    assert_empty Dir.glob(notes_dir.join("*#{name}").to_s),
       "a rejected upload must not write a file under the notes dir"
   end
 
   test "upload_base64_data rejects an html filename (stored-XSS vector)" do
     data = Base64.strict_encode64("<html><script>alert(1)</script></html>")
     notes_dir = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes"))).join("images")
-    before = Dir.glob(notes_dir.join("*.html").to_s).size
+    name = "evil_#{SecureRandom.hex(4)}.html"
 
-    result = ImagesService.upload_base64_data(data, mime_type: "image/png", filename: "evil.html")
+    result = ImagesService.upload_base64_data(data, mime_type: "image/png", filename: name)
 
     assert result[:error], "an .html filename must be rejected"
     assert_includes result[:error], "not an accepted"
-    assert_equal before, Dir.glob(notes_dir.join("*.html").to_s).size,
+    assert_empty Dir.glob(notes_dir.join("*#{name}").to_s),
       "a rejected upload must not write an .html file under the notes dir"
   end
 
@@ -286,6 +288,42 @@ class ImagesServiceTest < ActiveSupport::TestCase
     assert_includes %w[image/jpeg image/png], content_type
   end
 
+  test "resize_and_compress falls back to the original file when ImageMagick is missing" do
+    png_data = [
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+      0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xDE, 0x00, 0x00, 0x00,
+      0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00,
+      0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0x05, 0xFE, 0xD4, 0xE7, 0x00, 0x00,
+      0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+    ].pack("C*")
+    path = create_test_image("source.png", png_data)
+    Open3.stubs(:capture3).raises(Errno::ENOENT.new("magick"))
+
+    content, content_type, filename = ImagesService.send(:resize_and_compress, path, "source.png", 0.5)
+
+    # Degrades to the original instead of raising and 500ing the upload
+    assert_equal png_data, content
+    assert_equal "image/png", content_type
+    assert_equal "source.png", filename
+  end
+
+  # === imagemagick_cmd (IM6 / IM7 compatibility) ===
+
+  test "imagemagick_cmd uses the magick entrypoint when ImageMagick 7 is installed" do
+    ImagesService.stubs(:executable_on_path?).with("magick").returns(true)
+
+    assert_equal [ "magick" ], ImagesService.send(:imagemagick_cmd, "convert")
+    assert_equal [ "magick", "identify" ], ImagesService.send(:imagemagick_cmd, "identify")
+  end
+
+  test "imagemagick_cmd falls back to the legacy binaries without ImageMagick 7" do
+    ImagesService.stubs(:executable_on_path?).with("magick").returns(false)
+
+    assert_equal [ "convert" ], ImagesService.send(:imagemagick_cmd, "convert")
+    assert_equal [ "identify" ], ImagesService.send(:imagemagick_cmd, "identify")
+  end
+
   # === imagemagick_resize_arg (whitelist) ===
 
   test "imagemagick_resize_arg returns correct percentage for known ratios" do
@@ -359,6 +397,10 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     @config_stub.stubs(:get).with("aws_region").returns("us-east-1")
     @config_stub.stubs(:get).with("aws_s3_bucket").returns("test-bucket")
     Config.stubs(:new).returns(@config_stub)
+
+    # The external-image fetch resolves the host to enforce the egress policy.
+    # Stub the lookup so the suite stays hermetic (WebMock intercepts HTTP, not DNS).
+    EgressPolicy.stubs(:resolve).returns([ IPAddr.new("93.184.216.34") ])
 
     WebMock.disable_net_connect!(allow_localhost: true)
   end
@@ -521,5 +563,60 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     result = ImagesService.download_and_upload_to_s3("https://example.com/missing.jpg")
 
     assert_nil result
+  end
+
+  test "download_and_upload_to_s3 rejects a body over the size cap (Content-Length)" do
+    stub_request(:get, "https://example.com/huge.jpg")
+      .to_return(
+        status: 200,
+        body: "x",
+        headers: {
+          "Content-Type" => "image/jpeg",
+          "Content-Length" => (ImagesService::MAX_EXTERNAL_IMAGE_BYTES + 1).to_s
+        }
+      )
+
+    assert_nil ImagesService.download_and_upload_to_s3("https://example.com/huge.jpg")
+  end
+
+  test "download_and_upload_to_s3 follows a redirect, re-validating the target" do
+    stub_request(:get, "https://example.com/go.jpg")
+      .to_return(status: 302, headers: { "Location" => "https://cdn.example.com/real.jpg" })
+    stub_request(:get, "https://cdn.example.com/real.jpg")
+      .to_return(status: 200, body: "fake image content", headers: { "Content-Type" => "image/jpeg" })
+    Aws::S3::Client.any_instance.stubs(:put_object).returns(true)
+
+    result = ImagesService.download_and_upload_to_s3("https://example.com/go.jpg")
+
+    assert result, "expected the redirect to be followed to a public target"
+    assert_requested :get, "https://cdn.example.com/real.jpg"
+  end
+
+  test "download_and_upload_to_s3 blocks a redirect to a non-public address (SSRF via redirect)" do
+    stub_request(:get, "https://example.com/rebind.jpg")
+      .to_return(status: 302, headers: { "Location" => "http://169.254.169.254/latest/meta-data/" })
+    # Replace the blanket resolve stub with explicit per-host answers: the first
+    # host is public, the redirect target resolves to the cloud-metadata address.
+    EgressPolicy.unstub(:resolve)
+    EgressPolicy.stubs(:resolve).with("example.com").returns([ IPAddr.new("93.184.216.34") ])
+    EgressPolicy.stubs(:resolve).with("169.254.169.254").returns([ IPAddr.new("169.254.169.254") ])
+
+    # The service rescues the blocked-target error and returns nil; the key
+    # guarantee is that the metadata host is never actually requested.
+    assert_nil ImagesService.download_and_upload_to_s3("https://example.com/rebind.jpg")
+    assert_not_requested :get, "http://169.254.169.254/latest/meta-data/"
+  end
+
+  test "download_and_upload_to_s3 refuses a host resolving to a non-public address (SSRF)" do
+    EgressPolicy.stubs(:resolve).returns([ IPAddr.new("169.254.169.254") ])
+
+    result = ImagesService.download_and_upload_to_s3("http://169.254.169.254/latest/meta-data/iam/")
+
+    assert_nil result
+    assert_not_requested :get, "http://169.254.169.254/latest/meta-data/iam/"
+  end
+
+  test "download_and_upload_to_s3 refuses a non-http scheme (SSRF)" do
+    assert_nil ImagesService.download_and_upload_to_s3("file:///etc/passwd")
   end
 end

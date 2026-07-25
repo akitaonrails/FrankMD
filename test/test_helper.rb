@@ -31,6 +31,15 @@ module ActiveSupport
     # Run tests in parallel with specified workers
     parallelize(workers: :number_of_processors)
 
+    # ApplicationController#set_locale assigns the global I18n.locale on every
+    # request, so a controller test that configures a non-English locale leaves
+    # it set for whatever test runs next in the same worker. A model test that
+    # asserts on an English error message then fails, depending on ordering.
+    # Restore the locale after every test so no test can leak it.
+    teardown do
+      I18n.locale = I18n.default_locale
+    end
+
     # Create a temporary notes directory for each test
     def setup_test_notes_dir
       @original_notes_path = ENV["NOTES_PATH"]

@@ -24,7 +24,7 @@ export const superscriptExtension = {
     }
   },
   renderer(token) {
-    return `<sup>${token.text}</sup>`
+    return `<sup>${escapeHtml(token.text)}</sup>`
   }
 }
 
@@ -48,7 +48,7 @@ export const subscriptExtension = {
     }
   },
   renderer(token) {
-    return `<sub>${token.text}</sub>`
+    return `<sub>${escapeHtml(token.text)}</sub>`
   }
 }
 
@@ -70,7 +70,7 @@ export const highlightExtension = {
     }
   },
   renderer(token) {
-    return `<mark>${token.text}</mark>`
+    return `<mark>${escapeHtml(token.text)}</mark>`
   }
 }
 

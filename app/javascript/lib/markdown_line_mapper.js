@@ -4,13 +4,14 @@
 // images, videos, or other elements that render with different heights
 
 import { marked } from "marked"
+import { sanitizeHtml } from "lib/html_sanitizer"
 
 /**
  * Parse markdown and return HTML with source line annotations
  * Uses standard marked.parse() then post-processes to add line attributes
  * @param {string} markdown - The markdown content
  * @param {number} lineOffset - Line offset (e.g., for stripped frontmatter)
- * @returns {string} - HTML with data-source-line attributes on block elements
+ * @returns {string} - Sanitized HTML with data-source-line attributes on block elements
  */
 export function parseWithLineNumbers(markdown, lineOffset = 0) {
   if (!markdown) return ""
@@ -63,7 +64,11 @@ export function parseWithLineNumbers(markdown, lineOffset = 0) {
     return match
   })
 
-  return result
+  // Sanitize last: the block-tag regex above assigns line numbers sequentially
+  // over marked's raw output, and DOMPurify re-parses the HTML — restructuring
+  // invalid nesting into extra elements would consume line slots and shift the
+  // mapping. Injecting first keeps the annotation identical to before.
+  return sanitizeHtml(result)
 }
 
 /**

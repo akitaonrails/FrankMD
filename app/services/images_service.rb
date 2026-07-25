@@ -4,6 +4,12 @@ class ImagesService
   SUPPORTED_EXTENSIONS = %w[.jpg .jpeg .png .gif .webp .svg .bmp].freeze
   MAX_RESULTS = 10
 
+  # Cap external-image downloads so a hostile (but public) URL can't OOM the
+  # server with a multi-GB body. Enforced on both Content-Length and the
+  # streamed byte count.
+  MAX_EXTERNAL_IMAGE_BYTES = 25 * 1024 * 1024 # 25 MB
+  MAX_EXTERNAL_IMAGE_REDIRECTS = 5
+
   class << self
     def enabled?
       resolved_images_path.present?
@@ -50,7 +56,7 @@ class ImagesService
       require "open3"
 
       # Use ImageMagick identify to get dimensions
-      stdout, stderr, status = Open3.capture3("identify", "-format", "%wx%h", path.to_s)
+      stdout, stderr, status = Open3.capture3(*imagemagick_cmd("identify"), "-format", "%wx%h", path.to_s)
 
       if status.success? && stdout.present?
         match = stdout.strip.match(/(\d+)x(\d+)/)
@@ -200,29 +206,18 @@ class ImagesService
       require "securerandom"
       require "tempfile"
 
-      # Download the image
-      uri = URI(url)
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = uri.scheme == "https"
-      http.open_timeout = 10
-      http.read_timeout = 30
+      # Fetch the client-supplied URL through the SSRF guard (EgressPolicy),
+      # following redirects with per-hop re-validation and a streamed size cap.
+      result = fetch_external_image(url)
+      return nil unless result
 
-      request = Net::HTTP::Get.new(uri)
-      request["User-Agent"] = "Mozilla/5.0 (compatible; FrankMD/1.0)"
-
-      response = http.request(request)
-
-      unless response.is_a?(Net::HTTPSuccess)
-        Rails.logger.error "Failed to download image: #{response.code}"
-        return nil
-      end
-
-      file_content = response.body
-      content_type = response["Content-Type"] || "image/jpeg"
+      file_content = result[:body]
+      content_type = result[:content_type]
+      source_uri = result[:uri]
 
       # Generate filename from URL or use random name
       extension = extension_for_content_type(content_type)
-      original_name = File.basename(uri.path).gsub(/[^a-zA-Z0-9._-]/, "_")
+      original_name = File.basename(source_uri.path).gsub(/[^a-zA-Z0-9._-]/, "_")
       if original_name.blank? || original_name == "_" || !original_name.match?(/\.\w+$/)
         original_name = "#{SecureRandom.hex(8)}#{extension}"
       end
@@ -266,6 +261,9 @@ class ImagesService
       end
 
       UploadStorage.s3_url(bucket, region, key)
+    rescue EgressPolicy::BlockedError => e
+      Rails.logger.warn "Refused to fetch external image: #{e.message}"
+      nil
     end
 
     private
@@ -338,7 +336,7 @@ class ImagesService
         FileUtils.cp(source_path.to_s, source_file.path)
 
         cmd = [
-          "convert",
+          *imagemagick_cmd("convert"),
           source_file.path,
           "-resize", resize_arg,
           "-quality", "95",
@@ -356,6 +354,11 @@ class ImagesService
 
         file_content = File.binread(output_file.path)
         [ file_content, "image/jpeg", output_name ]
+      rescue Errno::ENOENT => e
+        # No ImageMagick binary at all — degrade to the original file instead of
+        # failing the whole upload (same fallback as a failed resize).
+        Rails.logger.error "ImageMagick not available, skipping resize: #{e.message}"
+        [ source_path.binread, content_type_for(source_path), original_name ]
       ensure
         source_file.unlink
         output_file.unlink
@@ -391,6 +394,27 @@ class ImagesService
       end
     end
 
+    # ImageMagick 7 replaced the separate `convert` / `identify` binaries with a
+    # single `magick` entrypoint, and several IM7 packages (Homebrew, recent
+    # Debian) ship no `convert` at all — invoking it raises Errno::ENOENT and
+    # breaks image resizing. Resolve the right invocation at call time: prefer
+    # IM7 (`magick`, with `magick identify` for the sub-tool) and fall back to
+    # the IM6 names when only those are installed.
+    def imagemagick_cmd(tool)
+      return [ tool ] unless executable_on_path?("magick")
+
+      tool == "convert" ? [ "magick" ] : [ "magick", tool ]
+    end
+
+    def executable_on_path?(name)
+      ENV.fetch("PATH", "").split(File::PATH_SEPARATOR).any? do |dir|
+        next false if dir.empty?
+
+        candidate = File.join(dir, name)
+        File.file?(candidate) && File.executable?(candidate)
+      end
+    end
+
     def imagemagick_resize_arg(ratio)
       case ratio.to_s
       when "0.25", "0.250", "25", "25%" then "25%"
@@ -401,6 +425,64 @@ class ImagesService
       when "1", "1.0", "1.00", "100", "100%" then "100%"
       else "50%"
       end
+    end
+
+    # Fetch a client-supplied image URL safely: every hop (including redirects)
+    # is validated by EgressPolicy and the connection is pinned to the validated
+    # IP; the body is streamed with a hard size cap. Returns { body:, content_type: }
+    # or nil. EgressPolicy::BlockedError propagates (the controller renders it).
+    def fetch_external_image(url)
+      require "net/http"
+
+      current = url
+      (MAX_EXTERNAL_IMAGE_REDIRECTS + 1).times do
+        uri, pinned_ip = EgressPolicy.checked_target(current)
+
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.ipaddr = pinned_ip # connect to the validated IP (no DNS re-resolution)
+        http.use_ssl = uri.scheme == "https"
+        http.open_timeout = 10
+        http.read_timeout = 30
+
+        request = Net::HTTP::Get.new(uri)
+        request["User-Agent"] = "Mozilla/5.0 (compatible; FrankMD/1.0)"
+
+        # Net::HTTP#request with a block returns the response, not the block's
+        # value, so capture what we need in these outer variables instead.
+        fetched = nil
+        redirect_to = nil
+        http.start do |conn|
+          conn.request(request) do |response|
+            if response.is_a?(Net::HTTPRedirection) && response["location"].present?
+              # Re-validate the redirect target on the next loop iteration.
+              redirect_to = URI.join(uri, response["location"]).to_s
+            elsif !response.is_a?(Net::HTTPSuccess)
+              Rails.logger.error "Failed to download image: #{response.code}"
+            elsif response.content_length && response.content_length > MAX_EXTERNAL_IMAGE_BYTES
+              Rails.logger.error "External image exceeds size cap (Content-Length)"
+            else
+              body = "".b
+              oversized = false
+              response.read_body do |chunk|
+                body << chunk
+                if body.bytesize > MAX_EXTERNAL_IMAGE_BYTES
+                  oversized = true
+                  break
+                end
+              end
+              fetched = { body: body, content_type: response["Content-Type"] || "image/jpeg", uri: uri } unless oversized
+            end
+          end
+        end
+
+        return fetched if fetched
+        return nil unless redirect_to
+
+        current = redirect_to
+      end
+
+      Rails.logger.error "External image exceeded #{MAX_EXTERNAL_IMAGE_REDIRECTS} redirects"
+      nil
     end
 
     # Upload a temp file to S3
