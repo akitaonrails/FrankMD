@@ -13,6 +13,7 @@
 // Both take the library via import; the vitest mock stands in for it in tests.
 
 import { Vim, getCM } from "@replit/codemirror-vim"
+import { isMacOS } from "lib/keyboard_shortcuts"
 
 // Ex-command definitions: [fullName, prefix, logicalCommand].
 // prefix is the shortest accepted abbreviation (vim convention), e.g. :w for :write.
@@ -43,6 +44,43 @@ export function nextNoteIndex(count, currentIndex, direction) {
   if (count <= 0) return -1
   if (currentIndex === -1) return direction > 0 ? 0 : count - 1
   return (currentIndex + direction + count) % count
+}
+
+// Vim claims these Ctrl bindings in normal/visual mode and swallows them
+// (preventDefault + stopPropagation), which on Windows/Linux takes them away
+// from FrankMD and the browser. macOS binds Cmd for app shortcuts, so vim keeps
+// its full keymap there.
+// <C-d>/<C-u> paging is untouched, and <C-q> still gives blockwise visual in
+// place of <C-v> — the standard vim-on-Windows convention.
+export const APP_OWNED_KEYS = [
+  "<C-f>", // find in file      (DEFAULT_SHORTCUTS.findInFile)
+  "<C-n>", // new note          (DEFAULT_SHORTCUTS.newNote)
+  "<C-p>", // file finder       (DEFAULT_SHORTCUTS.fileFinder)
+  "<C-e>", // toggle sidebar    (DEFAULT_SHORTCUTS.toggleSidebar)
+  "<C-b>", // bold              (markdown keymap)
+  "<C-i>", // italic            (markdown keymap)
+  "<C-v>"  // paste             (browser)
+]
+
+let keysConfigured = false
+
+/**
+ * Hand the bindings FrankMD already owns back to the app. Vim.unmap() splices
+ * entries out of the library's shared defaultKeymap, so this is a module-level
+ * mutation: it runs once per page load, not per editor.
+ * @returns {boolean} whether the keys were unmapped
+ */
+export function configureVimKeys(keys = APP_OWNED_KEYS) {
+  if (keysConfigured || isMacOS()) return false
+
+  keys.forEach((key) => Vim.unmap(key))
+  keysConfigured = true
+  return true
+}
+
+// Test-only: reset the one-shot guard.
+export function _resetVimKeys() {
+  keysConfigured = false
 }
 
 let registered = false

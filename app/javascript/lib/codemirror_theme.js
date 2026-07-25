@@ -155,13 +155,9 @@ export function createEditorTheme(options = {}) {
 
     ".cm-tooltip-autocomplete": {
       backgroundColor: "var(--theme-bg-secondary)"
-    },
-
-    // Fat cursor (for vim mode if added later)
-    ".cm-fat-cursor": {
-      backgroundColor: "var(--theme-accent)",
-      color: "var(--theme-accent-text)"
     }
+    // NOTE: vim's .cm-fat-cursor is styled in codemirror_extensions.js instead —
+    // the library sets its colours at Prec.highest, which outranks this theme.
   }, { dark: true }) // Assume dark mode, CSS variables handle actual theme
 }
 

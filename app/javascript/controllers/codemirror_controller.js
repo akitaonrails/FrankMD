@@ -11,7 +11,7 @@ import {
   createLineNumbers,
   LINE_NUMBER_MODES
 } from "lib/codemirror_extensions"
-import { registerVimCommands, observeVimMode } from "lib/vim_mode"
+import { registerVimCommands, observeVimMode, configureVimKeys } from "lib/vim_mode"
 import { createTheme } from "lib/codemirror_theme"
 import {
   createTypewriterExtension,
@@ -508,6 +508,8 @@ export default class extends Controller {
    */
   initVim() {
     if (!this._vimObserver) {
+      // Give the app back the shortcuts it owns before vim can claim them.
+      configureVimKeys()
       registerVimCommands({
         // Ex-commands dispatch a Stimulus event the app controller maps to a
         // FrankMD feature (save, close, finder, sidebar, next/prev, help).

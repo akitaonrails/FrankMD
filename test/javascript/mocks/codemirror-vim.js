@@ -6,10 +6,13 @@
 export const __vimMock = {
   exCommands: [],       // { name, prefix }
   maps: [],             // { lhs, rhs, mode }
+  unmapped: [],         // lhs
+
   modeChangeHandlers: [],
   reset() {
     this.exCommands = []
     this.maps = []
+    this.unmapped = []
     this.modeChangeHandlers = []
   }
 }
@@ -25,6 +28,10 @@ export const Vim = {
   },
   map(lhs, rhs, mode) {
     __vimMock.maps.push({ lhs, rhs, mode })
+  },
+  unmap(lhs) {
+    __vimMock.unmapped.push(lhs)
+    return true
   }
 }
 

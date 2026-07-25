@@ -2,13 +2,49 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, vi } from "vitest"
-import { registerVimCommands, observeVimMode, EX_COMMANDS, _resetVimCommands } from "../../../app/javascript/lib/vim_mode.js"
+import { registerVimCommands, observeVimMode, EX_COMMANDS, APP_OWNED_KEYS, configureVimKeys, _resetVimCommands, _resetVimKeys } from "../../../app/javascript/lib/vim_mode.js"
+import { isMacOS } from "../../../app/javascript/lib/keyboard_shortcuts.js"
 import { __vimMock } from "@replit/codemirror-vim"
 
 describe("vim_mode", () => {
   beforeEach(() => {
     __vimMock.reset()
     _resetVimCommands()
+    _resetVimKeys()
+  })
+
+  describe("configureVimKeys()", () => {
+    it("hands the app-owned shortcuts back to FrankMD", () => {
+      const applied = configureVimKeys()
+
+      if (isMacOS()) {
+        // App shortcuts use Cmd on macOS, so vim keeps its whole keymap.
+        expect(applied).toBe(false)
+        expect(__vimMock.unmapped).toEqual([])
+      } else {
+        expect(applied).toBe(true)
+        expect(__vimMock.unmapped).toEqual(APP_OWNED_KEYS)
+      }
+    })
+
+    it("only mutates the shared keymap once", () => {
+      configureVimKeys()
+      const afterFirst = __vimMock.unmapped.length
+
+      configureVimKeys()
+
+      expect(__vimMock.unmapped.length).toBe(afterFirst)
+    })
+
+    it("covers the shortcuts the app and the markdown keymap bind", () => {
+      // Ctrl+F/N/P/E are FrankMD shortcuts, Ctrl+B/I are bold/italic, Ctrl+V is
+      // paste. Ctrl+D/U paging and Ctrl+Q blockwise visual stay with vim.
+      expect(APP_OWNED_KEYS).toEqual(
+        expect.arrayContaining([ "<C-f>", "<C-n>", "<C-p>", "<C-e>", "<C-b>", "<C-i>", "<C-v>" ])
+      )
+      expect(APP_OWNED_KEYS).not.toContain("<C-d>")
+      expect(APP_OWNED_KEYS).not.toContain("<C-q>")
+    })
   })
 
   describe("registerVimCommands()", () => {

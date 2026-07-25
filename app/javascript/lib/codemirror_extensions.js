@@ -22,6 +22,22 @@ export const lineNumbersCompartment = new Compartment()
 export const readOnlyCompartment = new Compartment()
 export const vimCompartment = new Compartment()
 
+// @replit/codemirror-vim ships its block-cursor colours at Prec.highest, so a
+// rule in the theme compartment (default precedence) never wins. Re-declare them
+// here, after vim() in the same precedence bucket, so the cursor follows the
+// active theme instead of the library's hardcoded pink.
+export const vimCursorTheme = Prec.highest(EditorView.theme({
+  ".cm-fat-cursor": {
+    background: "var(--theme-accent)",
+    color: "var(--theme-accent-text)"
+  },
+  "&:not(.cm-focused) .cm-fat-cursor": {
+    background: "none",
+    outline: "solid 1px var(--theme-accent)",
+    color: "transparent !important"
+  }
+}))
+
 /**
  * Vim-mode extension. Enabled -> the @replit/codemirror-vim keymap with its
  * built-in status/ex-command line; disabled -> nothing (byte-for-byte the
@@ -30,7 +46,7 @@ export const vimCompartment = new Compartment()
  * @returns {Extension}
  */
 export function createVimExtension(enabled) {
-  return enabled ? vim({ status: true }) : []
+  return enabled ? [ vim({ status: true }), vimCursorTheme ] : []
 }
 
 /**
