@@ -180,26 +180,28 @@ class ImagesServiceTest < ActiveSupport::TestCase
   test "upload_base64_data rejects an SVG mime type (stored-XSS vector)" do
     svg = Base64.strict_encode64("<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>")
     notes_dir = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes"))).join("images")
-    before = Dir.glob(notes_dir.join("*").to_s).size
+    # Unique name: this directory is shared with the other upload specs (and with
+    # parallel workers), so assert on our own file rather than a directory count.
+    name = "xss_#{SecureRandom.hex(4)}.svg"
 
-    result = ImagesService.upload_base64_data(svg, mime_type: "image/svg+xml", filename: "x.svg")
+    result = ImagesService.upload_base64_data(svg, mime_type: "image/svg+xml", filename: name)
 
     assert result[:error], "SVG upload must be rejected (not in the image allow-list)"
     assert_includes result[:error], "not an accepted"
-    assert_equal before, Dir.glob(notes_dir.join("*").to_s).size,
+    assert_empty Dir.glob(notes_dir.join("*#{name}").to_s),
       "a rejected upload must not write a file under the notes dir"
   end
 
   test "upload_base64_data rejects an html filename (stored-XSS vector)" do
     data = Base64.strict_encode64("<html><script>alert(1)</script></html>")
     notes_dir = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes"))).join("images")
-    before = Dir.glob(notes_dir.join("*.html").to_s).size
+    name = "evil_#{SecureRandom.hex(4)}.html"
 
-    result = ImagesService.upload_base64_data(data, mime_type: "image/png", filename: "evil.html")
+    result = ImagesService.upload_base64_data(data, mime_type: "image/png", filename: name)
 
     assert result[:error], "an .html filename must be rejected"
     assert_includes result[:error], "not an accepted"
-    assert_equal before, Dir.glob(notes_dir.join("*.html").to_s).size,
+    assert_empty Dir.glob(notes_dir.join("*#{name}").to_s),
       "a rejected upload must not write an .html file under the notes dir"
   end
 
