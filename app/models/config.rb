@@ -16,6 +16,7 @@ class Config
     "preview_zoom" => { default: 100, type: :integer, env: nil },
     "sidebar_visible" => { default: true, type: :boolean, env: nil },
     "typewriter_mode" => { default: false, type: :boolean, env: nil },
+    "vim_mode" => { default: false, type: :boolean, env: nil },
     "editor_indent" => { default: 2, type: :integer, env: nil },
     "editor_line_numbers" => { default: 0, type: :integer, env: nil },
     "editor_width" => { default: 72, type: :integer, env: nil },
@@ -82,6 +83,7 @@ class Config
     preview_zoom
     sidebar_visible
     typewriter_mode
+    vim_mode
     editor_indent
     editor_line_numbers
     editor_width
@@ -132,6 +134,9 @@ class Config
         "# preview_zoom = 100",
         "# sidebar_visible = true",
         "# typewriter_mode = false",
+        "",
+        "# Vim mode: hjkl navigation, modal editing, and : ex-commands (default: false)",
+        "# vim_mode = false",
         "",
         "# Editor indent: 0 = tab, 1-6 = spaces (default: 2)",
         "# editor_indent = 2",

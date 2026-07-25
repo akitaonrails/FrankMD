@@ -46,6 +46,21 @@
   <div class="flex items-center gap-2 shrink-0">
     <button
       type="button"
+      data-action="click->app#toggleVimMode"
+      data-app-target="vimToggle"
+      class="p-1.5 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] <%= 'text-[var(--theme-accent)]' if @config_obj&.get('vim_mode') %>"
+      title="<%= t('header.toggle_vim') %>"
+      aria-pressed="<%= @config_obj&.get('vim_mode') ? 'true' : 'false' %>"
+    >
+      <!-- Vim indicator: a bold "Vi" glyph mark -->
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+        <path d="M4 5l4 11 3-8" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M15 5v11" stroke-linecap="round" />
+        <circle cx="15" cy="19.5" r="0.75" fill="currentColor" stroke="none" />
+      </svg>
+    </button>
+    <button
+      type="button"
       data-action="click->typewriter#toggle"
       data-typewriter-target="toggleButton"
       data-typewriter-mode-btn

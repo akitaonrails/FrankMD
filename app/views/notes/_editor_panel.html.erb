@@ -130,7 +130,7 @@
     </div>
     <div class="h-full hidden relative" data-app-target="editor"
          data-controller="codemirror typewriter"
-         data-action="codemirror:change->app#onEditorChange codemirror:selection-change->app#onEditorSelectionChange codemirror:scroll->scroll-sync#onEditorScroll codemirror:image-pasted->app#onImagePaste typewriter:toggled->app#onTypewriterToggled">
+         data-action="codemirror:change->app#onEditorChange codemirror:selection-change->app#onEditorSelectionChange codemirror:scroll->scroll-sync#onEditorScroll codemirror:image-pasted->app#onImagePaste codemirror:vim-command->app#onVimCommand codemirror:vim-mode->app#onVimModeStatus typewriter:toggled->app#onTypewriterToggled">
       <div class="h-full flex editor-wrapper" data-app-target="editorWrapper" data-typewriter-target="wrapper">
         <div class="flex-1 h-full editor-body" data-app-target="editorBody" data-typewriter-target="body">
           <!-- CodeMirror container -->
@@ -147,6 +147,11 @@
             class="hidden"
             name="document[content]"
           ></textarea>
+          <!-- Vim mode indicator (hidden unless vim mode is on) -->
+          <div
+            data-app-target="vimStatus"
+            class="hidden absolute bottom-1 right-2 z-10 px-1.5 py-0.5 rounded text-[11px] font-medium tracking-wide bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-muted)] pointer-events-none select-none"
+          ></div>
         </div>
       </div>
     </div>

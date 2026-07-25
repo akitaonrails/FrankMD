@@ -6,9 +6,12 @@ import {
   themeCompartment,
   lineNumbersCompartment,
   readOnlyCompartment,
+  vimCompartment,
+  createVimExtension,
   createLineNumbers,
   LINE_NUMBER_MODES
 } from "lib/codemirror_extensions"
+import { registerVimCommands, observeVimMode } from "lib/vim_mode"
 import { createTheme } from "lib/codemirror_theme"
 import {
   createTypewriterExtension,
@@ -34,6 +37,7 @@ export default class extends Controller {
     lineHeight: { type: Number, default: 1.6 },
     lineNumberMode: { type: Number, default: 0 },
     typewriterMode: { type: Boolean, default: false },
+    vimMode: { type: Boolean, default: false },
     readOnly: { type: Boolean, default: false }
   }
 
@@ -57,6 +61,7 @@ export default class extends Controller {
       fontSize: `${this.fontSizeValue}px`,
       lineHeight: String(this.lineHeightValue),
       lineNumberMode: this.lineNumberModeValue,
+      vimMode: this.vimModeValue,
       onUpdate: (update) => this.onDocumentChange(update),
       onSelectionChange: (update) => this.onSelectionChange(update),
       onScroll: (event, view) => this.onScroll(event, view),
@@ -86,6 +91,9 @@ export default class extends Controller {
 
     // Track mouse selection state to prevent scroll jitter during selection
     this.setupMouseTracking()
+
+    // If vim mode is persisted on, wire up its commands + status now.
+    if (this.vimModeValue) this.initVim()
   }
 
   setupMouseTracking() {
@@ -468,6 +476,49 @@ export default class extends Controller {
     this.editor.dispatch({
       effects: lineNumbersCompartment.reconfigure(createLineNumbers(mode, this.editor))
     })
+  }
+
+  // === Vim Mode ===
+
+  /**
+   * Enable or disable vim mode live. Reconfigures the vim compartment; when
+   * enabling for the first time, registers the ex-commands and starts observing
+   * the vim sub-mode so the app can show a status indicator.
+   * @param {boolean} enabled
+   */
+  setVimMode(enabled) {
+    if (!this.editor) return
+    this.vimModeValue = enabled
+
+    this.editor.dispatch({
+      effects: vimCompartment.reconfigure(createVimExtension(enabled))
+    })
+
+    if (enabled) {
+      this.initVim()
+    } else {
+      // Announce that vim is off so the status indicator can hide.
+      this.dispatch("vim-mode", { detail: { enabled: false, mode: null } })
+    }
+  }
+
+  /**
+   * One-time-per-editor vim setup: register the FrankMD ex-commands and observe
+   * sub-mode changes. Safe to call again on re-enable (guards re-registration).
+   */
+  initVim() {
+    if (!this._vimObserver) {
+      registerVimCommands({
+        // Ex-commands dispatch a Stimulus event the app controller maps to a
+        // FrankMD feature (save, close, finder, sidebar, next/prev, help).
+        onCommand: (command, args) => this.dispatch("vim-command", { detail: { command, args } })
+      })
+      this._vimObserver = observeVimMode(this.editor, {
+        onModeChange: (mode) => this.dispatch("vim-mode", { detail: { enabled: true, mode } })
+      })
+    }
+    // Emit the current mode immediately so the indicator shows on enable.
+    this.dispatch("vim-mode", { detail: { enabled: true, mode: "normal" } })
   }
 
   /**

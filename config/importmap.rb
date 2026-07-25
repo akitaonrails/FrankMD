@@ -11,6 +11,7 @@ pin_all_from "app/javascript/lib", under: "lib"
 pin "marked", to: "marked.js" # @15.0.6 - vendored from esm.sh
 
 # CodeMirror 6
+pin "@replit/codemirror-vim", to: "@replit--codemirror-vim.js" # @6.3.0 - vendored from esm.sh (externals: @codemirror/*)
 pin "@codemirror/view", to: "@codemirror--view.js" # @6.39.11
 pin "@codemirror/state", to: "@codemirror--state.js" # @6.5.4
 pin "@codemirror/language", to: "@codemirror--language.js" # @6.12.1

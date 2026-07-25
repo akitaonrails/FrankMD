@@ -9,8 +9,10 @@ export default class extends Controller {
     "aboutDialog",
     "tabMarkdown",
     "tabShortcuts",
+    "tabVim",
     "panelMarkdown",
-    "panelShortcuts"
+    "panelShortcuts",
+    "panelVim"
   ]
 
   connect() {
@@ -52,34 +54,27 @@ export default class extends Controller {
     this.updateTabStyles()
   }
 
-  // Update tab button and panel visibility
+  // Update tab button and panel visibility (data-driven over getTabOrder).
   updateTabStyles() {
     const activeClasses = "bg-[var(--theme-accent)] text-[var(--theme-accent-text)]"
     const inactiveClasses = "hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
 
-    if (this.hasTabMarkdownTarget && this.hasTabShortcutsTarget) {
-      // Update tab buttons
-      if (this.currentTab === "markdown") {
-        this.tabMarkdownTarget.className = `px-3 py-1 text-sm rounded-md ${activeClasses}`
-        this.tabShortcutsTarget.className = `px-3 py-1 text-sm rounded-md ${inactiveClasses}`
-      } else {
-        this.tabMarkdownTarget.className = `px-3 py-1 text-sm rounded-md ${inactiveClasses}`
-        this.tabShortcutsTarget.className = `px-3 py-1 text-sm rounded-md ${activeClasses}`
+    for (const tab of this.getTabOrder()) {
+      const cap = tab.charAt(0).toUpperCase() + tab.slice(1)
+      const btn = this[`hasTab${cap}Target`] ? this[`tab${cap}Target`] : null
+      const panel = this[`hasPanel${cap}Target`] ? this[`panel${cap}Target`] : null
+      if (btn) {
+        btn.className = `px-3 py-1 text-sm rounded-md ${tab === this.currentTab ? activeClasses : inactiveClasses}`
       }
-    }
-
-    // Update panels
-    if (this.hasPanelMarkdownTarget) {
-      this.panelMarkdownTarget.classList.toggle("hidden", this.currentTab !== "markdown")
-    }
-    if (this.hasPanelShortcutsTarget) {
-      this.panelShortcutsTarget.classList.toggle("hidden", this.currentTab !== "shortcuts")
+      if (panel) {
+        panel.classList.toggle("hidden", tab !== this.currentTab)
+      }
     }
   }
 
   // Get ordered list of tab names
   getTabOrder() {
-    return ["markdown", "shortcuts"]
+    return ["markdown", "shortcuts", "vim"]
   }
 
   // Handle arrow key navigation on tab buttons
@@ -103,10 +98,9 @@ export default class extends Controller {
 
   // Focus the tab button for a given tab name
   focusTab(tabName) {
-    if (tabName === "markdown" && this.hasTabMarkdownTarget) {
-      this.tabMarkdownTarget.focus()
-    } else if (tabName === "shortcuts" && this.hasTabShortcutsTarget) {
-      this.tabShortcutsTarget.focus()
+    const cap = tabName.charAt(0).toUpperCase() + tabName.slice(1)
+    if (this[`hasTab${cap}Target`]) {
+      this[`tab${cap}Target`].focus()
     }
   }
 

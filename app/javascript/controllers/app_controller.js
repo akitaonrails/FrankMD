@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { get, patch } from "@rails/request.js"
 import { marked } from "marked"
 import { escapeHtml } from "lib/text_utils"
+import { nextNoteIndex } from "lib/vim_mode"
 import { findTableAtPosition, findCodeBlockAtPosition } from "lib/markdown_utils"
 import { allExtensions } from "lib/marked_extensions"
 import { encodePath } from "lib/url_utils"
@@ -32,6 +33,8 @@ export default class extends Controller {
     "tableHint",
     "sidebar",
     "sidebarToggle",
+    "vimToggle",
+    "vimStatus",
     "aiButton",
     "editorWrapper",
     "editorBody"
@@ -1463,6 +1466,65 @@ export default class extends Controller {
     if (this.hasHelpDialogTarget && this.helpDialogTarget.open) {
       this.helpDialogTarget.close()
     }
+  }
+
+  // === Vim Mode ===
+
+  // Header button: flip vim mode, apply it live, and persist the preference.
+  toggleVimMode() {
+    const codemirror = this.getCodemirrorController()
+    if (!codemirror) return
+    const enabled = !codemirror.vimModeValue
+    codemirror.setVimMode(enabled)
+    this.saveConfig({ vim_mode: enabled })
+    this.updateVimToggleButton(enabled)
+  }
+
+  updateVimToggleButton(enabled) {
+    if (this.hasVimToggleTarget) {
+      this.vimToggleTarget.setAttribute("aria-pressed", String(enabled))
+      this.vimToggleTarget.classList.toggle("text-[var(--theme-accent)]", enabled)
+    }
+  }
+
+  // codemirror:vim-mode — reflect the current sub-mode in the status indicator.
+  onVimModeStatus(event) {
+    const { enabled, mode } = event.detail
+    this.updateVimToggleButton(enabled)
+    if (!this.hasVimStatusTarget) return
+
+    this.vimStatusTarget.classList.toggle("hidden", !enabled)
+    if (enabled) {
+      const label = (mode || "normal").split("-")[0].toUpperCase()
+      this.vimStatusTarget.textContent = `VIM · ${label}`
+    }
+  }
+
+  // codemirror:vim-command — map a FrankMD ex-command to an app action.
+  onVimCommand(event) {
+    const { command } = event.detail
+    switch (command) {
+      case "save": this.executeShortcutAction("save"); break
+      case "close": this.executeShortcutAction("closeDialogs"); break
+      case "save-and-close":
+        this.executeShortcutAction("save")
+        this.executeShortcutAction("closeDialogs")
+        break
+      case "finder": this.executeShortcutAction("fileFinder"); break
+      case "toggle-sidebar": this.executeShortcutAction("toggleSidebar"); break
+      case "help": this.openHelp(); break
+      case "next-note": this.navigateNote(1); break
+      case "prev-note": this.navigateNote(-1); break
+    }
+  }
+
+  // :n / :prev — move to the next/previous note by clicking the adjacent file
+  // item in the tree (reuses the normal open-on-click path).
+  navigateNote(direction) {
+    const files = Array.from(document.querySelectorAll('.tree-item[data-type="file"]'))
+    const currentIndex = files.findIndex(el => el.classList.contains("selected"))
+    const target = nextNoteIndex(files.length, currentIndex, direction)
+    if (target !== -1) files[target].click()
   }
 
   // === Editor Indentation ===

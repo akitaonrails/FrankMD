@@ -33,6 +33,14 @@
           data-action="click->help#switchTab keydown->help#onTabKeydown"
           class="px-3 py-1 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
         ><%= t('dialogs.help.tab_shortcuts') %></button>
+        <button
+          type="button"
+          role="tab"
+          data-help-target="tabVim"
+          data-tab="vim"
+          data-action="click->help#switchTab keydown->help#onTabKeydown"
+          class="px-3 py-1 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
+        ><%= t('dialogs.help.tab_vim') %></button>
       </div>
 
       <!-- Markdown Cheatsheet Panel -->
@@ -326,6 +334,37 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Vim Mode Panel -->
+      <div data-help-target="panelVim" class="hidden">
+        <p class="text-sm text-[var(--theme-text-secondary)] mb-4"><%= t('dialogs.help.vim.intro') %></p>
+
+        <h3 class="text-sm font-semibold text-[var(--theme-text-primary)] mb-2"><%= t('dialogs.help.vim.modes_title') %></h3>
+        <ul class="space-y-1 mb-4 text-sm text-[var(--theme-text-secondary)]">
+          <li><%= t('dialogs.help.vim.mode_normal') %></li>
+          <li><%= t('dialogs.help.vim.mode_insert') %></li>
+          <li><%= t('dialogs.help.vim.mode_visual') %></li>
+        </ul>
+
+        <h3 class="text-sm font-semibold text-[var(--theme-text-primary)] mb-2"><%= t('dialogs.help.vim.commands_title') %></h3>
+        <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+          <div class="font-semibold text-[var(--theme-text-muted)]"><%= t('dialogs.help.vim.col_command') %></div>
+          <div class="font-semibold text-[var(--theme-text-muted)]"><%= t('dialogs.help.vim.col_action') %></div>
+          <% [
+               [":w  :write", 'cmd_write'],
+               [":q  :quit", 'cmd_quit'],
+               [":wq  :x", 'cmd_wq'],
+               [":e  :find", 'cmd_edit'],
+               [":Explore", 'cmd_explore'],
+               [":n  :next", 'cmd_next'],
+               [":prev", 'cmd_prev'],
+               [":help", 'cmd_help']
+             ].each do |cmd, key| %>
+            <kbd class="px-1.5 py-0.5 text-xs font-mono bg-[var(--theme-bg-primary)] rounded border border-[var(--theme-border)] w-max"><%= cmd %></kbd>
+            <span class="text-[var(--theme-text-secondary)]"><%= t("dialogs.help.vim.#{key}") %></span>
+          <% end %>
         </div>
       </div>
     </div>

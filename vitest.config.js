@@ -13,6 +13,7 @@ export default defineConfig({
       'marked': path.resolve(__dirname, 'test/javascript/mocks/marked.js'),
       '@hotwired/turbo-rails': path.resolve(__dirname, 'test/javascript/mocks/turbo-rails.js'),
       '@rails/request.js': path.resolve(__dirname, 'test/javascript/mocks/requestjs.js'),
+      '@replit/codemirror-vim': path.resolve(__dirname, 'test/javascript/mocks/codemirror-vim.js'),
     },
   },
 })
