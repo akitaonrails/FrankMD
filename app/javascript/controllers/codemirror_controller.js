@@ -9,6 +9,7 @@ import {
   createLineNumbers,
   LINE_NUMBER_MODES
 } from "lib/codemirror_extensions"
+import { vimCompartment, vimExtension } from "lib/codemirror_vim"
 import { createTheme } from "lib/codemirror_theme"
 import {
   createTypewriterExtension,
@@ -34,7 +35,8 @@ export default class extends Controller {
     lineHeight: { type: Number, default: 1.6 },
     lineNumberMode: { type: Number, default: 0 },
     typewriterMode: { type: Boolean, default: false },
-    readOnly: { type: Boolean, default: false }
+    readOnly: { type: Boolean, default: false },
+    vimMode: { type: Boolean, default: false }
   }
 
   connect() {
@@ -57,6 +59,7 @@ export default class extends Controller {
       fontSize: `${this.fontSizeValue}px`,
       lineHeight: String(this.lineHeightValue),
       lineNumberMode: this.lineNumberModeValue,
+      vimMode: this.vimModeValue,
       onUpdate: (update) => this.onDocumentChange(update),
       onSelectionChange: (update) => this.onSelectionChange(update),
       onScroll: (event, view) => this.onScroll(event, view),
@@ -467,6 +470,19 @@ export default class extends Controller {
     this.lineNumberModeValue = mode
     this.editor.dispatch({
       effects: lineNumbersCompartment.reconfigure(createLineNumbers(mode, this.editor))
+    })
+  }
+
+  /**
+   * Enable or disable vim keybindings
+   * @param {boolean} enabled
+   */
+  setVimMode(enabled) {
+    if (!this.editor) return
+
+    this.vimModeValue = enabled
+    this.editor.dispatch({
+      effects: vimCompartment.reconfigure(vimExtension(enabled))
     })
   }
 

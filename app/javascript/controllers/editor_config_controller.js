@@ -16,6 +16,7 @@ export default class extends Controller {
     previewZoom: { type: Number, default: 100 },
     lineNumbers: { type: Number, default: 0 },
     typewriterMode: { type: Boolean, default: false },
+    vimMode: { type: Boolean, default: false },
     indent: { type: Number, default: 2 },
     theme: { type: String, default: "" }
   }
@@ -45,6 +46,7 @@ export default class extends Controller {
     this._codemirrorReady = true
     this.applyFont()
     this.applyLineNumbers()
+    this.applyVimMode()
   }
 
   previewOutletConnected() {
@@ -69,6 +71,10 @@ export default class extends Controller {
 
   previewZoomValueChanged() {
     if (this._previewReady) this.applyPreviewZoom()
+  }
+
+  vimModeValueChanged() {
+    if (this._codemirrorReady) this.applyVimMode()
   }
 
   lineNumbersValueChanged() {
@@ -106,6 +112,13 @@ export default class extends Controller {
     const codemirror = this.getCodemirrorController()
     if (codemirror) {
       codemirror.setLineNumberMode(mode)
+    }
+  }
+
+  applyVimMode() {
+    const codemirror = this.getCodemirrorController()
+    if (codemirror) {
+      codemirror.setVimMode(this.vimModeValue)
     }
   }
 

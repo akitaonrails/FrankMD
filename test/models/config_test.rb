@@ -107,7 +107,20 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal 100, config.get(:preview_zoom)
     assert_equal true, config.get(:sidebar_visible)
     assert_equal false, config.get(:typewriter_mode)
+    assert_equal false, config.get(:vim_mode)
     assert_nil config.get(:theme)
+  end
+
+  test "vim_mode can be enabled from the .fed file" do
+    File.write(File.join(@test_dir, ".fed"), "vim_mode = true\n")
+
+    config = Config.new(base_path: @test_dir)
+
+    assert_equal true, config.get(:vim_mode)
+  end
+
+  test "vim_mode is writable from the settings UI" do
+    assert_includes Config::UI_KEYS, "vim_mode"
   end
 
   # === Upload extensions ===

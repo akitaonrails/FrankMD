@@ -3,6 +3,7 @@
 
 import { EditorView, keymap, placeholder, lineNumbers, highlightActiveLineGutter, drawSelection, rectangularSelection, highlightActiveLine, ViewPlugin } from "@codemirror/view"
 import { EditorState, Compartment, Prec } from "@codemirror/state"
+import { vimCompartment, vimExtension } from "lib/codemirror_vim"
 import { history, defaultKeymap, historyKeymap, indentWithTab } from "@codemirror/commands"
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
 import { bracketMatching } from "@codemirror/language"
@@ -172,10 +173,17 @@ export function createExtensions(options = {}) {
     onUpdate = null,
     onSelectionChange = null,
     onScroll = null,
-    onPaste = null
+    onPaste = null,
+    vimMode = false
   } = options
 
   const extensions = [
+    // Vim mode (in compartment for toggling) — MUST stay first in this array.
+    // keymap's key handler is always registered at Prec.default, so
+    // Prec.highest(keymap.of(...)) does not outrank vim; only array order does.
+    // Moving this below any keymap.of() silently breaks vim's normal mode.
+    vimCompartment.of(vimExtension(vimMode)),
+
     // Theme (in compartment for dynamic switching)
     themeCompartment.of(createTheme({ fontFamily, fontSize, lineHeight })),
 

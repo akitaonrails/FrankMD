@@ -19,6 +19,7 @@ class Config
     "editor_indent" => { default: 2, type: :integer, env: nil },
     "editor_line_numbers" => { default: 0, type: :integer, env: nil },
     "editor_width" => { default: 72, type: :integer, env: nil },
+    "vim_mode" => { default: false, type: :boolean, env: nil },
 
     # Paths (ENV defaults)
     "images_path" => { default: nil, type: :string, env: "IMAGES_PATH" },
@@ -85,6 +86,7 @@ class Config
     editor_indent
     editor_line_numbers
     editor_width
+    vim_mode
   ].freeze
 
   # AI provider priority (default order when ai_provider = "auto")
@@ -132,6 +134,9 @@ class Config
         "# preview_zoom = 100",
         "# sidebar_visible = true",
         "# typewriter_mode = false",
+        "",
+        "# Vim keybindings in the editor",
+        "# vim_mode = false",
         "",
         "# Editor indent: 0 = tab, 1-6 = spaces (default: 2)",
         "# editor_indent = 2",

@@ -316,6 +316,7 @@ editor_font_size = 16
 preview_zoom = 100
 sidebar_visible = true
 typewriter_mode = false
+vim_mode = false
 
 # Local images path
 images_path = /home/user/Pictures
@@ -373,6 +374,7 @@ The `.fed` file appears in the explorer panel with a gear icon. You can click it
 | `preview_zoom` | integer | 100 | Preview zoom percentage (50-200) |
 | `sidebar_visible` | boolean | true | Show explorer panel on startup |
 | `typewriter_mode` | boolean | false | Enable typewriter mode on startup |
+| `vim_mode` | boolean | false | Vim keybindings in the editor |
 | `images_path` | string | - | Local images directory path |
 | `image_upload_extensions` | string | `.jpg,.jpeg,.png,.gif,.webp,.bmp` | Comma-separated file extensions accepted by the image drag-and-drop upload |
 | `video_upload_extensions` | string | `.mp4,.webm,.mkv,.mov,.avi,.m4v,.ogv` | Comma-separated file extensions accepted by the video drag-and-drop upload |
@@ -395,6 +397,22 @@ The `.fed` file appears in the explorer panel with a gear icon. You can click it
 | `gemini_model` | string | gemini-2.0-flash | Gemini model |
 | `openai_api_key` | string | - | OpenAI API key |
 | `openai_model` | string | gpt-4o-mini | OpenAI model |
+
+### Vim Mode
+
+Set `vim_mode = true` in `.fed` for vim keybindings in the editor. It applies
+immediately on save, like the other editor settings — no restart needed.
+
+Two things behave differently with vim mode on:
+
+- **Escape is two-stage while typing.** In normal mode Escape still closes
+  dialogs and the find bar as usual. In insert or visual mode the first Escape
+  leaves that mode (vim owns the key there) and a second one reaches the app.
+- **Some Ctrl bindings stay with the app on Windows/Linux.** `Ctrl+F`, `Ctrl+N`,
+  `Ctrl+P`, `Ctrl+E`, `Ctrl+B`, `Ctrl+I` and `Ctrl+V` keep their FrankMD/browser
+  meaning rather than vim's, so the app shortcuts keep working. `Ctrl+D`/`Ctrl+U`
+  still page, and `Ctrl+Q` gives blockwise visual in place of `Ctrl+V`. macOS is
+  unaffected, since app shortcuts use Cmd there.
 
 ### Environment Variables
 

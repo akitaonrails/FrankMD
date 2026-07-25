@@ -17,6 +17,7 @@ pin "@codemirror/language", to: "@codemirror--language.js" # @6.12.1
 pin "@codemirror/lang-markdown", to: "@codemirror--lang-markdown.js" # @6.5.0
 pin "@codemirror/commands", to: "@codemirror--commands.js" # @6.10.1
 pin "@codemirror/search", to: "@codemirror--search.js" # @6.6.0
+pin "@replit/codemirror-vim", to: "@replit--codemirror-vim.js" # @6.3.0
 pin "@lezer/highlight", to: "@lezer--highlight.js" # @1.2.3
 pin "@lezer/markdown", to: "@lezer--markdown.js" # @1.6.3
 pin "@codemirror/autocomplete", to: "@codemirror--autocomplete.js" # @6.20.0
