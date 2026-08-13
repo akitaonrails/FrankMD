@@ -320,6 +320,13 @@ FRANKMD_BIND_ADDRESS=127.0.0.1
 This is recommended when FrankMD should not be reachable by other devices on
 the local network. Use `0.0.0.0` when LAN access is intentional.
 
+For the strongest localhost-only behavior, use Docker Engine 28.0.0 or newer.
+Docker Engine versions before 28.0.0 may allow hosts on the same local network
+segment to reach ports published to localhost. On older versions, configure a
+host firewall and verify from another device that the host's LAN address cannot
+reach FrankMD; do not treat `127.0.0.1` alone as a complete LAN-isolation
+guarantee.
+
 #### VPN firewall considerations
 
 Some VPN clients block traffic between the host and Docker bridge networks.
