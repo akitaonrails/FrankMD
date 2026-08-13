@@ -87,10 +87,3 @@ services:
 #     # - Create tunnel at https://one.dash.cloudflare.com/
 #     # - Add public hostname pointing to http://frankmd:80
 #     # - Copy tunnel token to .env as CLOUDFLARE_TUNNEL_TOKEN
-
-networks:
-  default:
-    name: frankmd_default
-    ipam:
-      config:
-        - subnet: ${FRANKMD_DOCKER_SUBNET:-172.20.0.0/16}

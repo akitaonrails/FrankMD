@@ -320,20 +320,17 @@ FRANKMD_BIND_ADDRESS=127.0.0.1
 This is recommended when FrankMD should not be reachable by other devices on
 the local network. Use `0.0.0.0` when LAN access is intentional.
 
-#### Using FrankMD with NordVPN
+#### VPN firewall considerations
 
-NordVPN may block traffic between the host and Docker bridge networks while
-LAN Discovery is disabled. You can keep LAN Discovery disabled and allow only
-FrankMD's Docker subnet instead:
+Some VPN clients block traffic between the host and Docker bridge networks.
+If FrankMD is healthy but `localhost:7591` is unreachable, keep the VPN
+firewall protections enabled and follow the VPN client's documentation to
+allow only the Docker bridge traffic required for local development. The
+configuration varies by client and operating system; avoid enabling broad LAN
+access unless it is intentional.
 
-```bash
-nordvpn set lan-discovery off
-nordvpn allowlist add subnet 172.20.0.0/16
-```
-
-The default subnet is defined by `FRANKMD_DOCKER_SUBNET`. If you customize it
-in `.env`, allowlist that subnet instead. Combine this with
-`FRANKMD_BIND_ADDRESS=127.0.0.1` to keep FrankMD local-only while using the VPN.
+Regardless of the VPN configuration, use
+`FRANKMD_BIND_ADDRESS=127.0.0.1` when FrankMD should remain local-only.
 
 ## Configuration
 
@@ -443,7 +440,6 @@ Environment variables are global defaults. Use them for Docker deployments or wh
 | `IMAGES_PATH` | Directory for local images | (disabled) |
 | `PORT` | Host port for Docker Compose | `7591` |
 | `FRANKMD_BIND_ADDRESS` | Host address for the published Docker port | `0.0.0.0` |
-| `FRANKMD_DOCKER_SUBNET` | Docker bridge subnet used by the Compose network | `172.20.0.0/16` |
 | `IMAGE_UPLOAD_EXTENSIONS` | Comma-separated file extensions accepted by the image drag-and-drop upload | `.jpg,.jpeg,.png,.gif,.webp,.bmp` |
 | `VIDEO_UPLOAD_EXTENSIONS` | Comma-separated file extensions accepted by the video drag-and-drop upload | `.mp4,.webm,.mkv,.mov,.avi,.m4v,.ogv` |
 | `FRANKMD_LOCALE` | Default language (en, pt-BR, pt-PT, es, he, ja, ko) | en |
