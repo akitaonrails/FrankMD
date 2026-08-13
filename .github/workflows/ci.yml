@@ -65,3 +65,23 @@ jobs:
       - name: Lint code for consistent style
         run: bin/rubocop -f github
 
+  docker_compose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Validate default port binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          host_ip=$(docker compose config --format json | jq -r '.services.frankmd.ports[0].host_ip')
+          test "$host_ip" = "0.0.0.0"
+
+      - name: Validate loopback port binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          host_ip=$(FRANKMD_BIND_ADDRESS=127.0.0.1 docker compose config --format json | jq -r '.services.frankmd.ports[0].host_ip')
+          test "$host_ip" = "127.0.0.1"
