@@ -23,7 +23,8 @@ services:
     # Run as host user for proper volume permissions
     user: "${UID:-1000}:${GID:-1000}"
     ports:
-      - "${PORT:-7591}:80"
+      # Set FRANKMD_BIND_ADDRESS=127.0.0.1 for local-only access.
+      - "${FRANKMD_BIND_ADDRESS:-0.0.0.0}:${PORT:-7591}:80"
     volumes:
       # Notes directory - default to ./notes, override with NOTES_PATH env var
       - ${NOTES_PATH:-./notes}:/rails/notes
@@ -86,3 +87,10 @@ services:
 #     # - Create tunnel at https://one.dash.cloudflare.com/
 #     # - Add public hostname pointing to http://frankmd:80
 #     # - Copy tunnel token to .env as CLOUDFLARE_TUNNEL_TOKEN
+
+networks:
+  default:
+    name: frankmd_default
+    ipam:
+      config:
+        - subnet: ${FRANKMD_DOCKER_SUBNET:-172.20.0.0/16}
