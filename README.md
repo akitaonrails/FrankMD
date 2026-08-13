@@ -263,6 +263,15 @@ docker rm -f frankmd
 
 Tip: If you hit permission errors, run the container as your user (`--user "$(id -u):$(id -g)"`) or rebuild the image with matching UID/GID.
 
+For local-only access, bind the published port to loopback instead:
+
+```bash
+docker run -d --name frankmd -p 127.0.0.1:7591:80 \
+  -v ~/notes:/rails/notes \
+  --restart unless-stopped \
+  akitaonrails/frankmd:latest
+```
+
 ### Using Docker Compose
 
 For a more permanent setup, use the `docker-compose.yml` in this repo:
@@ -276,7 +285,7 @@ services:
     container_name: frankmd
     restart: unless-stopped
     ports:
-      - "7591:80"
+      - "${FRANKMD_BIND_ADDRESS:-0.0.0.0}:7591:80"
     volumes:
       - ./notes:/rails/notes
     environment:
@@ -299,6 +308,32 @@ docker compose up -d
 ```
 
 **Note:** The host directory in `NOTES_PATH` must exist and be writable by the UID/GID in `.env`. Avoid `sudo docker`, which creates root-owned bind mounts; if that happens, fix ownership with `chown -R UID:GID <path>`.
+
+By default, Docker publishes FrankMD on all host interfaces. To keep the
+application available only on this machine, set this in `.env` before starting
+or recreating the container:
+
+```env
+FRANKMD_BIND_ADDRESS=127.0.0.1
+```
+
+This is recommended when FrankMD should not be reachable by other devices on
+the local network. Use `0.0.0.0` when LAN access is intentional.
+
+#### Using FrankMD with NordVPN
+
+NordVPN may block traffic between the host and Docker bridge networks while
+LAN Discovery is disabled. You can keep LAN Discovery disabled and allow only
+FrankMD's Docker subnet instead:
+
+```bash
+nordvpn set lan-discovery off
+nordvpn allowlist add subnet 172.20.0.0/16
+```
+
+The default subnet is defined by `FRANKMD_DOCKER_SUBNET`. If you customize it
+in `.env`, allowlist that subnet instead. Combine this with
+`FRANKMD_BIND_ADDRESS=127.0.0.1` to keep FrankMD local-only while using the VPN.
 
 ## Configuration
 
@@ -406,6 +441,9 @@ Environment variables are global defaults. Use them for Docker deployments or wh
 |----------|-------------|---------|
 | `NOTES_PATH` | Directory where notes are stored (must be writable by UID/GID when using Docker) | `./notes` |
 | `IMAGES_PATH` | Directory for local images | (disabled) |
+| `PORT` | Host port for Docker Compose | `7591` |
+| `FRANKMD_BIND_ADDRESS` | Host address for the published Docker port | `0.0.0.0` |
+| `FRANKMD_DOCKER_SUBNET` | Docker bridge subnet used by the Compose network | `172.20.0.0/16` |
 | `IMAGE_UPLOAD_EXTENSIONS` | Comma-separated file extensions accepted by the image drag-and-drop upload | `.jpg,.jpeg,.png,.gif,.webp,.bmp` |
 | `VIDEO_UPLOAD_EXTENSIONS` | Comma-separated file extensions accepted by the video drag-and-drop upload | `.mp4,.webm,.mkv,.mov,.avi,.m4v,.ogv` |
 | `FRANKMD_LOCALE` | Default language (en, pt-BR, pt-PT, es, he, ja, ko) | en |
