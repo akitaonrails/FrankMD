@@ -2,7 +2,7 @@
 // Handles browsing and selecting images from local filesystem folders
 
 import { post } from "@rails/request.js"
-import { escapeHtml } from "lib/text_utils"
+import { escapeHtml, isSafeImageUrl } from "lib/text_utils"
 
 // Fallback when no config-driven list is provided (e.g. direct API use).
 export const DEFAULT_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"]
@@ -188,7 +188,9 @@ export class FolderImageSource {
 
     const html = this.displayedImages.map((image, index) => {
       const sizeKb = Math.round(image.size / 1024)
-      const dimensions = (image.width && image.height) ? `${image.width}x${image.height}` : ""
+      const width = Number(image.width)
+      const height = Number(image.height)
+      const dimensions = (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) ? `${width}x${height}` : ""
       return `
         <div
           class="image-grid-item"
@@ -196,7 +198,7 @@ export class FolderImageSource {
           data-index="${index}"
           title="${escapeHtml(image.name)}${dimensions ? ` (${dimensions})` : ''} - ${sizeKb} KB"
         >
-          <img src="${image.objectUrl}" alt="${escapeHtml(image.name)}">
+          <img src="${escapeHtml(isSafeImageUrl(image.objectUrl) ? image.objectUrl : "")}" alt="${escapeHtml(image.name)}">
           ${dimensions ? `<div class="image-dimensions">${dimensions}</div>` : ''}
         </div>
       `

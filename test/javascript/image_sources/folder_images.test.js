@@ -266,6 +266,15 @@ describe("FolderImageSource", () => {
 
       expect(container.innerHTML).not.toContain("<script>")
     })
+
+    it("does not allow a quoted filename to inject image attributes", () => {
+      const container = document.createElement("div")
+      source.displayedImages = [{ name: 'photo" onerror="alert(1)', objectUrl: "blob:url", size: 1024 }]
+
+      source.renderGrid(container, null, "click->handler")
+
+      expect(container.querySelector("img").hasAttribute("onerror")).toBe(false)
+    })
   })
 
   describe("getImage", () => {

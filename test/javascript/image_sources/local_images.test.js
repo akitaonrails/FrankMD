@@ -168,6 +168,13 @@ describe("LocalImageSource", () => {
       expect(container.innerHTML).not.toContain("<script>")
     })
 
+    it("does not allow a quoted filename to inject image attributes", () => {
+      const container = document.createElement("div")
+      source.renderGrid([{ path: "photo.jpg", name: 'photo" onerror="alert(1)' }], container, "click->handler")
+
+      expect(container.querySelector("img").hasAttribute("onerror")).toBe(false)
+    })
+
     it("handles images without dimensions", () => {
       const container = { innerHTML: "" }
       const images = [

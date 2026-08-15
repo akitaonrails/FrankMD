@@ -10,6 +10,8 @@
 # Ignore all environment files except example.
 /.env*
 !/.env.example
+/.fed
+/.ai-jail
 
 # Ignore all logfiles and tempfiles.
 /log/*
@@ -42,7 +44,6 @@
 
 # JavaScript dependencies (for testing)
 node_modules/
-package-lock.json
 
 # Claude Code project config
 .claude/

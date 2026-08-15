@@ -56,6 +56,7 @@ export default class extends Controller {
   }
 
   connect() {
+    this.installUnauthorizedRedirect()
     this.currentFile = null
     this.currentFileType = null  // "markdown", "config", or null
     this.expandedFolders = new Set()
@@ -138,6 +139,8 @@ export default class extends Controller {
   }
 
   disconnect() {
+    if (window.fetch === this.unauthorizedFetch) window.fetch = this.originalFetch
+
     // Clear all timeouts
     if (this.configSaveTimeout) clearTimeout(this.configSaveTimeout)
     if (this._tableCheckTimeout) clearTimeout(this._tableCheckTimeout)
@@ -164,6 +167,19 @@ export default class extends Controller {
     if (this.aiImageAbortController) {
       this.aiImageAbortController.abort()
     }
+  }
+
+  installUnauthorizedRedirect() {
+    this.originalFetch = window.fetch.bind(window)
+    this.unauthorizedFetch = async (...args) => {
+      const response = await this.originalFetch(...args)
+      if (response.status === 401 && !this.redirectingToLogin) {
+        this.redirectingToLogin = true
+        window.location.assign("/login")
+      }
+      return response
+    }
+    window.fetch = this.unauthorizedFetch
   }
 
   // === Controller Getters (via Stimulus Outlets) ===

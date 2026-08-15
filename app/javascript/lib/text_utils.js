@@ -2,15 +2,30 @@
 // Extracted for testability
 
 /**
- * Escape HTML special characters to prevent XSS
+ * Escape HTML special characters, including quotes for safe attribute interpolation
  * @param {string} text - Text to escape
  * @returns {string} - HTML-safe text
  */
 export function escapeHtml(text) {
   if (!text) return ""
-  const div = document.createElement("div")
-  div.textContent = text
-  return div.innerHTML
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
+/**
+ * Whether a URL may be used as an image source.
+ * @param {string} url - URL to validate
+ * @returns {boolean} - True for allowed image URL schemes
+ */
+export function isSafeImageUrl(url) {
+  if (typeof url !== "string" || /[\s\u0000-\u001F\u007F]/.test(url)) return false
+
+  return /^(https?:|data:image\/|blob:)/i.test(url) ||
+    (url.startsWith("/") && !url.startsWith("//") && !url.startsWith("/\\"))
 }
 
 /**

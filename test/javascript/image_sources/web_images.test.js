@@ -137,6 +137,18 @@ describe("WebImageSource", () => {
       expect(container.innerHTML).toContain('data-source="example.com"')
     })
 
+    it("removes broken thumbnails without an inline error handler", () => {
+      const container = document.createElement("div")
+      source.results = [{ url: "https://example.com/1.jpg", title: "Cat" }]
+
+      source.renderGrid(container, "click->handler#select")
+
+      const image = container.querySelector("img")
+      expect(image.hasAttribute("onerror")).toBe(false)
+      image.dispatchEvent(new Event("error"))
+      expect(container.querySelector(".external-image-item")).toBeNull()
+    })
+
     it("renders dimensions when available", () => {
       const container = { innerHTML: "" }
       source.results = [
@@ -170,6 +182,24 @@ describe("WebImageSource", () => {
 
       expect(container.innerHTML).not.toContain("<script>")
       expect(container.innerHTML).toContain("&lt;script&gt;")
+    })
+
+    it("does not allow a quoted title to inject attributes", () => {
+      const container = document.createElement("div")
+      source.results = [{ url: "https://example.com/image.jpg", title: 'photo" onerror="alert(1)' }]
+
+      source.renderGrid(container, "click->handler")
+
+      expect(container.querySelector("button").hasAttribute("onerror")).toBe(false)
+    })
+
+    it("rejects unsafe image source URLs", () => {
+      const container = document.createElement("div")
+      source.results = [{ url: "javascript:alert(1)", title: "Image" }]
+
+      source.renderGrid(container, "click->handler")
+
+      expect(container.querySelector("img").getAttribute("src")).toBe("")
     })
   })
 

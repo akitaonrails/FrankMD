@@ -32,6 +32,12 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "index refuses a canonical alias for the root config file" do
+    get root_url, params: { file: "./.fed" }, as: :json
+
+    assert_response :forbidden
+  end
+
   test "index includes tree data in rendered HTML" do
     create_test_note("test.md")
 
@@ -89,6 +95,24 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "show refuses the root config file" do
+    create_test_note(".fed", "secret-token")
+
+    get note_url(path: ".fed"), as: :json
+
+    assert_response :forbidden
+    refute_includes response.body, "secret-token"
+  end
+
+  test "show refuses a percent-decoded config file alias" do
+    @test_notes_dir.join(".fed").write("secret-token")
+
+    get "/notes/foo/%2E%2E/.fed", as: :json
+
+    assert_response :forbidden
+    refute_includes response.body, "secret-token"
+  end
+
   # === show (asset serving) ===
 
   test "show serves image files from notes directory" do
@@ -126,6 +150,12 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_response :created
 
     assert @test_notes_dir.join("no_extension.md").exist?
+  end
+
+  test "create refuses the root config file" do
+    post create_note_url(path: ".fed"), params: { content: "secret" }, as: :json
+
+    assert_response :forbidden
   end
 
   test "create in subfolder works" do
@@ -238,6 +268,22 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert @test_notes_dir.join("new.md").exist?
   end
 
+  test "update refuses the root config file" do
+    patch update_note_url(path: ".fed"), params: { content: "secret" }, as: :json
+
+    assert_response :forbidden
+  end
+
+  test "update refuses a canonical config file alias without mutation" do
+    original = "# AI/LLM\noriginal\n"
+    @test_notes_dir.join(".fed").write(original)
+
+    patch "/notes/%2E/.fed", params: { content: "changed" }, as: :json
+
+    assert_response :forbidden
+    assert_equal original, @test_notes_dir.join(".fed").read
+  end
+
   # === destroy ===
 
   test "destroy removes note" do
@@ -252,6 +298,12 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
   test "destroy returns 404 for missing note" do
     delete destroy_note_url(path: "nonexistent.md"), as: :json
     assert_response :not_found
+  end
+
+  test "destroy refuses the root config file" do
+    delete destroy_note_url(path: ".fed"), as: :json
+
+    assert_response :forbidden
   end
 
   # === rename ===
@@ -280,6 +332,21 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
   test "rename returns 404 for missing note" do
     post rename_note_url(path: "nonexistent.md"), params: { new_path: "new.md" }, as: :json
     assert_response :not_found
+  end
+
+  test "rename refuses the root config file" do
+    post rename_note_url(path: ".fed"), params: { new_path: "renamed.md" }, as: :json
+
+    assert_response :forbidden
+  end
+
+  test "rename refuses a canonical config destination alias" do
+    create_test_note("source.md", "original")
+
+    post rename_note_url(path: "source.md"), params: { new_path: "foo/../.fed" }, as: :json
+
+    assert_response :forbidden
+    assert_equal "original", @test_notes_dir.join("source.md").read
   end
 
   # === search ===

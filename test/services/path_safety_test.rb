@@ -67,6 +67,20 @@ class PathSafetyTest < ActiveSupport::TestCase
     end
   end
 
+  test "rejects a nonexistent leaf through a symlinked directory outside base" do
+    Dir.mktmpdir do |raw|
+      tmp = File.realpath(raw)
+      base = File.join(tmp, "notes")
+      outside = File.join(tmp, "outside")
+      FileUtils.mkdir_p(base)
+      FileUtils.mkdir_p(outside)
+      File.symlink(outside, File.join(base, "escape"))
+
+      assert_nil PathSafety.contain(base, "escape/new.md")
+      refute File.exist?(File.join(outside, "new.md"))
+    end
+  end
+
   test "allows a real file inside base" do
     Dir.mktmpdir do |raw|
       tmp = File.realpath(raw)

@@ -67,6 +67,12 @@ class UploadStorageTest < ActiveSupport::TestCase
     assert name.end_with?(".mp4")
   end
 
+  test "dest_filename is unique for uploads with the same name in the same second" do
+    Time.stubs(:now).returns(Time.utc(2026, 1, 1, 12, 0, 0))
+
+    refute_equal UploadStorage.dest_filename("video.mp4"), UploadStorage.dest_filename("video.mp4")
+  end
+
   # === sanitize_s3_key ===
 
   test "sanitize_s3_key keeps nested prefixes" do
@@ -91,32 +97,33 @@ class UploadStorageTest < ActiveSupport::TestCase
   # === s3_key ===
 
   test "s3_key builds the default frankmd/YYYY/MM/<filename> when no custom value" do
-    assert_match %r{\Afrankmd/\d{4}/\d{2}/photo\.png\z}, UploadStorage.s3_key("photo.png")
+    assert_match %r{\Afrankmd/\d{4}/\d{2}/photo-[0-9a-f]{16}\.png\z}, UploadStorage.s3_key("photo.png")
   end
 
   test "s3_key sanitizes the filename in the default path" do
     key = UploadStorage.s3_key("../ev il.png")
     assert_match %r{\Afrankmd/\d{4}/\d{2}/}, key
-    assert key.end_with?("/.._ev_il.png")
+    assert_match(%r{/.._ev_il-[0-9a-f]{16}\.png\z}, key)
   end
 
-  test "s3_key uses a sanitized custom_key verbatim, ignoring the default and prefix" do
+  test "s3_key makes a custom key unique while preserving its prefix and extension" do
     key = UploadStorage.s3_key("photo.png", custom_key: "blog/2026/hero.png", custom_prefix: "ignored")
-    assert_equal "blog/2026/hero.png", key
+    refute_equal "blog/2026/hero.png", key
+    assert_match(%r{\Ablog/2026/hero-[0-9a-f]{16}\.png\z}, key)
   end
 
   test "s3_key appends the safe filename to a custom_prefix" do
-    assert_equal "blog/2026/photo.png", UploadStorage.s3_key("photo.png", custom_prefix: "blog/2026")
+    assert_match %r{\Ablog/2026/photo-[0-9a-f]{16}\.png\z}, UploadStorage.s3_key("photo.png", custom_prefix: "blog/2026")
   end
 
   test "s3_key blocks traversal in a custom_key" do
     key = UploadStorage.s3_key("photo.png", custom_key: "../../etc/passwd")
-    assert_equal "etc/passwd", key
+    assert_match(%r{\Aetc/passwd-[0-9a-f]{16}\.png\z}, key)
   end
 
   test "s3_key falls back to the default when a custom value sanitizes to empty" do
-    assert_match %r{\Afrankmd/\d{4}/\d{2}/photo\.png\z}, UploadStorage.s3_key("photo.png", custom_key: "../..")
-    assert_match %r{\Afrankmd/\d{4}/\d{2}/photo\.png\z}, UploadStorage.s3_key("photo.png", custom_prefix: "///")
+    assert_match %r{\Afrankmd/\d{4}/\d{2}/photo-[0-9a-f]{16}\.png\z}, UploadStorage.s3_key("photo.png", custom_key: "../..")
+    assert_match %r{\Afrankmd/\d{4}/\d{2}/photo-[0-9a-f]{16}\.png\z}, UploadStorage.s3_key("photo.png", custom_prefix: "///")
   end
 
   # === with_temp_copy ===

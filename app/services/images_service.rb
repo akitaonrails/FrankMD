@@ -9,6 +9,7 @@ class ImagesService
   # streamed byte count.
   MAX_EXTERNAL_IMAGE_BYTES = 25 * 1024 * 1024 # 25 MB
   MAX_EXTERNAL_IMAGE_REDIRECTS = 5
+  MAX_EXTERNAL_IMAGE_SECONDS = 30
 
   class << self
     def enabled?
@@ -76,6 +77,7 @@ class ImagesService
 
       full_path = safe_path(path)
       return nil unless full_path&.exist? && full_path&.file?
+      return nil unless upload_extensions.include?(full_path.extname.downcase)
 
       full_path
     end
@@ -114,11 +116,14 @@ class ImagesService
           bucket: bucket,
           key: key,
           body: file_content,
-          content_type: content_type
+          content_type: content_type,
+          if_none_match: "*"
         )
       rescue Aws::S3::Errors::AccessControlListNotSupported
         # Bucket has ACLs disabled, which is fine for public buckets with policies
         # The object was still uploaded successfully
+      rescue Aws::S3::Errors::PreconditionFailed
+        return nil
       end
 
       UploadStorage.s3_url(bucket, region, key)
@@ -153,6 +158,8 @@ class ImagesService
       require "base64"
       require "securerandom"
       require "fileutils"
+
+      UploadStorage.enforce_base64_size!(base64_data.bytesize)
 
       # Decode base64 data
       begin
@@ -254,10 +261,13 @@ class ImagesService
           bucket: bucket,
           key: key,
           body: file_content,
-          content_type: content_type
+          content_type: content_type,
+          if_none_match: "*"
         )
       rescue Aws::S3::Errors::AccessControlListNotSupported
         # Bucket has ACLs disabled, which is fine
+      rescue Aws::S3::Errors::PreconditionFailed
+        return nil
       end
 
       UploadStorage.s3_url(bucket, region, key)
@@ -288,6 +298,11 @@ class ImagesService
       return nil if path.blank?
 
       PathSafety.contain(images_path, path)
+    end
+
+    def upload_extensions
+      config = Config.new
+      config.upload_extensions("image_upload_extensions") + config.upload_extensions("video_upload_extensions")
     end
 
     def content_type_for(path)
@@ -373,21 +388,19 @@ class ImagesService
       images_dir = notes_path.join("images")
       FileUtils.mkdir_p(images_dir)
 
-      # Generate unique filename with timestamp
-      timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
       safe_name = original_filename.gsub(/[^a-zA-Z0-9._-]/, "_")
 
       if resize.present? && resize.to_f > 0
         # Resize and save - output is always jpg
         base_name = File.basename(safe_name, ".*")
-        dest_filename = "#{timestamp}_#{base_name}.jpg"
+        dest_filename = UploadStorage.dest_filename("#{base_name}.jpg")
         resized_data, _content_type, _new_filename = resize_and_compress(Pathname.new(temp_path), dest_filename, resize.to_f)
         dest_path = images_dir.join(dest_filename)
         File.binwrite(dest_path, resized_data)
         { url: "images/#{dest_filename}" }
       else
         # Copy as-is
-        dest_filename = "#{timestamp}_#{safe_name}"
+        dest_filename = UploadStorage.dest_filename(safe_name)
         dest_path = images_dir.join(dest_filename)
         FileUtils.cp(temp_path, dest_path)
         { url: "images/#{dest_filename}" }
@@ -435,7 +448,10 @@ class ImagesService
       require "net/http"
 
       current = url
+      deadline = monotonic_time + MAX_EXTERNAL_IMAGE_SECONDS
       (MAX_EXTERNAL_IMAGE_REDIRECTS + 1).times do
+        return nil if deadline_exceeded?(deadline)
+
         uri, pinned_ip = EgressPolicy.checked_target(current)
 
         http = Net::HTTP.new(uri.host, uri.port)
@@ -453,6 +469,8 @@ class ImagesService
         redirect_to = nil
         http.start do |conn|
           conn.request(request) do |response|
+            next if deadline_exceeded?(deadline)
+
             if response.is_a?(Net::HTTPRedirection) && response["location"].present?
               # Re-validate the redirect target on the next loop iteration.
               redirect_to = URI.join(uri, response["location"]).to_s
@@ -462,10 +480,10 @@ class ImagesService
               Rails.logger.error "External image exceeds size cap (Content-Length)"
             else
               body = "".b
-              oversized = false
+              oversized = deadline_exceeded?(deadline)
               response.read_body do |chunk|
                 body << chunk
-                if body.bytesize > MAX_EXTERNAL_IMAGE_BYTES
+                if body.bytesize > MAX_EXTERNAL_IMAGE_BYTES || deadline_exceeded?(deadline)
                   oversized = true
                   break
                 end
@@ -483,6 +501,14 @@ class ImagesService
 
       Rails.logger.error "External image exceeded #{MAX_EXTERNAL_IMAGE_REDIRECTS} redirects"
       nil
+    end
+
+    def monotonic_time
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
+
+    def deadline_exceeded?(deadline)
+      monotonic_time >= deadline
     end
 
     # Upload a temp file to S3
@@ -515,10 +541,13 @@ class ImagesService
           bucket: bucket,
           key: key,
           body: file_content,
-          content_type: content_type
+          content_type: content_type,
+          if_none_match: "*"
         )
       rescue Aws::S3::Errors::AccessControlListNotSupported
         # Bucket has ACLs disabled, which is fine
+      rescue Aws::S3::Errors::PreconditionFailed
+        return nil
       end
 
       { url: UploadStorage.s3_url(bucket, region, key) }

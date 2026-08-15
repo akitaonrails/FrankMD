@@ -18,6 +18,11 @@ describe("sanitizeHtml", () => {
       expect(sanitizeHtml('<svg onload="alert(1)"></svg>')).not.toContain("onload")
     })
 
+    it("removes inline styles and style elements", () => {
+      expect(sanitizeHtml('<p style="position:fixed">x</p>')).not.toContain("style=")
+      expect(sanitizeHtml("<style>body { display: none }</style><p>x</p>")).not.toContain("<style")
+    })
+
     it("removes javascript: URLs", () => {
       expect(sanitizeHtml('<a href="javascript:alert(1)">x</a>')).not.toContain("javascript:")
     })

@@ -106,13 +106,24 @@ class MediaServiceS3Test < ActiveSupport::TestCase
 
   test "save_upload uploads to S3 with the correct video mime type" do
     mock_client = stub
-    mock_client.expects(:put_object).with { |args| args[:content_type] == "video/webm" }.returns(nil)
+    mock_client.expects(:put_object).with { |args| args[:content_type] == "video/webm" && args[:if_none_match] == "*" }.returns(nil)
     Aws::S3::Client.stubs(:new).returns(mock_client)
 
     result = MediaService.save_upload(uploaded("movie.webm"), upload_to_s3: true)
 
     assert result[:url]
-    assert_match %r{^https://test-bucket\.s3\.us-east-1\.amazonaws\.com/frankmd/\d{4}/\d{2}/movie\.webm$}, result[:url]
+    assert_match %r{^https://test-bucket\.s3\.us-east-1\.amazonaws\.com/frankmd/\d{4}/\d{2}/movie-[0-9a-f]{16}\.webm$}, result[:url]
+  end
+
+  test "save_upload handles S3 collisions without exposing provider details" do
+    mock_client = stub
+    mock_client.stubs(:put_object).raises(Aws::S3::Errors::PreconditionFailed.new(nil, "collision details"))
+    Aws::S3::Client.stubs(:new).returns(mock_client)
+
+    result = MediaService.save_upload(uploaded("movie.webm"), upload_to_s3: true)
+
+    assert_equal "Video upload failed", result[:error]
+    refute_includes result[:error], "collision details"
   end
 
   test "save_upload falls back to local storage when S3 not configured" do

@@ -27,7 +27,8 @@ const SANITIZE_CONFIG = {
   // Notes never legitimately contain interactive form controls; DOMPurify keeps
   // them by default, which would let a synced/shared note render a phishing form
   // or a UI-redress button in the preview. Strip them.
-  FORBID_TAGS: ["form", "input", "button", "textarea", "select", "option"]
+  FORBID_TAGS: ["form", "input", "button", "textarea", "select", "option", "style"],
+  FORBID_ATTR: ["style"]
 }
 
 let purifier = null

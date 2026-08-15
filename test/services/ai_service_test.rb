@@ -292,7 +292,31 @@ class AiServiceTest < ActiveSupport::TestCase
     result = AiService.fix_grammar("Some text")
 
     assert result[:error].present?
-    assert_includes result[:error], "API connection failed"
+    assert_equal "AI provider request failed", result[:error]
+    refute_includes result[:error], "API connection failed"
+  end
+
+  test "fix_grammar does not log an API key fragment" do
+    ENV["OPENAI_API_KEY"] = "sk-sensitive-key"
+    messages = []
+    Rails.logger.stubs(:info) { |message| messages << message }
+    mock_response = stub(content: "Corrected")
+    mock_chat = stub
+    mock_chat.stubs(:with_instructions).returns(mock_chat)
+    mock_chat.stubs(:ask).returns(mock_response)
+    RubyLLM.stubs(:chat).returns(mock_chat)
+
+    AiService.fix_grammar("Some text")
+
+    refute messages.any? { |message| message.include?("sk-sensiti") }
+  end
+
+  test "fix_grammar rejects an Ollama URL without an HTTP scheme" do
+    ENV["OLLAMA_API_BASE"] = "file:///etc/passwd"
+
+    result = AiService.fix_grammar("Some text")
+
+    assert_equal "AI provider request failed", result[:error]
   end
 
   test "fix_grammar works with anthropic provider" do
@@ -372,6 +396,8 @@ class AiServiceImageGenerationTest < ActiveSupport::TestCase
     @config_stub.stubs(:effective_ai_model).returns("openai/gpt-4o-mini")
     @config_stub.stubs(:get_ai).returns(nil)
     @config_stub.stubs(:get_ai).with("openrouter_api_key").returns("sk-or-test-key")
+    @config_stub.stubs(:upload_extensions).with("image_upload_extensions").returns(%w[.jpg .jpeg .png .gif .webp .bmp])
+    @config_stub.stubs(:upload_extensions).with("video_upload_extensions").returns(%w[.mp4 .webm])
     @config_stub.stubs(:ai_configured_in_file?).returns(false)
     # Allow openrouter_key_for_images to find the key via instance_variable_get
     @config_stub.stubs(:instance_variable_get).with(:@values).returns({ "openrouter_api_key" => "sk-or-test-key" })
@@ -418,7 +444,7 @@ class AiServiceImageGenerationTest < ActiveSupport::TestCase
     result = AiService.generate_image("bad prompt")
 
     assert result[:error].present?
-    assert_includes result[:error], "Invalid prompt"
+    assert_equal "Image generation failed", result[:error]
   end
 
   test "generate_image with reference passes content with attachment" do

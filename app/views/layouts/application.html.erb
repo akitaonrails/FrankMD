@@ -22,14 +22,16 @@
   </head>
 
   <body class="h-full bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-sans antialiased">
-    <!-- Inline loading screen - shows instantly before CSS/JS loads, hidden by app_controller -->
-    <div id="app-loading" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#2D1B4E 0%,#FF6B9D 100%)">
-      <div style="text-align:center;color:white;font-family:system-ui,sans-serif">
-        <img src="/icon.svg" alt="FrankMD" style="width:150px;height:150px;margin-bottom:1.5rem;filter:drop-shadow(0 4px 20px rgba(0,0,0,0.3))">
-        <div style="width:36px;height:36px;margin:0 auto;border:3px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 1s linear infinite"></div>
-        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    <% unless controller_name == "sessions" %>
+      <!-- Inline loading screen - shows instantly before CSS/JS loads, hidden by app_controller -->
+      <div id="app-loading" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#2D1B4E 0%,#FF6B9D 100%)">
+        <div style="text-align:center;color:white;font-family:system-ui,sans-serif">
+          <img src="/icon.svg" alt="FrankMD" style="width:150px;height:150px;margin-bottom:1.5rem;filter:drop-shadow(0 4px 20px rgba(0,0,0,0.3))">
+          <div style="width:36px;height:36px;margin:0 auto;border:3px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 1s linear infinite"></div>
+          <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+        </div>
       </div>
-    </div>
+    <% end %>
     <%= yield %>
   </body>
 </html>

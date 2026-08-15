@@ -354,12 +354,12 @@ export default class extends Controller {
       const thumbnailUrl = `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`
       this.videoPreviewTarget.innerHTML = `
         <div class="flex gap-3">
-          <div class="relative flex-shrink-0 w-32 h-18 rounded overflow-hidden bg-[var(--theme-bg-tertiary)]">
+          <div class="relative flex-shrink-0 w-32 h-18 rounded overflow-hidden bg-[var(--theme-bg-tertiary)]" data-video-id="${youtubeId}">
             <img
               src="${thumbnailUrl}"
               alt="Video thumbnail"
               class="w-full h-full object-cover"
-              onerror="this.style.display='none'"
+              data-action="error->video-dialog#thumbnailError"
             >
             <div class="absolute inset-0 flex items-center justify-center">
               <svg class="w-10 h-10 text-red-600 drop-shadow-lg" viewBox="0 0 24 24" fill="currentColor">
@@ -412,6 +412,24 @@ export default class extends Controller {
       event.preventDefault()
       this.insertVideo()
     }
+  }
+
+  thumbnailError(event) {
+    const thumbnail = event.currentTarget
+
+    if (thumbnail.dataset.fallbackApplied === "true") {
+      thumbnail.style.display = "none"
+      return
+    }
+
+    const videoId = thumbnail.closest("[data-video-id]")?.dataset.videoId
+    if (!/^[\w-]{11}$/.test(videoId || "")) {
+      thumbnail.style.display = "none"
+      return
+    }
+
+    thumbnail.dataset.fallbackApplied = "true"
+    thumbnail.src = `https://img.youtube.com/vi/${videoId}/default.jpg`
   }
 
   insertVideo() {

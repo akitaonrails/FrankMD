@@ -44,6 +44,7 @@ module FrankMD
     config.i18n.default_locale = :en
     config.i18n.available_locales = [ :en, :'pt-BR', :'pt-PT', :es, :he, :ja, :ko ]
     config.i18n.fallbacks = true
+    config.assets.integrity_hash_algorithm = "sha384"
 
     # Don't generate system test files.
     config.generators.system_tests = nil
