@@ -12,7 +12,7 @@
         src="<%= video[:thumbnail] %>"
         alt="<%= video[:title] %>"
         class="w-full h-full object-cover"
-        onerror="this.style.display='none'"
+        data-action="error->video-dialog#thumbnailError"
       >
       <div class="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/30">
         <svg class="w-12 h-12 text-white drop-shadow-lg" viewBox="0 0 24 24" fill="currentColor">

@@ -1,6 +1,10 @@
 Rails.application.routes.draw do
   root "notes#index"
 
+  get "login", to: "sessions#new"
+  post "login", to: "sessions#create"
+  delete "logout", to: "sessions#destroy"
+
   # Notes API
   get "notes/tree", to: "notes#tree"
   get "notes/search", to: "notes#search"

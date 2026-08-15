@@ -347,6 +347,13 @@ describe("TableEditorController", () => {
       const firstCell = controller.gridTarget.querySelector("td")
       expect(firstCell.className).toContain("font-semibold")
     })
+
+    it("does not allow a quoted cell value to inject attributes", () => {
+      controller.tableData = [['photo" onerror="alert(1)']]
+      controller.renderGrid()
+
+      expect(controller.gridTarget.querySelector("input").hasAttribute("onerror")).toBe(false)
+    })
   })
 
   // === handleOpen ===
@@ -370,18 +377,6 @@ describe("TableEditorController", () => {
       expect(controller.startPos).toBe(10)
       expect(controller.endPos).toBe(50)
       expect(controller.tableData).toEqual([["A", "B"], ["1", "2"]])
-    })
-  })
-
-  // === escapeHtml ===
-
-  describe("escapeHtml()", () => {
-    it("escapes HTML special characters", () => {
-      expect(controller.escapeHtml('<script>"hello"</script>')).not.toContain("<script>")
-    })
-
-    it("leaves normal text unchanged", () => {
-      expect(controller.escapeHtml("hello world")).toBe("hello world")
     })
   })
 

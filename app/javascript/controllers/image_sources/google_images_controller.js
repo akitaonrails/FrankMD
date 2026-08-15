@@ -58,7 +58,8 @@ export default class extends Controller {
 
     if (result.error) {
       if (this.hasStatusTarget) {
-        this.statusTarget.innerHTML = `<span class="text-red-500">${result.error}</span>`
+        this.statusTarget.textContent = result.error
+        this.statusTarget.classList.add("text-red-500")
       }
     } else {
       if (this.hasStatusTarget) this.statusTarget.textContent = result.message

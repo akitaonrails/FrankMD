@@ -244,6 +244,18 @@ describe("GoogleImageSource", () => {
       expect(container.innerHTML).toContain("1024x768")
     })
 
+    it("removes broken thumbnails without an inline error handler", () => {
+      const container = document.createElement("div")
+      source.results = [{ url: "https://example.com/1.jpg", title: "Cat" }]
+
+      source.renderGrid(container, "click->image-picker#select")
+
+      const image = container.querySelector("img")
+      expect(image.hasAttribute("onerror")).toBe(false)
+      image.dispatchEvent(new Event("error"))
+      expect(container.querySelector(".external-image-item")).toBeNull()
+    })
+
     it("escapes HTML in content", () => {
       const container = { innerHTML: "" }
       source.results = [

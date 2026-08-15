@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "ruby_llm"
+require "uri"
 
 class AiService
   GRAMMAR_PROMPT = <<~PROMPT
@@ -46,17 +47,7 @@ class AiService
 
       return { error: "No AI provider available" } unless provider && model
 
-      # Debug: log what we're about to use
-      cfg = config_instance
-      key_for_provider = case provider
-      when "openai" then cfg.get_ai("openai_api_key")
-      when "openrouter" then cfg.get_ai("openrouter_api_key")
-      when "anthropic" then cfg.get_ai("anthropic_api_key")
-      when "gemini" then cfg.get_ai("gemini_api_key")
-      else nil
-      end
-      key_prefix = key_for_provider&.slice(0, 10) || "none"
-      Rails.logger.info "AI request: provider=#{provider}, model=#{model}, key_prefix=#{key_prefix}..., ai_in_file=#{cfg.ai_configured_in_file?}"
+      Rails.logger.info "AI request: provider=#{provider}"
 
       configure_client
       chat = RubyLLM.chat(model: model, provider: provider.to_sym, assume_model_exists: provider == "ollama")
@@ -66,7 +57,7 @@ class AiService
       { corrected: response.content, provider: provider, model: model }
     rescue StandardError => e
       Rails.logger.error "AI error (#{provider}/#{model}): #{e.class} - #{e.message}"
-      { error: "AI processing failed: #{e.message}" }
+      { error: "AI provider request failed" }
     end
 
     # Get provider info for frontend display
@@ -136,7 +127,7 @@ class AiService
       extract_image_from_response(response, model)
     rescue StandardError => e
       Rails.logger.error "Image generation error: #{e.class} - #{e.message}"
-      { error: "Image generation failed: #{e.message}" }
+      { error: "Image generation failed" }
     end
 
     def extract_image_from_response(response, model)
@@ -200,7 +191,13 @@ class AiService
         # Use get_ai to respect .fed override of ENV vars
         case provider
         when "ollama"
-          config.ollama_api_base = cfg.get_ai("ollama_api_base")
+          ollama_api_base = cfg.get_ai("ollama_api_base")
+          uri = URI.parse(ollama_api_base.to_s)
+          unless %w[http https].include?(uri.scheme)
+            raise ArgumentError, "Invalid Ollama API base URL"
+          end
+
+          config.ollama_api_base = ollama_api_base
         when "openrouter"
           config.openrouter_api_key = cfg.get_ai("openrouter_api_key")
         when "anthropic"

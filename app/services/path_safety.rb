@@ -21,9 +21,12 @@ module PathSafety
     return nil unless within?(candidate, base)
 
     # cleanpath is lexical, so a symlink chain could still resolve outside base.
-    # When both ends exist, re-check against the real (link-resolved) paths.
-    if candidate.exist? && base.exist?
-      return nil unless within?(candidate.realpath, base.realpath)
+    # For a new leaf, resolve its nearest existing ancestor: it may itself be a
+    # symlinked directory that points outside the base.
+    if base.exist?
+      ancestor = candidate
+      ancestor = ancestor.parent until ancestor.exist?
+      return nil unless within?(ancestor.realpath, base.realpath)
     end
 
     candidate

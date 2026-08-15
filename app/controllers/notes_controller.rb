@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class NotesController < ApplicationController
+  before_action :reject_config_file, only: [ :index, :show, :create, :update, :destroy, :rename ]
   before_action :set_note, only: [ :update, :destroy, :rename ]
 
   def index
@@ -24,7 +25,7 @@ class NotesController < ApplicationController
     raw_path = params[:path].to_s
 
     # Serve non-markdown files (images, etc.) stored alongside notes
-    unless raw_path.end_with?(".md") || raw_path.end_with?(".fed") || raw_path.exclude?(".")
+    unless raw_path.end_with?(".md") || raw_path.exclude?(".")
       return serve_asset(raw_path)
     end
 
@@ -162,6 +163,15 @@ class NotesController < ApplicationController
     else
       head :not_found
     end
+  end
+
+  def reject_config_file
+    notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
+    config_path = notes_path.join(Config::CONFIG_FILE).cleanpath
+    paths = [ params[:file], params[:path], params[:new_path] ].compact
+    return unless paths.any? { |path| PathSafety.contain(notes_path, path).to_s == config_path.to_s }
+
+    render json: { error: "forbidden" }, status: :forbidden
   end
 
   def json_request?

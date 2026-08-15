@@ -2,7 +2,7 @@
 // Handles searching for images via web search API
 
 import { get, post } from "@rails/request.js"
-import { escapeHtml } from "lib/text_utils"
+import { escapeHtml, isSafeImageUrl } from "lib/text_utils"
 
 export class WebImageSource {
   constructor() {
@@ -48,7 +48,10 @@ export class WebImageSource {
     }
 
     container.innerHTML = this.results.map((image, index) => {
-      const dimensions = (image.width && image.height) ? `${image.width}x${image.height}` : ""
+      const width = Number(image.width)
+      const height = Number(image.height)
+      const dimensions = (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) ? `${width}x${height}` : ""
+      const thumbnail = isSafeImageUrl(image.thumbnail || image.url) ? image.thumbnail || image.url : ""
       return `
         <button
           type="button"
@@ -62,11 +65,10 @@ export class WebImageSource {
           title="${escapeHtml(image.title || 'Image')}${dimensions ? ` (${dimensions})` : ''}"
         >
           <img
-            src="${escapeHtml(image.thumbnail || image.url)}"
+            src="${escapeHtml(thumbnail)}"
             alt="${escapeHtml(image.title || 'Image')}"
             class="w-full h-full object-cover"
             loading="lazy"
-            onerror="this.parentElement.remove()"
           >
           ${dimensions ? `<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/70 text-white text-xs px-2 py-1 rounded font-mono">${dimensions}</div>` : ''}
           <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1">
@@ -75,6 +77,10 @@ export class WebImageSource {
         </button>
       `
     }).join("")
+
+    container.querySelectorAll?.("img").forEach(image => {
+      image.addEventListener("error", () => image.parentElement?.remove())
+    })
   }
 
   deselectAll(container) {

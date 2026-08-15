@@ -14,11 +14,14 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   Capybara.default_max_wait_time = 5
 
   def setup
+    @original_auth_token = ENV["FRANKMD_AUTH_TOKEN"]
+    ENV["FRANKMD_AUTH_TOKEN"] = ""
     setup_test_notes_dir
   end
 
   def teardown
     teardown_test_notes_dir
+    ENV["FRANKMD_AUTH_TOKEN"] = @original_auth_token
   end
 
   private

@@ -1,0 +1,18 @@
+<main class="min-h-full flex items-center justify-center p-6 bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)]">
+  <section class="w-full max-w-sm rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] p-6 shadow-lg">
+    <h1 class="text-xl font-semibold">FrankMD access</h1>
+    <p class="mt-2 text-sm text-[var(--theme-text-muted)]">Enter the access token for this server.</p>
+
+    <% if flash[:alert] %>
+      <p class="mt-4 text-sm text-red-500"><%= flash[:alert] %></p>
+    <% end %>
+
+    <%= form_with url: login_path, class: "mt-6 space-y-4" do |form| %>
+      <div>
+        <%= form.label :password, "Access token", class: "block text-sm font-medium" %>
+        <%= form.password_field :password, required: true, autofocus: true, autocomplete: "current-password", class: "mt-1 block w-full rounded border border-[var(--theme-border)] bg-[var(--theme-bg-primary)] px-3 py-2" %>
+      </div>
+      <%= form.submit "Sign in", class: "w-full rounded bg-[var(--theme-accent)] px-3 py-2 font-medium text-white" %>
+    <% end %>
+  </section>
+</main>

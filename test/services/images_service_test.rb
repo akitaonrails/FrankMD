@@ -13,6 +13,7 @@ class ImagesServiceTest < ActiveSupport::TestCase
     @config_stub.stubs(:get).returns(nil)
     @config_stub.stubs(:get).with("images_path").returns(@temp_dir.to_s)
     @config_stub.stubs(:upload_extensions).with("image_upload_extensions").returns(%w[.jpg .jpeg .png .gif .webp .bmp])
+    @config_stub.stubs(:upload_extensions).with("video_upload_extensions").returns(%w[.mp4 .webm])
     Config.stubs(:new).returns(@config_stub)
   end
 
@@ -146,6 +147,14 @@ class ImagesServiceTest < ActiveSupport::TestCase
     assert_equal @temp_dir.join("photos/vacation.jpg"), result
   end
 
+  test "find_image rejects non-media files" do
+    create_test_image("secret.txt")
+    create_test_image(".fed")
+
+    assert_nil ImagesService.find_image("secret.txt")
+    assert_nil ImagesService.find_image(".fed")
+  end
+
   # === upload_base64_data ===
 
   test "upload_base64_data saves base64 image to notes directory" do
@@ -175,6 +184,15 @@ class ImagesServiceTest < ActiveSupport::TestCase
     result = ImagesService.upload_base64_data("not valid base64!!!", mime_type: "image/png")
     assert result[:error]
     assert_includes result[:error], "Invalid base64"
+  end
+
+  test "upload_base64_data rejects oversized encoded input before decoding" do
+    UploadStorage.stubs(:max_base64_encoded_bytes).returns(10)
+    Base64.expects(:strict_decode64).never
+
+    result = ImagesService.upload_base64_data("a" * 11, filename: "large.png")
+
+    assert_includes result[:error], "too large"
   end
 
   test "upload_base64_data rejects an SVG mime type (stored-XSS vector)" do
@@ -224,6 +242,22 @@ class ImagesServiceTest < ActiveSupport::TestCase
     # Clean up
     notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
     FileUtils.rm_f(notes_path.join(result[:url]))
+  end
+
+  test "local image saves use unique filenames for same-second uploads" do
+    temp_one = @temp_dir.join("one.png")
+    temp_two = @temp_dir.join("two.png")
+    File.binwrite(temp_one, "one")
+    File.binwrite(temp_two, "two")
+    Time.stubs(:now).returns(Time.utc(2026, 1, 1, 12, 0, 0))
+
+    first = ImagesService.send(:save_to_notes_directory, temp_one, "photo.png")
+    second = ImagesService.send(:save_to_notes_directory, temp_two, "photo.png")
+
+    refute_equal first[:url], second[:url]
+  ensure
+    FileUtils.rm_f(Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes"))).join(first[:url])) if first
+    FileUtils.rm_f(Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes"))).join(second[:url])) if second
   end
 
   # === get_image_dimensions ===
@@ -396,6 +430,8 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     @config_stub.stubs(:get).with("aws_secret_access_key").returns("test-secret")
     @config_stub.stubs(:get).with("aws_region").returns("us-east-1")
     @config_stub.stubs(:get).with("aws_s3_bucket").returns("test-bucket")
+    @config_stub.stubs(:upload_extensions).with("image_upload_extensions").returns(%w[.jpg .jpeg .png .gif .webp .bmp])
+    @config_stub.stubs(:upload_extensions).with("video_upload_extensions").returns(%w[.mp4 .webm])
     Config.stubs(:new).returns(@config_stub)
 
     # The external-image fetch resolves the host to enforce the egress policy.
@@ -446,14 +482,14 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     create_test_image("upload_test.jpg", "image content")
 
     mock_client = stub
-    mock_client.stubs(:put_object).returns(nil)
+    mock_client.expects(:put_object).with { |args| args[:if_none_match] == "*" }.returns(nil)
 
     Aws::S3::Client.stubs(:new).returns(mock_client)
 
     result = ImagesService.upload_to_s3("upload_test.jpg")
 
     assert result.present?
-    assert_match %r{^https://test-bucket\.s3\.us-east-1\.amazonaws\.com/frankmd/\d{4}/\d{2}/upload_test\.jpg$}, result
+    assert_match %r{^https://test-bucket\.s3\.us-east-1\.amazonaws\.com/frankmd/\d{4}/\d{2}/upload_test-[0-9a-f]{16}\.jpg$}, result
   end
 
   test "upload_to_s3 sanitizes special characters in the object key" do
@@ -470,7 +506,7 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     # S3 keys now route through UploadStorage.s3_key, which sanitizes the
     # filename the same way the video path always has (image/video parity).
     # Spaces and parens become "_", so there is nothing left to URL-encode.
-    assert_includes result, "my_photo__1_.jpg"
+    assert_match(/my_photo__1_-[0-9a-f]{16}\.jpg/, result)
     refute_includes result, " "
   end
 
@@ -508,7 +544,7 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     assert result.present?
     # When resize is requested, the result should be an S3 URL containing the filename
     # (with .jpg if ImageMagick succeeds, or .png if it falls back)
-    assert_match(/resize_s3\.(jpg|png)/, result)
+    assert_match(/resize_s3-[0-9a-f]{16}\.(jpg|png)/, result)
     assert_match(/^https:\/\/test-bucket\.s3\.us-east-1\.amazonaws\.com/, result)
   end
 
@@ -518,6 +554,12 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     result = ImagesService.download_and_upload_to_s3("https://example.com/image.jpg")
 
     assert_nil result
+  end
+
+  test "fetch_external_image stops when its overall deadline expires" do
+    ImagesService.stubs(:monotonic_time).returns(0, ImagesService::MAX_EXTERNAL_IMAGE_SECONDS)
+
+    assert_nil ImagesService.send(:fetch_external_image, "https://example.com/image.jpg")
   end
 
   test "download_and_upload_to_s3 downloads image and uploads to S3" do
@@ -535,7 +577,7 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     result = ImagesService.download_and_upload_to_s3("https://example.com/photo.jpg")
 
     assert result.present?
-    assert_match %r{^https://test-bucket\.s3\.us-east-1\.amazonaws\.com/frankmd/\d{4}/\d{2}/photo\.jpg$}, result
+    assert_match %r{^https://test-bucket\.s3\.us-east-1\.amazonaws\.com/frankmd/\d{4}/\d{2}/photo-[0-9a-f]{16}\.jpg$}, result
   end
 
   test "download_and_upload_to_s3 generates filename when URL has no extension" do

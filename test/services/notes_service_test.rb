@@ -76,6 +76,16 @@ class NotesServiceTest < ActiveSupport::TestCase
     assert_equal %w[real], tree.map { |item| item[:name] }
   end
 
+  test "list_tree and search skip symlinked directories" do
+    Dir.mktmpdir do |outside|
+      File.write(File.join(outside, "external.md"), "findme")
+      File.symlink(outside, @test_notes_dir.join("external"))
+
+      refute @service.list_tree.any? { |item| item[:name] == "external" }
+      assert_empty @service.search_content("findme")
+    end
+  end
+
   test "list_tree ignores hidden files" do
     create_test_note(".hidden.md")
     create_test_note("visible.md")
@@ -85,21 +95,16 @@ class NotesServiceTest < ActiveSupport::TestCase
     assert_equal "visible", tree.first[:name]
   end
 
-  test "list_tree shows .fed config file" do
+  test "list_tree omits .fed config file" do
     @test_notes_dir.join(".fed").write("theme = dark")
     create_test_note("note.md")
 
     tree = @service.list_tree
-    assert_equal 2, tree.length
-
-    config = tree.find { |item| item[:name] == ".fed" }
-    assert_not_nil config
-    assert_equal "file", config[:type]
-    assert_equal "config", config[:file_type]
-    assert_equal ".fed", config[:path]
+    assert_equal 1, tree.length
+    refute tree.any? { |item| item[:name] == ".fed" }
   end
 
-  test "list_tree does not show .fed in subfolders" do
+  test "list_tree omits .fed in subfolders" do
     create_test_folder("subfolder")
     @test_notes_dir.join("subfolder/.fed").write("theme = dark")
     create_test_note("subfolder/note.md")
@@ -285,6 +290,16 @@ class NotesServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "rename rejects an existing destination without modifying either file" do
+    create_test_note("old.md", "original")
+    create_test_note("new.md", "destination")
+
+    assert_raises(NotesService::InvalidPathError) { @service.rename("old.md", "new.md") }
+
+    assert_equal "original", @test_notes_dir.join("old.md").read
+    assert_equal "destination", @test_notes_dir.join("new.md").read
+  end
+
   # === create_folder ===
 
   test "create_folder creates directory" do
@@ -407,6 +422,22 @@ class NotesServiceTest < ActiveSupport::TestCase
 
     results = @service.search_content("foo\\d+bar")
     assert_equal 2, results.length
+  end
+
+  test "search_content skips files over the size limit" do
+    create_test_note("small.md", "findme")
+    large = create_test_note("large.md", "findme")
+    File.truncate(large, NotesService::MAX_SEARCH_FILE_BYTES + 1)
+
+    assert_equal [ "small.md" ], @service.search_content("findme").map { |result| result[:path] }
+  end
+
+  test "search_content skips a regex timeout" do
+    path = create_test_note("note.md", "findme")
+    timeout_regex = Regexp.new("findme")
+    String.any_instance.stubs(:match?).with(timeout_regex).raises(Regexp::TimeoutError)
+
+    assert_equal [], @service.send(:search_file, path, timeout_regex, 3, 50)
   end
 
   test "search_content includes context lines" do

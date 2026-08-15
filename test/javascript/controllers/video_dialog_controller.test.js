@@ -229,6 +229,26 @@ describe("VideoDialogController", () => {
     })
   })
 
+  describe("thumbnailError()", () => {
+    it("uses the trusted default thumbnail once, then hides it if that fails", () => {
+      controller.youtubeSearchResultsTarget.innerHTML = `
+        <button data-video-id="dQw4w9WgXcQ">
+          <img src="https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg">
+        </button>
+      `
+      const thumbnail = controller.youtubeSearchResultsTarget.querySelector("img")
+
+      controller.thumbnailError({ currentTarget: thumbnail })
+
+      expect(thumbnail.src).toBe("https://img.youtube.com/vi/dQw4w9WgXcQ/default.jpg")
+      expect(thumbnail.dataset.fallbackApplied).toBe("true")
+
+      controller.thumbnailError({ currentTarget: thumbnail })
+
+      expect(thumbnail.style.display).toBe("none")
+    })
+  })
+
   describe("insertVideo()", () => {
     it("closes dialog when no video type detected", () => {
       const closeSpy = vi.spyOn(controller, "close")

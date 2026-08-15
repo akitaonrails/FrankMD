@@ -58,12 +58,17 @@ class Config
     # Hugo blog post settings
     "hugo_path_style" => { default: "dated", type: :string, env: "HUGO_PATH_STYLE" },
 
+    # Access control: when set, all endpoints (except health/login) require
+    # this token. Set via ENV (recommended) or directly in .fed on disk.
+    "auth_token" => { default: nil, type: :string, env: "FRANKMD_AUTH_TOKEN" },
+
     # AI Image Generation
     "image_generation_model" => { default: "google/gemini-3.1-flash-image-preview", type: :string, env: "IMAGE_GENERATION_MODEL" }
   }.freeze
 
   # Keys that should not be exposed to the frontend (sensitive)
   SENSITIVE_KEYS = %w[
+    auth_token
     aws_access_key_id
     aws_secret_access_key
     youtube_api_key
@@ -282,9 +287,14 @@ class Config
     return false unless SCHEMA.key?(key)
 
     casted = cast_value(value, SCHEMA[key][:type])
+    format_value(key, casted)
+    return false unless save_single_key(key, casted)
+
     @values[key] = casted
-    save_single_key(key, casted)
     true
+  rescue ArgumentError => e
+    Rails.logger.error("Failed to save .fed config: #{e.message}")
+    false
   end
 
   # Update multiple values at once
@@ -294,11 +304,16 @@ class Config
       key = key.to_s
       next unless SCHEMA.key?(key)
       casted = cast_value(value, SCHEMA[key][:type])
-      @values[key] = casted
+      format_value(key, casted)
       changes[key] = casted
     end
-    save_keys(changes)
+    return false unless save_keys(changes)
+
+    @values.merge!(changes)
     true
+  rescue ArgumentError => e
+    Rails.logger.error("Failed to save .fed config: #{e.message}")
+    false
   end
 
   # Get all UI settings (safe for frontend)
@@ -493,7 +508,7 @@ class Config
   # Save multiple keys to the config file (surgical update)
   # Only modifies the specified keys, preserves everything else exactly as-is
   def save_keys(changes)
-    return if changes.empty?
+    return true if changes.empty?
 
     ensure_config_file
 
@@ -542,7 +557,8 @@ class Config
       end
     end
 
-    config_file_path.write(lines.join("\n") + "\n")
+    write_config_atomically(lines)
+    true
   rescue => e
     Rails.logger.error("Failed to save .fed config: #{e.message}")
     false
@@ -551,6 +567,10 @@ class Config
   def format_value(key, value)
     case SCHEMA[key][:type]
     when :string
+      if value.to_s.match?(/["\r\n]/)
+        raise ArgumentError, "String configuration values cannot contain quotes or line breaks"
+      end
+
       if value.to_s.include?(" ") || value.to_s.include?("=")
         "#{key} = \"#{value}\""
       else
@@ -575,7 +595,7 @@ class Config
 
     lines = generate_template_lines
     Rails.logger.warn("[Config] Writing .fed config to: #{target_path}")
-    target_path.write(lines.join("\n") + "\n")
+    write_config_atomically(lines)
     Rails.logger.warn("[Config] Successfully created .fed config")
   rescue Errno::EACCES => e
     Rails.logger.error("[Config] Permission denied creating .fed at #{config_file_path}: #{e.message}")
@@ -616,7 +636,7 @@ class Config
     new_lines << "" if new_lines.last&.strip&.present?
     new_lines.concat(ai_section[:lines])
 
-    config_file_path.write(new_lines.join("\n") + "\n")
+    write_config_atomically(new_lines)
     Rails.logger.info("Upgraded .fed config with AI/LLM section")
   rescue => e
     Rails.logger.warn("Failed to upgrade .fed config: #{e.message}")
@@ -624,6 +644,21 @@ class Config
 
   def generate_template_lines
     TEMPLATE_SECTIONS.flat_map { |section| section[:lines] }
+  end
+
+  def write_config_atomically(lines)
+    target = config_file_path
+    temporary = target.dirname.join(".#{target.basename}.#{SecureRandom.hex(6)}.tmp")
+    begin
+      File.open(temporary, File::WRONLY | File::CREAT | File::EXCL, 0o600) do |file|
+        file.write(lines.join("\n") + "\n")
+        file.flush
+        file.fsync
+      end
+      File.rename(temporary, target)
+    ensure
+      File.delete(temporary) if temporary.exist?
+    end
   end
 
   def generate_config_lines

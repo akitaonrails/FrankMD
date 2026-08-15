@@ -68,6 +68,7 @@ class ConfigTest < ActiveSupport::TestCase
     config = Config.new(base_path: @test_dir)
 
     assert @test_dir.join(".fed").exist?
+    assert_equal 0o600, @test_dir.join(".fed").stat.mode & 0o777
   end
 
   test "creates config file and parent directory when neither exist" do
@@ -388,6 +389,41 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal "editor_font = hack", lines[2]
   end
 
+  test "update rejects string values that could inject config lines" do
+    @test_dir.join(".fed").write("theme = dark\n")
+    config = Config.new(base_path: @test_dir)
+    original = @test_dir.join(".fed").read
+
+    refute config.update(theme: "light\"\nimages_path = /outside")
+
+    assert_equal original, @test_dir.join(".fed").read
+    refute_includes @test_dir.join(".fed").read, "images_path = /outside"
+  end
+
+  test "update atomically persists valid values" do
+    config = Config.new(base_path: @test_dir)
+
+    assert config.update(theme: "dark")
+    assert_equal "theme = dark", @test_dir.join(".fed").read.lines.find { |line| line.start_with?("theme =") }.strip
+  end
+
+  test "update preserves a 0600 config file mode" do
+    path = @test_dir.join(".fed")
+    path.write("theme = light\n")
+    File.chmod(0o600, path)
+    config = Config.new(base_path: @test_dir)
+
+    assert config.update(theme: "dark")
+    assert_equal 0o600, path.stat.mode & 0o777
+  end
+
+  test "update replaces config files with mode 0600" do
+    config = Config.new(base_path: @test_dir)
+
+    assert config.update(theme: "dark")
+    assert_equal 0o600, @test_dir.join(".fed").stat.mode & 0o777
+  end
+
   # === UI Settings ===
 
   test "ui_settings returns only UI keys" do
@@ -692,6 +728,7 @@ class ConfigTest < ActiveSupport::TestCase
     assert_includes content, "ollama_api_base"
     assert_includes content, "anthropic_api_key"
     assert_includes content, "gemini_api_key"
+    assert_equal 0o600, @test_dir.join(".fed").stat.mode & 0o777
   end
 
   test "upgrade preserves existing values and comments" do

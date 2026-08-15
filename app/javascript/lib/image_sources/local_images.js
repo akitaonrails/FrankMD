@@ -37,7 +37,9 @@ export class LocalImageSource {
     }
 
     const html = images.map(image => {
-      const dimensions = (image.width && image.height) ? `${image.width}x${image.height}` : ""
+      const width = Number(image.width)
+      const height = Number(image.height)
+      const dimensions = (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) ? `${width}x${height}` : ""
       return `
         <div
           class="image-grid-item ${this.selectedPath === image.path ? 'selected' : ''}"

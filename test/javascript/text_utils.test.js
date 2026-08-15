@@ -1,9 +1,33 @@
 import { describe, it, expect } from "vitest"
 import {
+  escapeHtml,
   escapeHtmlString,
   fuzzyScore,
-  levenshteinDistance
+  levenshteinDistance,
+  isSafeImageUrl
 } from "../../app/javascript/lib/text_utils.js"
+
+describe("escapeHtml", () => {
+  it("escapes HTML and both quote types for attribute interpolation", () => {
+    expect(escapeHtml('<img "quoted" \'single\'>')).toBe("&lt;img &quot;quoted&quot; &#39;single&#39;&gt;")
+  })
+})
+
+describe("isSafeImageUrl", () => {
+  it("accepts supported image URL schemes and rejects javascript URLs", () => {
+    expect(isSafeImageUrl("http://example.com/image.png")).toBe(true)
+    expect(isSafeImageUrl("https://example.com/image.png")).toBe(true)
+    expect(isSafeImageUrl("data:image/png;base64,abc")).toBe(true)
+    expect(isSafeImageUrl("blob:https://app.example/id")).toBe(true)
+    expect(isSafeImageUrl("/images/preview/folder/a.jpg")).toBe(true)
+    expect(isSafeImageUrl("javascript:alert(1)")).toBe(false)
+    expect(isSafeImageUrl("//evil.example/a.jpg")).toBe(false)
+    expect(isSafeImageUrl("/\\evil.example/a.jpg")).toBe(false)
+    expect(isSafeImageUrl(" javascript:alert(1)")).toBe(false)
+    expect(isSafeImageUrl("\n/images/preview/a.jpg")).toBe(false)
+    expect(isSafeImageUrl("file:///tmp/image.png")).toBe(false)
+  })
+})
 
 describe("escapeHtmlString", () => {
   it("escapes HTML special characters", () => {

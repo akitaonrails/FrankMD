@@ -122,6 +122,14 @@ class YoutubeControllerSearchTest < ActionDispatch::IntegrationTest
     assert_equal "https://i.ytimg.com/vi/def456/default.jpg", second_video["thumbnail"]
   end
 
+  test "HTML search results use the thumbnail error action without inline handlers" do
+    get "/youtube/search", params: { q: "test" }
+
+    assert_response :success
+    assert_includes response.body, 'data-action="error->video-dialog#thumbnailError"'
+    assert_not_includes response.body, "onerror="
+  end
+
   test "search passes query to YouTube API" do
     get "/youtube/search", params: { q: "ruby on rails" }, as: :json
     assert_response :success

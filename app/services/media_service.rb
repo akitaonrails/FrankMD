@@ -70,10 +70,12 @@ class MediaService
       content_type = VIDEO_MIME_TYPES[File.extname(key).downcase] || "application/octet-stream"
 
       File.open(temp_path, "rb") do |io|
-        client.put_object(bucket: bucket, key: key, body: io, content_type: content_type)
+        client.put_object(bucket: bucket, key: key, body: io, content_type: content_type, if_none_match: "*")
       end
 
       { url: UploadStorage.s3_url(bucket, region, key) }
+    rescue Aws::S3::Errors::PreconditionFailed
+      { error: "Video upload failed" }
     end
   end
 end

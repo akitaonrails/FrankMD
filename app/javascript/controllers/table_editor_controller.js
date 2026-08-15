@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { parseMarkdownTable, generateMarkdownTable } from "lib/table_utils"
+import { escapeHtml } from "lib/text_utils"
 
 // Table Editor Controller
 // Manages the table editing dialog and generates markdown tables
@@ -89,7 +90,7 @@ export default class extends Controller {
           <td class="${cellClass}" data-row="${r}" data-col="${c}" data-action="contextmenu->table-editor#showCellMenu">
             <input
               type="text"
-              value="${this.escapeHtml(value)}"
+              value="${escapeHtml(value)}"
               data-row="${r}"
               data-col="${c}"
               data-action="input->table-editor#onCellInput contextmenu->table-editor#showCellMenu"
@@ -104,12 +105,6 @@ export default class extends Controller {
 
     html += '</table>'
     this.gridTarget.innerHTML = html
-  }
-
-  escapeHtml(text) {
-    const div = document.createElement("div")
-    div.textContent = text
-    return div.innerHTML
   }
 
   onCellInput(event) {

@@ -178,6 +178,13 @@ describe("FileFinderController", () => {
 
       expect(controller.resultsTarget.innerHTML).toContain("docs/notes")
     })
+
+    it("does not allow a quoted path to inject attributes", () => {
+      controller.filteredResults = [{ name: 'photo" onerror="alert(1).md', path: 'photo" onerror="alert(1).md' }]
+      controller.renderResults()
+
+      expect(controller.resultsTarget.querySelector("button").hasAttribute("onerror")).toBe(false)
+    })
   })
 
   describe("onKeydown()", () => {

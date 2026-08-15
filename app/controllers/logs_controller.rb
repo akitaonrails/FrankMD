@@ -65,9 +65,7 @@ class LogsController < ApplicationController
   end
 
   def mask_value(value)
-    s = value.to_s
-    return s if s.length <= 8
-    "#{s[0..3]}#{"*" * [ s.length - 8, 4 ].max}#{s[-4..]}"
+    "****"
   end
 
   def tail_file(path, num_lines)

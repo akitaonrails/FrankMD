@@ -9,6 +9,7 @@
 
 # Ignore all environment files.
 /.env*
+/.fed
 
 # Ignore all default key files.
 /config/master.key

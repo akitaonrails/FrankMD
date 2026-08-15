@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "securerandom"
+
 # Shared helpers for drag-and-drop file uploads (images and videos).
 #
 # Centralizes the security-sensitive parts — extension allow-listing, filename
@@ -61,10 +63,22 @@ module UploadStorage
     raise RejectedError, "File is too large (max #{MAX_UPLOAD_BYTES / (1024 * 1024)} MB)."
   end
 
-  # Collision-resistant, sanitized destination filename: "<timestamp>_<safe>".
+  # Base64 adds four encoded bytes for every three decoded bytes. The small
+  # allowance keeps this guard compatible with harmless transport decoration.
+  def max_base64_encoded_bytes
+    ((MAX_UPLOAD_BYTES + 2) / 3) * 4 + 1024
+  end
+
+  def enforce_base64_size!(size)
+    return unless size > max_base64_encoded_bytes
+
+    raise RejectedError, "File is too large (max #{MAX_UPLOAD_BYTES / (1024 * 1024)} MB)."
+  end
+
+  # Collision-resistant, sanitized destination filename: "<timestamp>_<random>_<safe>".
   def dest_filename(original_filename)
     safe = original_filename.to_s.gsub(SANITIZE_RE, "_")
-    "#{Time.now.strftime('%Y%m%d_%H%M%S')}_#{safe}"
+    "#{Time.now.strftime('%Y%m%d_%H%M%S')}_#{SecureRandom.hex(4)}_#{safe}"
   end
 
   # Stream the uploaded bytes to a private temp file whose name is RANDOM (never
@@ -102,8 +116,7 @@ module UploadStorage
 
   # Build the S3 object key for an upload.
   #
-  # - custom_key: the user typed the whole key (drop/folder/local flows, where
-  #   the client knows the filename). Sanitized and used verbatim.
+  # - custom_key: treated as a sanitized prefix/base and made unique server-side.
   # - custom_prefix: the user typed only the folder (external/AI/video flows,
   #   where the server owns the filename). Sanitized, then the safe filename is
   #   appended.
@@ -113,12 +126,12 @@ module UploadStorage
   # than producing a bare or malformed key.
   def s3_key(original_filename, custom_key: nil, custom_prefix: nil)
     key = sanitize_s3_key(custom_key)
-    return key if key.present?
+    return unique_s3_key(key, original_filename) if key.present?
 
     safe = original_filename.to_s.gsub(SANITIZE_RE, "_")
     prefix = sanitize_s3_key(custom_prefix)
     prefix = "#{S3_KEY_PREFIX}/#{Time.current.strftime('%Y/%m')}" if prefix.blank?
-    "#{prefix}/#{safe}"
+    unique_s3_key("#{prefix}/#{safe}", original_filename)
   end
 
   # Sanitize a user-supplied key or prefix. Unlike SANITIZE_RE alone (which
@@ -130,6 +143,13 @@ module UploadStorage
       next if segment.empty? || segment == "." || segment == ".."
       segment.gsub(SANITIZE_RE, "_")
     end.join("/")
+  end
+
+  def unique_s3_key(key, original_filename)
+    extension = File.extname(key)
+    extension = File.extname(original_filename.to_s) if extension.blank?
+    base = extension.present? && key.end_with?(extension) ? key.delete_suffix(extension) : key
+    "#{base}-#{SecureRandom.hex(8)}#{extension}"
   end
 
   def s3_url(bucket, region, key)

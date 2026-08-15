@@ -4,6 +4,9 @@ class NotesService
   class NotFoundError < StandardError; end
   class InvalidPathError < StandardError; end
 
+  MAX_SEARCH_FILE_BYTES = 5 * 1024 * 1024
+  SEARCH_REGEX_TIMEOUT = 0.5
+
   def initialize(base_path: nil)
     @base_path = Pathname.new(base_path || ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
     FileUtils.mkdir_p(@base_path) unless @base_path.exist?
@@ -40,6 +43,7 @@ class NotesService
     new_full = safe_path(new_path, must_exist: false)
 
     raise NotFoundError, "Note not found: #{old_path}" unless old_full.exist?
+    raise InvalidPathError, "Destination already exists: #{new_path}" if new_full.exist? || new_full.symlink?
 
     FileUtils.mkdir_p(new_full.dirname)
     FileUtils.mv(old_full, new_full)
@@ -84,11 +88,13 @@ class NotesService
   def search_content(query, context_lines: 3, max_results: 50)
     return [] if query.blank?
 
-    # Try to compile as regex, fall back to escaped literal
+    # Try to compile as regex, fall back to escaped literal.
     regex = begin
-      Regexp.new(query, Regexp::IGNORECASE)
+      Regexp.new(query, Regexp::IGNORECASE, timeout: SEARCH_REGEX_TIMEOUT)
+    rescue Regexp::TimeoutError
+      return []
     rescue RegexpError
-      Regexp.new(Regexp.escape(query), Regexp::IGNORECASE)
+      Regexp.new(Regexp.escape(query), Regexp::IGNORECASE, timeout: SEARCH_REGEX_TIMEOUT)
     end
 
     results = []
@@ -142,7 +148,7 @@ class NotesService
     files = []
     return files unless dir.directory?
 
-    dir.children.sort_by { |p| -p.mtime.to_i }.each do |entry|
+    dir.children.reject(&:symlink?).sort_by { |p| -p.mtime.to_i }.each do |entry|
       next if entry.basename.to_s.start_with?(".")
 
       if entry.directory?
@@ -161,6 +167,7 @@ class NotesService
     return unless dir.directory?
 
     dir.children.each do |entry|
+      next if entry.symlink?
       next if entry.basename.to_s.start_with?(".")
 
       if entry.directory?
@@ -172,6 +179,8 @@ class NotesService
   end
 
   def search_file(file_path, regex, context_lines, max_matches)
+    return [] if file_path.size > MAX_SEARCH_FILE_BYTES
+
     matches = []
     # scrub replaces invalid UTF-8 bytes with the replacement character, so a
     # single Latin-1/binary .md file cannot raise "invalid byte sequence in
@@ -199,7 +208,7 @@ class NotesService
     end
 
     matches
-  rescue SystemCallError
+  rescue SystemCallError, Regexp::TimeoutError
     # File vanished between listing and read (TOCTOU), or another I/O error —
     # skip this file rather than failing the whole search.
     []
@@ -216,15 +225,12 @@ class NotesService
     full_path
   end
 
-  # Special files that are shown even though they start with a dot
-  VISIBLE_DOTFILES = %w[.fed].freeze
-
   def build_tree(dir, relative_base = @base_path)
     # Keep folders in stable alphabetical order so drag/drop updates inside a folder
     # do not reorder it in the Explorer due to mtime changes.
     # Skip broken symlinks (exist? follows links and returns false when the target is missing)
     # so a single dangling link does not take the whole tree down.
-    entries = dir.children.select(&:exist?).sort_by do |p|
+    entries = dir.children.reject(&:symlink?).select(&:exist?).sort_by do |p|
       if p.directory?
         [ 0, p.basename.to_s.downcase ]
       else
@@ -236,19 +242,9 @@ class NotesService
       basename = entry.basename.to_s
       relative_path = entry.relative_path_from(relative_base).to_s
 
-      # Skip hidden files except for special ones
+      # Skip hidden files.
       if basename.start_with?(".")
-        # Allow specific dotfiles at the root level
-        next unless dir == @base_path && VISIBLE_DOTFILES.include?(basename)
-
-        # Show .fed as a config file
-        {
-          name: basename,
-          path: relative_path,
-          type: "file",
-          file_type: "config",
-          mtime: entry.mtime.to_i
-        }
+        next
       elsif entry.directory?
         {
           name: basename,

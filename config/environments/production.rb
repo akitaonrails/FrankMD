@@ -49,18 +49,19 @@ Rails.application.configure do
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
   config.i18n.fallbacks = true
+  config.action_dispatch.default_headers["Referrer-Policy"] = "no-referrer"
 
-  # Disable DNS rebinding protection - FrankMD is self-hosted and accessed from
-  # various hosts (localhost, LAN IPs, tunnel domains, etc.)
-  config.hosts = nil
-
-  # Don't compare the request Origin against the app's own base_url for CSRF.
-  # FrankMD is reached over many origins (localhost, LAN IP, Cloudflare Tunnel
-  # domain) and behind an SSL-terminating proxy Rails computes an http:// base_url
-  # that won't match the browser's https:// Origin, rejecting every save with a
-  # 422 (issue #63). The CSRF token itself still protects writes; this only drops
-  # the origin comparison, consistent with `config.hosts = nil` above.
-  config.action_controller.forgery_protection_origin_check = false
+  # Leave host authorization open for existing multi-origin LAN and tunnel
+  # deployments unless FRANKMD_ALLOWED_HOSTS supplies a stable allowlist.
+  allowed_hosts = ENV.fetch("FRANKMD_ALLOWED_HOSTS", "").split(",").map(&:strip).reject(&:blank?)
+  if allowed_hosts.empty?
+    config.hosts.clear
+    config.action_controller.forgery_protection_origin_check = false
+  else
+    config.hosts.clear
+    config.hosts.concat(allowed_hosts)
+    config.action_controller.forgery_protection_origin_check = true
+  end
 
   # Serve static files from /public (required for Docker without nginx)
   config.public_file_server.enabled = true

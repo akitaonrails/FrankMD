@@ -126,6 +126,18 @@ describe("PinterestImageSource", () => {
       expect(container.innerHTML).toContain("600x800")
     })
 
+    it("removes broken thumbnails without an inline error handler", () => {
+      const container = document.createElement("div")
+      source.results = [{ url: "https://pinterest.com/1.jpg", title: "Pin" }]
+
+      source.renderGrid(container, "click->image-picker#selectExternalImage")
+
+      const image = container.querySelector("img")
+      expect(image.hasAttribute("onerror")).toBe(false)
+      image.dispatchEvent(new Event("error"))
+      expect(container.querySelector(".external-image-item")).toBeNull()
+    })
+
     it("handles missing optional fields", () => {
       const container = { innerHTML: "" }
       source.results = [
