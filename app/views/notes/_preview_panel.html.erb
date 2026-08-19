@@ -1,6 +1,6 @@
 <aside data-controller="preview"
         data-preview-zoom-value="<%= @config&.dig('preview_zoom') || 100 %>"
-        data-action="preview:zoom-changed->app#onPreviewZoomChanged preview:toggled->app#onPreviewToggled preview:toggled->scroll-sync#onPreviewToggled preview:scroll->scroll-sync#onPreviewScroll"
+        data-action="preview:zoom-changed->app#onPreviewZoomChanged preview:zoom-changed->scroll-sync#onPreviewZoomChanged preview:toggled->app#onPreviewToggled preview:toggled->scroll-sync#onPreviewToggled preview:scroll->scroll-sync#onPreviewScroll preview:programmatic-scroll->scroll-sync#onProgrammaticPreviewScroll"
         class="flex-none w-[40%] border-l border-[var(--theme-border)] flex-col bg-[var(--theme-bg-primary)] hidden"
         data-preview-target="panel"
         data-app-target="previewPanel">
@@ -35,7 +35,7 @@
     </div>
 
     <!-- Preview Content -->
-    <div class="flex-1 overflow-y-auto p-6 prose prose-zinc dark:prose-invert prose-sm max-w-none"
+    <div class="relative flex-1 overflow-y-auto p-6 prose prose-zinc dark:prose-invert prose-sm max-w-none"
          data-preview-target="content"
          data-app-target="previewContent"
          data-action="scroll->preview#onPreviewScroll">

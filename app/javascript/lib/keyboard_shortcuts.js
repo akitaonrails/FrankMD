@@ -22,6 +22,7 @@ export const DEFAULT_SHORTCUTS = {
   fileFinder:     { key: "p", ctrl: true },
   toggleSidebar:  { key: "e", ctrl: true },
   typewriterMode: { key: "\\", ctrl: true },
+  toggleScrollSync: { key: "\\", ctrl: true, shift: true },  // Ctrl+Shift+\ (toggle editor-preview scroll sync)
   textFormat:     { key: "m", ctrl: true },
   emojiPicker:    { key: "E", ctrl: true, shift: true },
   increaseWidth:  { key: "+", ctrl: true, shift: true },  // Ctrl+Shift++ (increase editor width)

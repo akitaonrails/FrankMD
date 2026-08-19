@@ -17,6 +17,7 @@ export default class extends Controller {
     lineNumbers: { type: Number, default: 0 },
     typewriterMode: { type: Boolean, default: false },
     vimMode: { type: Boolean, default: false },
+    scrollSync: { type: Boolean, default: true },
     indent: { type: Number, default: 2 },
     theme: { type: String, default: "" }
   }
@@ -52,6 +53,7 @@ export default class extends Controller {
   previewOutletConnected() {
     this._previewReady = true
     this.applyPreviewZoom()
+    this.applyScrollSync()
   }
 
   // === Value Change Callbacks ===
@@ -79,6 +81,10 @@ export default class extends Controller {
 
   vimModeValueChanged() {
     if (this._codemirrorReady) this.applyVimMode()
+  }
+
+  scrollSyncValueChanged() {
+    if (this._previewReady) this.applyScrollSync()
   }
 
   themeValueChanged() {
@@ -122,6 +128,13 @@ export default class extends Controller {
     }
   }
 
+  applyScrollSync() {
+    const preview = this.getPreviewController()
+    if (preview) {
+      preview.syncScrollEnabledValue = this.scrollSyncValue
+    }
+  }
+
   applyTheme() {
     if (this.themeValue) {
       window.dispatchEvent(new CustomEvent("frankmd:config-changed", {
@@ -157,6 +170,7 @@ export default class extends Controller {
   get previewZoom() { return this.previewZoomValue }
   get lineNumberMode() { return normalizeLineNumberMode(this.lineNumbersValue, "off") }
   get typewriterModeEnabled() { return this.typewriterModeValue }
+  get scrollSyncEnabled() { return this.scrollSyncValue }
   get editorIndent() { return this.indentValue }
   get fonts() { return this.constructor.editorFonts }
 }

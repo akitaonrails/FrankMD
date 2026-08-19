@@ -104,6 +104,12 @@ describe("EditorConfigController", () => {
       expect(spy).not.toHaveBeenCalled()
     })
 
+    it("scrollSyncValueChanged skips applyScrollSync when preview not ready", () => {
+      const spy = vi.spyOn(controller, "applyScrollSync")
+      controller.scrollSyncValueChanged()
+      expect(spy).not.toHaveBeenCalled()
+    })
+
     it("editorWidthValueChanged applies without outlets (CSS-only)", () => {
       controller.editorWidthValue = 80
       controller.editorWidthValueChanged()
@@ -145,6 +151,14 @@ describe("EditorConfigController", () => {
 
       expect(controller._previewReady).toBe(true)
       expect(applyZoomSpy).toHaveBeenCalled()
+    })
+
+    it("previewOutletConnected also applies scroll sync", () => {
+      const applyScrollSyncSpy = vi.spyOn(controller, "applyScrollSync")
+
+      controller.previewOutletConnected()
+
+      expect(applyScrollSyncSpy).toHaveBeenCalled()
     })
 
     it("fontValueChanged calls applyFont AFTER codemirror is ready", () => {
@@ -197,6 +211,32 @@ describe("EditorConfigController", () => {
     })
   })
 
+  describe("applyScrollSync()", () => {
+    it("flips the preview controller's syncScrollEnabledValue", () => {
+      const mockPreview = { syncScrollEnabledValue: true }
+      controller.getPreviewController = () => mockPreview
+
+      controller.scrollSyncValue = false
+      controller.applyScrollSync()
+
+      expect(mockPreview.syncScrollEnabledValue).toBe(false)
+
+      controller.scrollSyncValue = true
+      controller.applyScrollSync()
+
+      expect(mockPreview.syncScrollEnabledValue).toBe(true)
+    })
+
+    it("does nothing when the preview outlet is unavailable", () => {
+      controller.getPreviewController = () => null
+
+      expect(() => {
+        controller.scrollSyncValue = false
+        controller.applyScrollSync()
+      }).not.toThrow()
+    })
+  })
+
   describe("public getters", () => {
     it("exposes currentFont", () => {
       expect(controller.currentFont).toBe("cascadia-code")
@@ -221,6 +261,10 @@ describe("EditorConfigController", () => {
 
     it("exposes typewriterModeEnabled", () => {
       expect(controller.typewriterModeEnabled).toBe(false)
+    })
+
+    it("exposes scrollSyncEnabled (default true)", () => {
+      expect(controller.scrollSyncEnabled).toBe(true)
     })
 
     it("exposes fonts list", () => {

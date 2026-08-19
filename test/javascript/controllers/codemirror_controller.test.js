@@ -187,6 +187,85 @@ describe("CodemirrorController", () => {
     })
   })
 
+  describe("getTopVisibleLine()", () => {
+    it("returns a valid 1-based line number", () => {
+      controller.setValue("Line 1\nLine 2\nLine 3")
+      const line = controller.getTopVisibleLine()
+      expect(line).toBeGreaterThanOrEqual(1)
+      expect(line).toBeLessThanOrEqual(3)
+    })
+
+    it("uses lineBlockAtHeight at the top of the viewport", () => {
+      const realEditor = controller.editor
+      controller.editor = {
+        scrollDOM: { scrollTop: 120 },
+        lineBlockAtHeight: vi.fn(() => ({ from: 20 })),
+        state: {
+          doc: {
+            lineAt: vi.fn((pos) => ({ number: pos === 20 ? 5 : 1 }))
+          }
+        }
+      }
+
+      expect(controller.getTopVisibleLine()).toBe(5)
+      expect(controller.editor.lineBlockAtHeight).toHaveBeenCalledWith(121)
+      controller.editor = realEditor
+    })
+
+    it("returns 1 when the editor is missing", () => {
+      controller.editor = null
+      expect(controller.getTopVisibleLine()).toBe(1)
+    })
+  })
+
+  describe("scrollToLine()", () => {
+    it("scrolls so the line block's top is at the viewport top", () => {
+      const realEditor = controller.editor
+      controller.editor = {
+        scrollDOM: { scrollTop: 0 },
+        lineBlock: vi.fn(() => ({ top: 240 })),
+        state: {
+          doc: {
+            lines: 10,
+            line: vi.fn((n) => ({ number: n }))
+          }
+        }
+      }
+
+      controller.scrollToLine(6)
+
+      expect(controller.editor.state.doc.line).toHaveBeenCalledWith(6)
+      expect(controller.editor.scrollDOM.scrollTop).toBe(240)
+      controller.editor = realEditor
+    })
+
+    it("clamps the requested line into the document", () => {
+      const realEditor = controller.editor
+      controller.editor = {
+        scrollDOM: { scrollTop: 0 },
+        lineBlock: vi.fn(() => ({ top: 0 })),
+        state: {
+          doc: {
+            lines: 10,
+            line: vi.fn((n) => ({ number: n }))
+          }
+        }
+      }
+
+      controller.scrollToLine(99)
+      expect(controller.editor.state.doc.line).toHaveBeenCalledWith(10)
+
+      controller.scrollToLine(0)
+      expect(controller.editor.state.doc.line).toHaveBeenCalledWith(1)
+      controller.editor = realEditor
+    })
+
+    it("does nothing when the editor is missing", () => {
+      controller.editor = null
+      expect(() => controller.scrollToLine(3)).not.toThrow()
+    })
+  })
+
   describe("getCursorPosition()", () => {
     it("returns cursor position with line, column, offset", () => {
       const pos = controller.getCursorPosition()

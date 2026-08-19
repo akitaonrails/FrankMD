@@ -35,6 +35,7 @@ export default class extends Controller {
     "sidebarToggle",
     "vimToggle",
     "vimStatus",
+    "scrollSyncToggle",
     "aiButton",
     "editorWrapper",
     "editorBody"
@@ -1456,6 +1457,7 @@ export default class extends Controller {
       fileFinder: () => this.openFileFinder(),
       toggleSidebar: () => this.toggleSidebar(),
       typewriterMode: () => this.toggleTypewriterMode(),
+      toggleScrollSync: () => this.toggleScrollSync(),
       textFormat: () => this.openTextFormatMenu(),
       emojiPicker: () => this.openEmojiPicker(),
       increaseWidth: () => this.increaseEditorWidth(),
@@ -1500,6 +1502,33 @@ export default class extends Controller {
     if (this.hasVimToggleTarget) {
       this.vimToggleTarget.setAttribute("aria-pressed", String(enabled))
       this.vimToggleTarget.classList.toggle("text-[var(--theme-accent)]", enabled)
+    }
+  }
+
+  // === Scroll Sync ===
+
+  // Header button / Ctrl+Shift+\\: flip editor-preview scroll sync, apply it
+  // live via the preview controller's guarded entry points, and persist it.
+  toggleScrollSync() {
+    const configCtrl = this.getEditorConfigController()
+    const enabled = configCtrl ? !configCtrl.scrollSyncEnabled : true
+
+    if (configCtrl) configCtrl.scrollSyncValue = enabled
+
+    // Flip the preview's flag directly too (works even before outlets settle)
+    const previewController = this.getPreviewController()
+    if (previewController) {
+      previewController.syncScrollEnabledValue = enabled
+    }
+
+    this.saveConfig({ scroll_sync: enabled })
+    this.updateScrollSyncToggleButton(enabled)
+  }
+
+  updateScrollSyncToggleButton(enabled) {
+    if (this.hasScrollSyncToggleTarget) {
+      this.scrollSyncToggleTarget.setAttribute("aria-pressed", String(enabled))
+      this.scrollSyncToggleTarget.classList.toggle("text-[var(--theme-accent)]", enabled)
     }
   }
 

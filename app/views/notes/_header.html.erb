@@ -61,6 +61,20 @@
     </button>
     <button
       type="button"
+      data-action="click->app#toggleScrollSync"
+      data-app-target="scrollSyncToggle"
+      class="p-1.5 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] <%= 'text-[var(--theme-accent)]' unless @config_obj&.get('scroll_sync') == false %>"
+      title="<%= t('header.toggle_scroll_sync') %>"
+      aria-pressed="<%= @config_obj&.get('scroll_sync') == false ? 'false' : 'true' %>"
+    >
+      <!-- Scroll sync indicator: two opposing vertical arrows -->
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+        <path d="M8 4v13m0 0l-3-3m3 3l3-3" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M16 20V7m0 0l-3 3m3-3l3 3" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+    <button
+      type="button"
       data-action="click->typewriter#toggle"
       data-typewriter-target="toggleButton"
       data-typewriter-mode-btn

@@ -17,6 +17,7 @@ class Config
     "sidebar_visible" => { default: true, type: :boolean, env: nil },
     "typewriter_mode" => { default: false, type: :boolean, env: nil },
     "vim_mode" => { default: false, type: :boolean, env: nil },
+    "scroll_sync" => { default: true, type: :boolean, env: nil },
     "editor_indent" => { default: 2, type: :integer, env: nil },
     "editor_line_numbers" => { default: 0, type: :integer, env: nil },
     "editor_width" => { default: 72, type: :integer, env: nil },
@@ -89,6 +90,7 @@ class Config
     sidebar_visible
     typewriter_mode
     vim_mode
+    scroll_sync
     editor_indent
     editor_line_numbers
     editor_width

@@ -430,35 +430,45 @@ describe("PreviewController", () => {
       controller.editorTextarea = textarea
     })
 
-    describe("_markScrollFromEditor()", () => {
-      it("sets scroll source to editor", () => {
-        controller._markScrollFromEditor()
-        expect(controller._scrollSource).toBe("editor")
+    describe("_notifyProgrammaticScroll()", () => {
+      it("dispatches preview:programmatic-scroll (single lock lives in scroll-sync)", () => {
+        const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+        controller._notifyProgrammaticScroll()
+
+        expect(dispatchSpy).toHaveBeenCalledWith("programmatic-scroll")
       })
 
-      it("clears scroll source after timeout", async () => {
-        controller._markScrollFromEditor()
-        expect(controller._scrollSource).toBe("editor")
+      it("is dispatched by syncToLineSmooth (typing path)", () => {
+        const dispatchSpy = vi.spyOn(controller, "dispatch")
 
-        // Timeout is 400ms to cover debounced render + smooth scroll
-        await new Promise(resolve => setTimeout(resolve, 410))
-        expect(controller._scrollSource).toBe(null)
-      })
-    })
+        controller.syncToLineSmooth(3, 10)
 
-    describe("_markScrollFromPreview()", () => {
-      it("sets scroll source to preview", () => {
-        controller._markScrollFromPreview()
-        expect(controller._scrollSource).toBe("preview")
+        expect(dispatchSpy).toHaveBeenCalledWith("programmatic-scroll")
       })
 
-      it("clears scroll source after timeout", async () => {
-        controller._markScrollFromPreview()
-        expect(controller._scrollSource).toBe("preview")
+      it("is dispatched by syncScrollRatio (editor/toggle path)", () => {
+        const dispatchSpy = vi.spyOn(controller, "dispatch")
 
-        // Timeout is 400ms to cover debounced render + smooth scroll
-        await new Promise(resolve => setTimeout(resolve, 410))
-        expect(controller._scrollSource).toBe(null)
+        controller.syncScrollRatio(0.5)
+
+        expect(dispatchSpy).toHaveBeenCalledWith("programmatic-scroll")
+      })
+
+      it("is dispatched by syncToTypewriter", () => {
+        const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+        controller.syncToTypewriter(3, 10)
+
+        expect(dispatchSpy).toHaveBeenCalledWith("programmatic-scroll")
+      })
+
+      it("is dispatched by syncToLine (cursor jump)", () => {
+        const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+        controller.syncToLine(3, 10)
+
+        expect(dispatchSpy).toHaveBeenCalledWith("programmatic-scroll")
       })
     })
 
@@ -492,13 +502,19 @@ describe("PreviewController", () => {
         expect(dispatchSpy).not.toHaveBeenCalled()
       })
 
-      it("does not dispatch when scroll was initiated by editor", () => {
-        controller._markScrollFromEditor()
+      it("dispatches echo scroll events (scroll-sync's single lock blocks them)", () => {
         const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+        // Mock scroll position
+        Object.defineProperty(controller.contentTarget, "scrollTop", { value: 50, configurable: true })
+        Object.defineProperty(controller.contentTarget, "scrollHeight", { value: 200, configurable: true })
+        Object.defineProperty(controller.contentTarget, "clientHeight", { value: 100, configurable: true })
 
         controller.onPreviewScroll()
 
-        expect(dispatchSpy).not.toHaveBeenCalled()
+        // Echo blocking moved to the scroll-sync controller's lock; the preview
+        // always dispatches and lets the lock decide
+        expect(dispatchSpy).toHaveBeenCalledWith("scroll", expect.any(Object))
       })
 
       it("does not dispatch during content updates", () => {
@@ -511,26 +527,23 @@ describe("PreviewController", () => {
       })
     })
 
-    describe("syncScrollRatio() prevents reverse sync", () => {
-      it("does not sync when scroll source is preview", () => {
-        controller._markScrollFromPreview()
-        const scrollToSpy = vi.spyOn(controller.contentTarget, "scrollTo")
+    describe("syncScrollRatio() signals programmatic scroll", () => {
+      it("dispatches programmatic-scroll so scroll-sync marks its lock", () => {
+        const dispatchSpy = vi.spyOn(controller, "dispatch")
 
         controller.syncScrollRatio(0.5)
 
-        expect(scrollToSpy).not.toHaveBeenCalled()
+        expect(dispatchSpy).toHaveBeenCalledWith("programmatic-scroll")
       })
 
-      it("syncs when scroll source is null", () => {
-        controller._scrollSource = null
-
-        // Need to use RAF mock
+      it("syncs (and dispatches) when no local lock exists", () => {
         vi.spyOn(window, "requestAnimationFrame").mockImplementation(cb => { cb(); return 1 })
+
+        const dispatchSpy = vi.spyOn(controller, "dispatch")
 
         controller.syncScrollRatio(0.5)
 
-        // Should have called scrollTo via RAF
-        expect(controller._scrollSource).toBe("editor")
+        expect(dispatchSpy).toHaveBeenCalledWith("programmatic-scroll")
       })
     })
 
@@ -714,52 +727,26 @@ describe("PreviewController", () => {
       })
     })
 
-    describe("scroll source tracking", () => {
-      it("_markScrollFromEditor sets source to 'editor'", () => {
-        controller._markScrollFromEditor()
-        expect(controller._scrollSource).toBe("editor")
+    describe("scroll source tracking (delegated to scroll-sync)", () => {
+      it("no longer keeps a private _scrollSource lock", () => {
+        expect(controller._scrollSource).toBeUndefined()
       })
 
-      it("_markScrollFromPreview sets source to 'preview'", () => {
-        controller._markScrollFromPreview()
-        expect(controller._scrollSource).toBe("preview")
-      })
-
-      it("scroll source 'editor' blocks onPreviewScroll dispatch", () => {
+      it("echo scroll events dispatch and rely on scroll-sync's lock", () => {
         const dispatchSpy = vi.spyOn(controller, "dispatch")
-        controller._markScrollFromEditor()
-
-        controller.onPreviewScroll()
-
-        expect(dispatchSpy).not.toHaveBeenCalled()
-      })
-
-      it("scroll source clears after 400ms timeout", async () => {
-        controller._markScrollFromEditor()
-        expect(controller._scrollSource).toBe("editor")
-
-        // Wait for full timeout (400ms + buffer)
-        await new Promise(resolve => setTimeout(resolve, 410))
-
-        expect(controller._scrollSource).toBe(null)
-      })
-
-      it("scroll source 'preview' blocks syncScrollRatio", async () => {
-        controller._markScrollFromPreview()
-
-        // Mock RAF
         vi.spyOn(window, "requestAnimationFrame").mockImplementation(cb => { cb(); return 1 })
 
-        // Mock scroll properties
         Object.defineProperty(controller.contentTarget, "scrollHeight", { value: 1000, configurable: true })
         Object.defineProperty(controller.contentTarget, "clientHeight", { value: 400, configurable: true })
 
-        const initialScrollTop = controller.contentTarget.scrollTop
-
+        // Editor-driven sync: marks scroll-sync's lock via the event
         controller.syncScrollRatio(0.5)
+        expect(dispatchSpy).toHaveBeenCalledWith("programmatic-scroll")
 
-        // scrollTop should not change because scroll source is 'preview'
-        expect(controller.contentTarget.scrollTop).toBe(initialScrollTop)
+        // Preview scroll event fires (from the sync animation): dispatched,
+        // scroll-sync's lock is responsible for not re-scrolling the editor
+        controller.onPreviewScroll()
+        expect(dispatchSpy).toHaveBeenCalledWith("scroll", expect.any(Object))
       })
     })
 
@@ -855,25 +842,164 @@ describe("PreviewController", () => {
         })
       })
 
-      it("editor scroll then preview scroll: flags prevent feedback loop", () => {
+      it("editor scroll then preview scroll: single lock prevents feedback loop", () => {
         const dispatchSpy = vi.spyOn(controller, "dispatch")
         vi.spyOn(window, "requestAnimationFrame").mockImplementation(cb => { cb(); return 1 })
 
         Object.defineProperty(controller.contentTarget, "scrollHeight", { value: 1000, configurable: true })
         Object.defineProperty(controller.contentTarget, "clientHeight", { value: 400, configurable: true })
 
-        // Editor syncs to preview
+        // Editor syncs to preview: preview notifies scroll-sync (single lock)
         controller.syncScrollRatio(0.5)
 
-        // Source should be marked as editor
-        expect(controller._scrollSource).toBe("editor")
+        expect(dispatchSpy).toHaveBeenCalledWith("programmatic-scroll")
 
-        // Preview scroll event fires (from the sync animation)
+        // Preview scroll event fires (from the sync animation): dispatched as a
+        // normal scroll event; scroll-sync's lock blocks it from re-scrolling
+        // the editor
         controller.onPreviewScroll()
 
-        // Should NOT dispatch because scroll source is 'editor'
-        expect(dispatchSpy).not.toHaveBeenCalled()
+        expect(dispatchSpy).toHaveBeenCalledWith("scroll", expect.any(Object))
       })
+    })
+  })
+
+  describe("unified line mapping (typing path and scroll path share anchors)", () => {
+    let h1First, h1Second
+
+    const mockRects = (pageOffset) => {
+      const content = controller.contentTarget
+      content.getBoundingClientRect = () => ({ top: pageOffset, left: 0, right: 400, bottom: pageOffset + 500, width: 400, height: 500 })
+      const rectFor = (top) => () => ({ top: pageOffset + top, left: 0, right: 400, bottom: pageOffset + top + 20, width: 400, height: 20 })
+      h1First.getBoundingClientRect = rectFor(0)
+      h1Second.getBoundingClientRect = rectFor(100)
+    }
+
+    beforeEach(() => {
+      controller.show()
+      controller.render("# First\n\n# Second\n\n")
+
+      h1First = controller.contentTarget.querySelector('[data-source-line="1"]')
+      h1Second = controller.contentTarget.querySelector('[data-source-line="3"]')
+      expect(h1First).toBeTruthy()
+      expect(h1Second).toBeTruthy()
+
+      Object.defineProperty(controller.contentTarget, "scrollHeight", { value: 1000, configurable: true })
+      Object.defineProperty(controller.contentTarget, "clientHeight", { value: 400, configurable: true })
+      vi.spyOn(window, "requestAnimationFrame").mockImplementation(cb => { cb(); return 1 })
+    })
+
+    it("typing path anchors on the element with the cursor's source line", () => {
+      mockRects(0)
+
+      // Cursor on source line 3 ("# Second")
+      controller.syncToLineSmooth(3, 4)
+
+      // Element top 100 - 50px padding
+      expect(controller.contentTarget.scrollTo).toHaveBeenCalledWith({ top: 50, behavior: "smooth" })
+    })
+
+    it("scroll path anchors on the same element for the same line", () => {
+      mockRects(0)
+
+      // Ratio that maps to source line 3 (round(0.5 * 4) + 1 = 3)
+      controller.syncScrollRatio(0.5)
+
+      // Same anchor element (top 100), positioned at the viewport top
+      expect(controller.contentTarget.scrollTop).toBe(100)
+    })
+
+    it("both paths are invariant to the container's page offset", () => {
+      mockRects(5000)
+
+      controller.syncToLineSmooth(3, 4)
+      expect(controller.contentTarget.scrollTo).toHaveBeenCalledWith({ top: 50, behavior: "smooth" })
+
+      controller.syncScrollRatio(0.5)
+      expect(controller.contentTarget.scrollTop).toBe(100)
+    })
+
+    it("typing path accounts for stripped frontmatter via absolute line anchors", () => {
+      // Re-render with 4 lines of frontmatter: body starts at source line 5
+      controller.render("---\ntitle: Test\n---\n\n# First\n\n# Second\n\n")
+      h1First = controller.contentTarget.querySelector('[data-source-line="5"]')
+      h1Second = controller.contentTarget.querySelector('[data-source-line="7"]')
+      expect(h1First).toBeTruthy()
+      expect(h1Second).toBeTruthy()
+
+      mockRects(0)
+
+      // Editor cursor on absolute line 7 ("# Second" after frontmatter)
+      controller.syncToLineSmooth(7, 9)
+
+      expect(controller.contentTarget.scrollTo).toHaveBeenCalledWith({ top: 50, behavior: "smooth" })
+    })
+
+    it("falls back to element-count ratio when no line annotations exist", () => {
+      controller.contentTarget.querySelectorAll("[data-source-line]").forEach(el => {
+        el.removeAttribute("data-source-line")
+      })
+      mockRects(0)
+
+      // Line 3 of 4 -> ratio 0.5 -> element index 1 of 2 (top 100) - padding 50
+      controller.syncToLineSmooth(3, 4)
+
+      expect(controller.contentTarget.scrollTo).toHaveBeenCalledWith({ top: 50, behavior: "smooth" })
+    })
+
+    it("prefers an explicit source line over the ratio-derived line", () => {
+      mockRects(0)
+
+      // Ratio 0.5 alone would derive line 3; explicit line 1 wins
+      controller.syncScrollRatio(0.5, 1)
+
+      expect(controller.contentTarget.scrollTop).toBe(0)
+    })
+  })
+
+  describe("scroll sync toggle (syncScrollEnabledValue)", () => {
+    beforeEach(() => {
+      controller.show()
+      Object.defineProperty(controller.contentTarget, "scrollHeight", { value: 1000, configurable: true })
+      Object.defineProperty(controller.contentTarget, "clientHeight", { value: 400, configurable: true })
+      vi.spyOn(window, "requestAnimationFrame").mockImplementation(cb => { cb(); return 1 })
+    })
+
+    it("value=false blocks editor -> preview sync (ratio path)", () => {
+      controller.syncScrollEnabledValue = false
+
+      controller.syncScrollRatio(0.5)
+
+      expect(controller.contentTarget.scrollTop).toBe(0)
+    })
+
+    it("value=false blocks editor -> preview sync (typing path)", () => {
+      controller.syncScrollEnabledValue = false
+
+      controller.syncToLineSmooth(3, 10)
+
+      expect(controller.contentTarget.scrollTo).not.toHaveBeenCalled()
+    })
+
+    it("value=false blocks preview -> editor sync", () => {
+      controller.syncScrollEnabledValue = false
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+      Object.defineProperty(controller.contentTarget, "scrollTop", { value: 50, configurable: true })
+      Object.defineProperty(controller.contentTarget, "scrollHeight", { value: 200, configurable: true })
+      Object.defineProperty(controller.contentTarget, "clientHeight", { value: 100, configurable: true })
+
+      controller.onPreviewScroll()
+
+      expect(dispatchSpy).not.toHaveBeenCalled()
+    })
+
+    it("value=false blocks typewriter sync", () => {
+      controller.syncScrollEnabledValue = false
+
+      controller.syncToTypewriter(5, 10)
+
+      expect(controller.contentTarget.scrollTo).not.toHaveBeenCalled()
     })
   })
 })
