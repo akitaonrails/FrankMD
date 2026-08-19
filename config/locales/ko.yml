@@ -463,6 +463,7 @@ ko:
       search_placeholder: "이모지 검색..."
       tab_emoji: "이모지"
       tab_emoticons: "이모티콘"
+      tab_icons: "아이콘"
 
     # Recovery diff dialog
     recovery:

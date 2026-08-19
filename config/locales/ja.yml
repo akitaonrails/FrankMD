@@ -463,6 +463,7 @@ ja:
       search_placeholder: "絵文字を検索..."
       tab_emoji: "絵文字"
       tab_emoticons: "顔文字"
+      tab_icons: "アイコン"
 
     # Recovery diff dialog
     recovery:

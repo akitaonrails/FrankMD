@@ -2,6 +2,7 @@
 <div data-controller="emoji-picker"
      data-emoji-picker-columns-value="10"
      data-emoji-picker-emoticon-columns-value="5"
+     data-emoji-picker-icon-columns-value="8"
      data-action="emoji-picker:selected->app#onEmojiSelected">
   <dialog
     class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] w-[500px] max-h-[70vh]"
@@ -27,6 +28,13 @@
               data-action="click->emoji-picker#switchToEmoticons keydown->emoji-picker#onTabKeydown"
               class="px-3 py-1 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
             ><%= t('dialogs.emoji_picker.tab_emoticons') %></button>
+            <button
+              type="button"
+              role="tab"
+              data-emoji-picker-target="tabIcons"
+              data-action="click->emoji-picker#switchToIcons keydown->emoji-picker#onTabKeydown"
+              class="px-3 py-1 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
+            ><%= t('dialogs.emoji_picker.tab_icons') %></button>
           </div>
           <%= render "shared/dialog_close_button", action: "click->emoji-picker#close" %>
         </div>

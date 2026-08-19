@@ -463,6 +463,7 @@ es:
       search_placeholder: "Buscar emojis..."
       tab_emoji: "Emoji"
       tab_emoticons: "Emoticones"
+      tab_icons: "Iconos"
 
     # Recovery diff dialog
     recovery:

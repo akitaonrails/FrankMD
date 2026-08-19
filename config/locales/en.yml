@@ -474,6 +474,7 @@ en:
       search_placeholder: "Search emojis..."
       tab_emoji: "Emoji"
       tab_emoticons: "Emoticons"
+      tab_icons: "Icons"
 
     # Recovery diff dialog
     recovery:

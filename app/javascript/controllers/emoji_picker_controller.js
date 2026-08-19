@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { escapeHtml } from "lib/text_utils"
 import { EMOJI_DATA } from "lib/emoji_data"
+import { ICON_DATA } from "lib/icon_data"
 import { setEmojiLocale, getTranslatedEmojis, buildSearchIndex } from "lib/emoji_i18n"
 
 // Emoji Picker Controller
@@ -170,20 +171,23 @@ export default class extends Controller {
     "grid",
     "preview",
     "tabEmoji",
-    "tabEmoticons"
+    "tabEmoticons",
+    "tabIcons"
   ]
 
   static values = {
     columns: { type: Number, default: 10 },
-    emoticonColumns: { type: Number, default: 5 }
+    emoticonColumns: { type: Number, default: 5 },
+    iconColumns: { type: Number, default: 8 }
   }
 
   connect() {
     this.allEmojis = EMOJI_DATA
     this.allEmoticons = EMOTICON_DATA
+    this.allIcons = ICON_DATA
     this.filteredItems = [...this.allEmojis]
     this.selectedIndex = 0
-    this.activeTab = "emoji" // "emoji" or "emoticons"
+    this.activeTab = "emoji" // "emoji", "emoticons", or "icons"
     this.i18nSearchIndex = null // Map of emoji -> translated search terms
     this.i18nLoaded = false
 
@@ -251,12 +255,21 @@ export default class extends Controller {
     this.onInput() // Re-apply search filter
   }
 
+  // Switch to icons tab
+  switchToIcons() {
+    if (this.activeTab === "icons") return
+    this.activeTab = "icons"
+    this.selectedIndex = 0
+    this.updateTabStyles()
+    this.onInput() // Re-apply search filter
+  }
+
   // Handle arrow key navigation on tab buttons
   onTabKeydown(event) {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
 
     event.preventDefault()
-    const tabs = ["emoji", "emoticons"]
+    const tabs = ["emoji", "emoticons", "icons"]
     const currentIndex = tabs.indexOf(this.activeTab)
 
     let newIndex
@@ -266,30 +279,38 @@ export default class extends Controller {
       newIndex = (currentIndex - 1 + tabs.length) % tabs.length
     }
 
-    if (tabs[newIndex] === "emoji") {
-      this.switchToEmoji()
-      this.tabEmojiTarget.focus()
-    } else {
-      this.switchToEmoticons()
-      this.tabEmoticonsTarget.focus()
-    }
+    this.switchToTab(tabs[newIndex])
+    this.tabTarget(tabs[newIndex]).focus()
   }
 
   // Handle mouse wheel on tab bar to switch tabs
   onTabWheel(event) {
     event.preventDefault()
 
+    const tabs = ["emoji", "emoticons", "icons"]
+    const currentIndex = tabs.indexOf(this.activeTab)
+
     if (event.deltaY > 0 || event.deltaX > 0) {
       // Scroll down/right -> next tab
-      if (this.activeTab === "emoji") {
-        this.switchToEmoticons()
-      }
+      this.switchToTab(tabs[(currentIndex + 1) % tabs.length])
     } else {
       // Scroll up/left -> previous tab
-      if (this.activeTab === "emoticons") {
-        this.switchToEmoji()
-      }
+      this.switchToTab(tabs[(currentIndex - 1 + tabs.length) % tabs.length])
     }
+  }
+
+  // Switch to a tab by name ("emoji", "emoticons", or "icons")
+  switchToTab(tab) {
+    if (tab === "emoji") this.switchToEmoji()
+    else if (tab === "emoticons") this.switchToEmoticons()
+    else if (tab === "icons") this.switchToIcons()
+  }
+
+  // Get the tab button target element for a tab name
+  tabTarget(tab) {
+    if (tab === "emoji") return this.tabEmojiTarget
+    if (tab === "emoticons") return this.tabEmoticonsTarget
+    return this.tabIconsTarget
   }
 
   // Update tab button styles
@@ -297,25 +318,22 @@ export default class extends Controller {
     const activeClass = "bg-[var(--theme-accent)] text-[var(--theme-accent-text)]"
     const inactiveClass = "hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
 
-    if (this.hasTabEmojiTarget && this.hasTabEmoticonsTarget) {
-      if (this.activeTab === "emoji") {
-        this.tabEmojiTarget.className = this.tabEmojiTarget.className.replace(inactiveClass, "").trim()
-        this.tabEmojiTarget.classList.add(...activeClass.split(" "))
-        this.tabEmoticonsTarget.className = this.tabEmoticonsTarget.className.replace(activeClass, "").trim()
-        this.tabEmoticonsTarget.classList.add(...inactiveClass.split(" "))
-      } else {
-        this.tabEmoticonsTarget.className = this.tabEmoticonsTarget.className.replace(inactiveClass, "").trim()
-        this.tabEmoticonsTarget.classList.add(...activeClass.split(" "))
-        this.tabEmojiTarget.className = this.tabEmojiTarget.className.replace(activeClass, "").trim()
-        this.tabEmojiTarget.classList.add(...inactiveClass.split(" "))
-      }
+    if (!this.hasTabEmojiTarget || !this.hasTabEmoticonsTarget || !this.hasTabIconsTarget) {
+      return
+    }
+
+    for (const tab of ["emoji", "emoticons", "icons"]) {
+      const target = this.tabTarget(tab)
+      const isActive = this.activeTab === tab
+      target.className = target.className.replace(activeClass, "").replace(inactiveClass, "").trim()
+      target.classList.add(...(isActive ? activeClass : inactiveClass).split(" "))
     }
   }
 
   // Handle search input
   onInput() {
     const query = this.inputTarget.value.trim().toLowerCase()
-    const sourceData = this.activeTab === "emoji" ? this.allEmojis : this.allEmoticons
+    const sourceData = this.getCurrentSourceData()
 
     if (!query) {
       this.filteredItems = [...sourceData]
@@ -323,9 +341,12 @@ export default class extends Controller {
       // Search emojis with i18n support
       this.filteredItems = this.searchEmojisWithI18n(query)
     } else {
-      // Search emoticons (English only)
-      this.filteredItems = sourceData.filter(([name, , keywords]) => {
-        const searchText = `${name} ${keywords}`.toLowerCase()
+      // Search emoticons/icons (English only)
+      // Emoticon rows are [name, emoticon, keywords]; icon rows are
+      // [name, path, viewBox, keywords] - keywords is always the last item.
+      this.filteredItems = sourceData.filter((row) => {
+        const keywords = row[row.length - 1]
+        const searchText = `${row[0]} ${keywords}`.toLowerCase()
         return query.split(/\s+/).every(term => searchText.includes(term))
       })
     }
@@ -333,6 +354,13 @@ export default class extends Controller {
     this.selectedIndex = 0
     this.renderGrid()
     this.updatePreview()
+  }
+
+  // Get the data array for the currently active tab
+  getCurrentSourceData() {
+    if (this.activeTab === "emoji") return this.allEmojis
+    if (this.activeTab === "emoticons") return this.allEmoticons
+    return this.allIcons
   }
 
   // Search emojis with both English and translated terms
@@ -357,7 +385,9 @@ export default class extends Controller {
 
   // Get current number of columns based on active tab
   getCurrentColumns() {
-    return this.activeTab === "emoji" ? this.columnsValue : this.emoticonColumnsValue
+    if (this.activeTab === "emoji") return this.columnsValue
+    if (this.activeTab === "emoticons") return this.emoticonColumnsValue
+    return this.iconColumnsValue
   }
 
   // Render the grid (emoji or emoticon)
@@ -376,8 +406,10 @@ export default class extends Controller {
 
     if (this.activeTab === "emoji") {
       this.renderEmojiGrid()
-    } else {
+    } else if (this.activeTab === "emoticons") {
       this.renderEmoticonGrid()
+    } else {
+      this.renderIconGrid()
     }
 
     // Update grid columns
@@ -431,6 +463,27 @@ export default class extends Controller {
       .join("")
   }
 
+  // Render icon grid (Phosphor Icons, rendered as inline SVG)
+  renderIconGrid() {
+    this.gridTarget.innerHTML = this.filteredItems
+      .map(([name, path, viewBox], index) => {
+        const isSelected = index === this.selectedIndex
+        return `
+          <button
+            type="button"
+            class="w-10 h-10 flex items-center justify-center text-lg rounded hover:bg-[var(--theme-bg-hover)] transition-colors ${
+              isSelected ? 'bg-[var(--theme-accent)] ring-2 ring-[var(--theme-accent)] ring-offset-1 ring-offset-[var(--theme-bg-secondary)]' : ''
+            }"
+            data-index="${index}"
+            data-name="${escapeHtml(name)}"
+            data-action="click->emoji-picker#selectFromClick mouseenter->emoji-picker#onHover"
+            title=":ph-${escapeHtml(name)}:"
+          ><svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" fill="currentColor" width="1.25em" height="1.25em" aria-hidden="true"><path d="${path}"/></svg></button>
+        `
+      })
+      .join("")
+  }
+
   // Scroll the selected item into view
   scrollSelectedIntoView() {
     const selectedButton = this.gridTarget.querySelector(`[data-index="${this.selectedIndex}"]`)
@@ -448,13 +501,18 @@ export default class extends Controller {
       return
     }
 
-    const [name, display] = this.filteredItems[this.selectedIndex] || []
+    const [name, display, viewBox] = this.filteredItems[this.selectedIndex] || []
     if (!name) return
 
     if (this.activeTab === "emoji") {
       this.previewTarget.innerHTML = `
         <span class="text-4xl">${display}</span>
         <code class="text-sm bg-[var(--theme-bg-tertiary)] px-2 py-1 rounded">:${escapeHtml(name)}:</code>
+      `
+    } else if (this.activeTab === "icons") {
+      this.previewTarget.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" fill="currentColor" width="2em" height="2em" aria-hidden="true"><path d="${display}"/></svg>
+        <code class="text-sm bg-[var(--theme-bg-tertiary)] px-2 py-1 rounded">:ph-${escapeHtml(name)}:</code>
       `
     } else {
       this.previewTarget.innerHTML = `
@@ -545,6 +603,11 @@ export default class extends Controller {
       if (shortcode) {
         this.dispatchSelected(`:${shortcode}:`)
       }
+    } else if (this.activeTab === "icons") {
+      const name = event.currentTarget.dataset.name
+      if (name) {
+        this.dispatchSelected(`:ph-${name}:`)
+      }
     } else {
       const emoticon = event.currentTarget.dataset.emoticon
       if (emoticon) {
@@ -562,6 +625,8 @@ export default class extends Controller {
 
     if (this.activeTab === "emoji") {
       this.dispatchSelected(`:${name}:`)
+    } else if (this.activeTab === "icons") {
+      this.dispatchSelected(`:ph-${name}:`)
     } else {
       this.dispatchSelected(display)
     }

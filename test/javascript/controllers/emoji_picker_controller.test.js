@@ -34,13 +34,15 @@ describe("EmojiPickerController", () => {
     document.body.innerHTML = `
       <div data-controller="emoji-picker"
            data-emoji-picker-columns-value="10"
-           data-emoji-picker-emoticon-columns-value="5">
+           data-emoji-picker-emoticon-columns-value="5"
+           data-emoji-picker-icon-columns-value="8">
         <dialog data-emoji-picker-target="dialog"></dialog>
         <input data-emoji-picker-target="input" type="text" />
         <div data-emoji-picker-target="grid"></div>
         <div data-emoji-picker-target="preview"></div>
         <button data-emoji-picker-target="tabEmoji" class="px-3 py-1 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"></button>
         <button data-emoji-picker-target="tabEmoticons" class="px-3 py-1 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"></button>
+        <button data-emoji-picker-target="tabIcons" class="px-3 py-1 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"></button>
       </div>
     `
 
@@ -180,6 +182,28 @@ describe("EmojiPickerController", () => {
         expect(controller.selectedIndex).toBe(0)
       })
     })
+
+    describe("switchToIcons()", () => {
+      it("switches to icons tab", () => {
+        controller.activeTab = "emoji"
+        controller.switchToIcons()
+        expect(controller.activeTab).toBe("icons")
+      })
+
+      it("does nothing if already on icons tab", () => {
+        controller.activeTab = "icons"
+        const updateSpy = vi.spyOn(controller, "updateTabStyles")
+        controller.switchToIcons()
+        expect(updateSpy).not.toHaveBeenCalled()
+      })
+
+      it("resets selected index when switching", () => {
+        controller.activeTab = "emoji"
+        controller.selectedIndex = 5
+        controller.switchToIcons()
+        expect(controller.selectedIndex).toBe(0)
+      })
+    })
   })
 
   describe("onInput() - search filtering", () => {
@@ -219,6 +243,24 @@ describe("EmojiPickerController", () => {
       expect(controller.filteredItems.length).toBeGreaterThan(0)
     })
 
+    it("filters icons by name", () => {
+      controller.activeTab = "icons"
+      controller.filteredItems = [...controller.allIcons]
+      controller.inputTarget.value = "heart"
+      controller.onInput()
+
+      expect(controller.filteredItems.some(([name]) => name.includes("heart"))).toBe(true)
+    })
+
+    it("filters icons by keywords", () => {
+      controller.activeTab = "icons"
+      controller.filteredItems = [...controller.allIcons]
+      controller.inputTarget.value = "love"
+      controller.onInput()
+
+      expect(controller.filteredItems.length).toBeGreaterThan(0)
+    })
+
     it("shows all items when search is empty", () => {
       controller.activeTab = "emoji"
       controller.inputTarget.value = ""
@@ -253,6 +295,11 @@ describe("EmojiPickerController", () => {
     it("returns emoticon columns for emoticons tab", () => {
       controller.activeTab = "emoticons"
       expect(controller.getCurrentColumns()).toBe(5)
+    })
+
+    it("returns icon columns for icons tab", () => {
+      controller.activeTab = "icons"
+      expect(controller.getCurrentColumns()).toBe(8)
     })
   })
 
@@ -386,8 +433,18 @@ describe("EmojiPickerController", () => {
       expect(controller.activeTab).toBe("emoticons")
     })
 
-    it("switches from emoticons to emoji with ArrowRight (wrap)", () => {
+    it("switches from emoticons to icons with ArrowRight", () => {
       controller.activeTab = "emoticons"
+      const event = new KeyboardEvent("keydown", { key: "ArrowRight" })
+      event.preventDefault = vi.fn()
+      controller.onTabKeydown(event)
+
+      expect(event.preventDefault).toHaveBeenCalled()
+      expect(controller.activeTab).toBe("icons")
+    })
+
+    it("switches from icons to emoji with ArrowRight (wrap)", () => {
+      controller.activeTab = "icons"
       const event = new KeyboardEvent("keydown", { key: "ArrowRight" })
       event.preventDefault = vi.fn()
       controller.onTabKeydown(event)
@@ -406,8 +463,18 @@ describe("EmojiPickerController", () => {
       expect(controller.activeTab).toBe("emoji")
     })
 
-    it("switches from emoji to emoticons with ArrowLeft (wrap)", () => {
+    it("switches from emoji to icons with ArrowLeft (wrap)", () => {
       controller.activeTab = "emoji"
+      const event = new KeyboardEvent("keydown", { key: "ArrowLeft" })
+      event.preventDefault = vi.fn()
+      controller.onTabKeydown(event)
+
+      expect(event.preventDefault).toHaveBeenCalled()
+      expect(controller.activeTab).toBe("icons")
+    })
+
+    it("switches from icons to emoticons with ArrowLeft", () => {
+      controller.activeTab = "icons"
       const event = new KeyboardEvent("keydown", { key: "ArrowLeft" })
       event.preventDefault = vi.fn()
       controller.onTabKeydown(event)
@@ -531,6 +598,20 @@ describe("EmojiPickerController", () => {
           detail: { text: "(◕‿◕)", type: "emoticons" }
         })
       })
+
+      it("dispatches icon selection on click", () => {
+        const dispatchSpy = vi.spyOn(controller, "dispatch")
+        controller.activeTab = "icons"
+
+        const mockEvent = {
+          currentTarget: { dataset: { name: "heart" } }
+        }
+        controller.selectFromClick(mockEvent)
+
+        expect(dispatchSpy).toHaveBeenCalledWith("selected", {
+          detail: { text: ":ph-heart:", type: "icons" }
+        })
+      })
     })
   })
 
@@ -580,6 +661,27 @@ describe("EmojiPickerController", () => {
       })
     })
 
+    describe("renderIconGrid()", () => {
+      beforeEach(() => {
+        controller.open()
+        controller.switchToIcons()
+      })
+
+      it("renders icon buttons with an inline SVG", () => {
+        const buttons = controller.gridTarget.querySelectorAll("button")
+        expect(buttons.length).toBeGreaterThan(0)
+
+        const firstButton = buttons[0]
+        expect(firstButton.dataset.index).toBe("0")
+        expect(firstButton.dataset.name).toBeDefined()
+        expect(firstButton.querySelector("svg")).not.toBeNull()
+      })
+
+      it("uses different column count for icons", () => {
+        expect(controller.gridTarget.style.gridTemplateColumns).toContain("repeat(8")
+      })
+    })
+
     describe("updatePreview()", () => {
       it("shows emoji preview with shortcode", () => {
         controller.activeTab = "emoji"
@@ -599,6 +701,16 @@ describe("EmojiPickerController", () => {
 
         expect(controller.previewTarget.innerHTML).toContain("(◕‿◕)")
         expect(controller.previewTarget.innerHTML).toContain("happy")
+      })
+
+      it("shows icon preview with shortcode and inline SVG", () => {
+        controller.activeTab = "icons"
+        controller.filteredItems = [["heart", "M1 2 3", "0 0 256 256", "love"]]
+        controller.selectedIndex = 0
+        controller.updatePreview()
+
+        expect(controller.previewTarget.innerHTML).toContain("<svg")
+        expect(controller.previewTarget.innerHTML).toContain(":ph-heart:")
       })
 
       it("clears preview when no items", () => {
