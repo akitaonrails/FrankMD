@@ -132,24 +132,24 @@ ja:
       title: "名前変更"
       placeholder: "新しい名前"
 
-    # New item dialog
+    # 新規アイテムダイアログ（フォルダー）
     new_item:
-      new_note: "新規ノート"
       new_folder: "新規フォルダ"
-      placeholder: "名前"
-      note_placeholder: "ノート名"
       folder_placeholder: "フォルダ名"
       creating_in: "作成先:"
       root_location: "ルートフォルダ"
 
-    # Note type dialog
-    note_type:
+    # 新規ノートダイアログ（単一ステップ: 名前、種類カード、パスのライブプレビュー）
+    new_note:
       title: "新規ノート"
-      empty_document: "空のドキュメント"
-      empty_description: "プレーンなマークダウンファイル"
-      hugo_post: "Hugoブログ記事"
-      hugo_description: "YYYY/MM/DD/slug/index.md"
-      new_hugo_post: "新規Hugoブログ記事"
+      name_placeholder: "ノート名"
+      name_slot: "ノート名"
+      root: "ルート"
+      empty_title: "空のドキュメント"
+      empty_subtitle: "プレーンなマークダウン"
+      hugo_title: "Hugoブログ記事"
+      hugo_subtitle: "Hugoページバンドル"
+      invalid_name: "名前にスラッシュは使用できません"
 
     # Table editor dialog
     table_editor:

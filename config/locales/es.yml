@@ -132,24 +132,24 @@ es:
       title: "Renombrar"
       placeholder: "Nuevo nombre"
 
-    # New item dialog
+    # Diálogo de nuevo elemento (carpetas)
     new_item:
-      new_note: "Nueva Nota"
       new_folder: "Nueva Carpeta"
-      placeholder: "Nombre"
-      note_placeholder: "Nombre de la nota"
       folder_placeholder: "Nombre de la carpeta"
       creating_in: "En:"
       root_location: "carpeta raíz"
 
-    # Note type dialog
-    note_type:
+    # Diálogo de nueva nota (un solo paso: nombre, tarjetas de tipo, vista previa de la ruta)
+    new_note:
       title: "Nueva Nota"
-      empty_document: "Documento Vacío"
-      empty_description: "Archivo markdown simple"
-      hugo_post: "Publicación de Blog Hugo"
-      hugo_description: "AAAA/MM/DD/slug/index.md"
-      new_hugo_post: "Nueva Publicación de Blog Hugo"
+      name_placeholder: "Nombre de la nota"
+      name_slot: "nombre-de-la-nota"
+      root: "raíz"
+      empty_title: "Documento Vacío"
+      empty_subtitle: "Markdown simple"
+      hugo_title: "Publicación de Blog Hugo"
+      hugo_subtitle: "Paquete de página Hugo"
+      invalid_name: "El nombre no puede contener barras"
 
     # Table editor dialog
     table_editor:

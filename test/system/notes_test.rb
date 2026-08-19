@@ -48,17 +48,12 @@ class NotesTest < ApplicationSystemTestCase
     # Click the new note button using JavaScript for reliability
     page.execute_script("document.querySelector('button[title=\"New Note (Ctrl+N)\"]').click()")
 
-    # Wait for note type dialog to open
-    assert_selector "[data-file-operations-target='noteTypeDialog'][open]", wait: 3
+    # The single New Note dialog opens directly (no type-selection step)
+    assert_selector "[data-file-operations-target='newNoteDialog'][open]", wait: 3
 
-    # Select "Empty Document" type
-    click_button "Empty Document"
-
-    # Wait for name input dialog to open
-    assert_selector "[data-file-operations-target='newItemDialog'][open]", wait: 2
-
-    # Fill in the dialog (placeholder is set dynamically to "Note name")
-    within "[data-file-operations-target='newItemDialog']" do
+    # Empty Document is selected by default; fill in the name and create
+    within "[data-file-operations-target='newNoteDialog']" do
+      assert_selector "[data-template='empty'][aria-pressed='true']"
       fill_in placeholder: "Note name", with: "brand_new_note"
       click_button "Create"
     end
@@ -69,6 +64,35 @@ class NotesTest < ApplicationSystemTestCase
     # Note should appear in tree
     assert_selector "[data-path='brand_new_note.md']", wait: 3
     assert @test_notes_dir.join("brand_new_note.md").exist?
+  end
+
+  test "creating a new hugo post via dialog" do
+    visit root_url
+
+    # Wait for page to fully load
+    assert_selector "[data-app-target='fileTree']"
+    sleep 0.5
+
+    page.execute_script("document.querySelector('button[title=\"New Note (Ctrl+N)\"]').click()")
+
+    assert_selector "[data-file-operations-target='newNoteDialog'][open]", wait: 3
+
+    within "[data-file-operations-target='newNoteDialog']" do
+      # Switch to the Hugo Blog Post card
+      find("[data-template='hugo']").click
+      assert_selector "[data-template='hugo'][aria-pressed='true']"
+
+      fill_in placeholder: "Note name", with: "Hello World"
+      click_button "Create"
+    end
+
+    assert_no_selector "dialog[open]", wait: 2
+
+    # Hugo posts create dated page bundles: YYYY/MM/DD/slug/index.md
+    date_path = Time.current.strftime("%Y/%m/%d")
+    expected = @test_notes_dir.join(date_path, "hello-world", "index.md")
+    assert expected.exist?, "expected #{expected} to exist"
+    assert_selector "[data-path='#{date_path}/hello-world/index.md']", wait: 3
   end
 
   test "creating a new folder via dialog" do

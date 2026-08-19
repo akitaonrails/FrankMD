@@ -132,24 +132,24 @@ ko:
       title: "이름 변경"
       placeholder: "새 이름"
 
-    # 새 항목 다이얼로그
+    # 새 항목 다이얼로그 (폴더)
     new_item:
-      new_note: "새 노트"
       new_folder: "새 폴더"
-      placeholder: "이름"
-      note_placeholder: "노트 이름"
       folder_placeholder: "폴더 이름"
       creating_in: "위치:"
       root_location: "루트 폴더"
 
-    # 노트 유형 다이얼로그
-    note_type:
+    # 새 노트 다이얼로그 (한 단계: 이름, 유형 카드, 경로 실시간 미리보기)
+    new_note:
       title: "새 노트"
-      empty_document: "빈 문서"
-      empty_description: "일반 마크다운 파일"
-      hugo_post: "Hugo 블로그 포스트"
-      hugo_description: "YYYY/MM/DD/slug/index.md"
-      new_hugo_post: "새 Hugo 블로그 포스트"
+      name_placeholder: "노트 이름"
+      name_slot: "노트-이름"
+      root: "루트"
+      empty_title: "빈 문서"
+      empty_subtitle: "일반 마크다운"
+      hugo_title: "Hugo 블로그 포스트"
+      hugo_subtitle: "Hugo 페이지 번들"
+      invalid_name: "이름에 슬래시를 사용할 수 없습니다"
 
     # 테이블 에디터 다이얼로그
     table_editor:

@@ -71,54 +71,86 @@
     </form>
   </dialog>
 
-  <!-- Note Type Dialog -->
+  <!-- New Note Dialog (single step: name + type cards + live path preview) -->
   <dialog
     class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)]"
-    data-file-operations-target="noteTypeDialog"
+    data-file-operations-target="newNoteDialog"
   >
-    <div class="p-4 w-72 text-[var(--theme-text-primary)]">
-      <h3 class="text-sm font-semibold mb-3"><%= t('dialogs.note_type.title') %></h3>
-      <div class="flex flex-col gap-2">
+    <form method="dialog" class="p-4 w-96 text-[var(--theme-text-primary)]">
+      <h3 class="text-sm font-semibold mb-3"><%= t('dialogs.new_note.title') %></h3>
+      <input
+        type="text"
+        data-file-operations-target="newNoteInput"
+        data-action="input->file-operations#onNewNoteInput keydown->file-operations#onNewNoteKeydown"
+        class="w-full px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+        placeholder="<%= t('dialogs.new_note.name_placeholder') %>"
+        autofocus
+      >
+      <div class="grid grid-cols-2 gap-2 mt-3">
         <button
           type="button"
-          data-action="click->file-operations#selectNoteTypeEmpty"
-          class="w-full px-3 py-2.5 text-left text-sm rounded-md hover:bg-[var(--theme-bg-hover)] flex items-center gap-3 border border-[var(--theme-border)]"
+          data-template="empty"
+          data-file-operations-target="newNoteTemplateCard"
+          data-action="click->file-operations#selectNewNoteTemplate"
+          aria-pressed="true"
+          class="px-3 py-2.5 text-left text-sm rounded-md flex items-center gap-2.5 border border-[var(--theme-accent)] ring-1 ring-[var(--theme-accent)] bg-[var(--theme-bg-hover)]"
         >
-          <svg class="w-5 h-5 text-[var(--theme-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 shrink-0 text-[var(--theme-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <div>
-            <div class="font-medium"><%= t('dialogs.note_type.empty_document') %></div>
-            <div class="text-xs text-[var(--theme-text-muted)]"><%= t('dialogs.note_type.empty_description') %></div>
-          </div>
+          <span class="min-w-0">
+            <span class="block font-medium truncate"><%= t('dialogs.new_note.empty_title') %></span>
+            <span class="block text-xs text-[var(--theme-text-muted)] truncate"><%= t('dialogs.new_note.empty_subtitle') %></span>
+          </span>
         </button>
         <button
           type="button"
-          data-action="click->file-operations#selectNoteTypeHugo"
-          class="w-full px-3 py-2.5 text-left text-sm rounded-md hover:bg-[var(--theme-bg-hover)] flex items-center gap-3 border border-[var(--theme-border)]"
+          data-template="hugo"
+          data-file-operations-target="newNoteTemplateCard"
+          data-action="click->file-operations#selectNewNoteTemplate"
+          aria-pressed="false"
+          class="px-3 py-2.5 text-left text-sm rounded-md flex items-center gap-2.5 border border-[var(--theme-border)] hover:bg-[var(--theme-bg-hover)]"
         >
-          <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 shrink-0 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
           </svg>
-          <div>
-            <div class="font-medium"><%= t('dialogs.note_type.hugo_post') %></div>
-            <div class="text-xs text-[var(--theme-text-muted)]"><%= t('dialogs.note_type.hugo_description') %></div>
-          </div>
+          <span class="min-w-0">
+            <span class="block font-medium truncate"><%= t('dialogs.new_note.hugo_title') %></span>
+            <span class="block text-xs text-[var(--theme-text-muted)] truncate"><%= t('dialogs.new_note.hugo_subtitle') %></span>
+          </span>
         </button>
       </div>
-      <div class="flex justify-end mt-4">
-        <%= render "shared/button_secondary", label: t('common.cancel'), action: "click->file-operations#closeNoteTypeDialog" %>
+      <div class="flex items-center gap-1.5 mt-3 min-w-0">
+        <svg class="w-3.5 h-3.5 shrink-0 text-[var(--theme-folder-icon)]" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+        </svg>
+        <span
+          class="text-xs font-mono truncate text-[var(--theme-text-muted)]"
+          data-file-operations-target="newNotePath"
+        ><%= t('dialogs.new_note.root') %>/</span>
       </div>
-    </div>
+      <div class="flex justify-end gap-2 mt-4">
+        <%= render "shared/button_secondary", label: t('common.cancel'), action: "click->file-operations#closeNewNoteDialog" %>
+        <button
+          type="button"
+          data-file-operations-target="newNoteSubmit"
+          data-action="click->file-operations#submitNewNote"
+          disabled
+          class="px-3 py-1.5 text-sm rounded-md bg-[var(--theme-accent)] text-[var(--theme-accent-text)] hover:bg-[var(--theme-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <%= t('common.create') %>
+        </button>
+      </div>
+    </form>
   </dialog>
 
-  <!-- New Item Dialog -->
+  <!-- New Item Dialog (folders) -->
   <dialog
     class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)]"
     data-file-operations-target="newItemDialog"
   >
     <form method="dialog" class="p-4 w-80 text-[var(--theme-text-primary)]">
-      <h3 class="text-sm font-semibold mb-1" data-file-operations-target="newItemTitle"><%= t('dialogs.new_item.new_note') %></h3>
+      <h3 class="text-sm font-semibold mb-1" data-file-operations-target="newItemTitle"><%= t('dialogs.new_item.new_folder') %></h3>
       <p
         class="text-xs text-[var(--theme-text-muted)] mb-3 truncate"
         data-file-operations-target="newItemLocation"
@@ -128,7 +160,7 @@
         data-file-operations-target="newItemInput"
         data-action="keydown->file-operations#onNewItemKeydown"
         class="w-full px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
-        placeholder="<%= t('dialogs.new_item.placeholder') %>"
+        placeholder="<%= t('dialogs.new_item.folder_placeholder') %>"
       >
       <div class="flex justify-end gap-2 mt-4">
         <button

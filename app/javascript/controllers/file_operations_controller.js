@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { post, destroy } from "@rails/request.js"
 import { encodePath } from "lib/url_utils"
+import { previewNotePath, canCreateNote } from "lib/new_note_utils"
 
 // File Operations Controller
 // Handles file/folder creation, renaming, deletion and context menu
@@ -11,7 +12,11 @@ export default class extends Controller {
     "contextMenu",
     "renameDialog",
     "renameInput",
-    "noteTypeDialog",
+    "newNoteDialog",
+    "newNoteInput",
+    "newNoteTemplateCard",
+    "newNotePath",
+    "newNoteSubmit",
     "newItemDialog",
     "newItemTitle",
     "newItemInput",
@@ -22,6 +27,7 @@ export default class extends Controller {
     this.contextItem = null
     this.newItemType = null
     this.newItemParent = ""
+    this.newNoteTemplate = "empty"
     this.contextClickX = 0
     this.contextClickY = 0
 
@@ -50,7 +56,7 @@ export default class extends Controller {
     const dialogs = [
       this.renameDialogTarget,
       this.newItemDialogTarget,
-      this.noteTypeDialogTarget
+      this.newNoteDialogTarget
     ].filter(d => d)
 
     dialogs.forEach(dialog => {
@@ -120,28 +126,129 @@ export default class extends Controller {
 
   // New Note (root). Clear any parent left over from a prior folder-scoped
   // "New Note in Folder" that was cancelled, so a root note is created at the
-  // root — and the location line reflects that.
+  // root — and the path preview reflects that.
   newNote() {
+    this.openNewNoteDialog("")
+  }
+
+  // New Note in Folder (from context menu)
+  newNoteInFolder() {
+    this.hideContextMenu()
+    if (!this.contextItem || this.contextItem.type !== "folder") return
+    this.openNewNoteDialog(this.contextItem.path)
+  }
+
+  // Single-step New Note dialog: name input + type cards + live path preview.
+  openNewNoteDialog(parent = "") {
+    this.newItemType = "note"
+    this.newItemParent = parent || ""
+    this.setNewNoteTemplate("empty")
+
+    if (this.hasNewNoteInputTarget) {
+      this.newNoteInputTarget.value = ""
+    }
+
+    this.updateNewNotePreview()
+
+    if (this.hasNewNoteDialogTarget) {
+      this.newNoteDialogTarget.showModal()
+      this.focusNewNoteInput()
+    }
+  }
+
+  closeNewNoteDialog() {
+    if (this.hasNewNoteDialogTarget) {
+      this.newNoteDialogTarget.close()
+    }
+    this.newItemType = null
     this.newItemParent = ""
-    if (this.hasNoteTypeDialogTarget) {
-      this.noteTypeDialogTarget.showModal()
+    this.newNoteTemplate = "empty"
+  }
+
+  focusNewNoteInput() {
+    // Card clicks move focus to the card; return it to the input so typing
+    // and Enter-to-create keep working without an extra click.
+    this.newNoteInputTarget?.focus()
+  }
+
+  // Select a note type card ("empty" or "hugo")
+  selectNewNoteTemplate(event) {
+    const template = event.currentTarget.dataset.template
+    if (template) this.setNewNoteTemplate(template)
+    this.updateNewNotePreview()
+    this.focusNewNoteInput()
+  }
+
+  setNewNoteTemplate(template) {
+    this.newNoteTemplate = template
+
+    this.newNoteTemplateCardTargets.forEach(card => {
+      const selected = card.dataset.template === template
+      card.setAttribute("aria-pressed", String(selected))
+      card.classList.toggle("border-[var(--theme-border)]", !selected)
+      card.classList.toggle("border-[var(--theme-accent)]", selected)
+      card.classList.toggle("ring-1", selected)
+      card.classList.toggle("ring-[var(--theme-accent)]", selected)
+      card.classList.toggle("bg-[var(--theme-bg-hover)]", selected)
+    })
+  }
+
+  // Live-update the path preview and the Create button state as the user types
+  onNewNoteInput() {
+    this.updateNewNotePreview()
+  }
+
+  updateNewNotePreview() {
+    if (!this.hasNewNotePathTarget) return
+
+    const result = previewNotePath({
+      name: this.hasNewNoteInputTarget ? this.newNoteInputTarget.value : "",
+      parent: this.newItemParent,
+      template: this.newNoteTemplate,
+      namePlaceholder: window.t("dialogs.new_note.name_slot"),
+      rootSegment: window.t("dialogs.new_note.root")
+    })
+
+    this.newNotePathTarget.textContent = result.path
+    this.newNotePathTarget.classList.toggle("text-[var(--theme-text-muted)]", result.valid)
+    this.newNotePathTarget.classList.toggle("text-[var(--theme-text-faint)]", result.empty)
+    this.newNotePathTarget.classList.toggle("text-[var(--theme-error)]", !result.valid && !result.empty)
+    this.newNotePathTarget.parentElement.title = !result.valid && !result.empty
+      ? window.t("dialogs.new_note.invalid_name")
+      : ""
+
+    if (this.hasNewNoteSubmitTarget) {
+      this.newNoteSubmitTarget.disabled = !result.valid
     }
   }
 
-  closeNoteTypeDialog() {
-    if (this.hasNoteTypeDialogTarget) {
-      this.noteTypeDialogTarget.close()
+  async submitNewNote() {
+    if (!this.hasNewNoteInputTarget) return
+
+    const name = this.newNoteInputTarget.value.trim()
+    const template = this.newNoteTemplate
+    // The Create button is disabled for invalid names, but Enter can still
+    // fire — gate the keyboard path with the same rule.
+    if (!canCreateNote(name, template)) return
+
+    const parent = this.newItemParent
+
+    try {
+      await this.createNote(name, parent, template)
+      this.closeNewNoteDialog()
+    } catch (error) {
+      console.error("Failed to create note:", error)
+      alert(error.message || window.t("errors.failed_to_create"))
     }
   }
 
-  selectNoteTypeEmpty() {
-    this.closeNoteTypeDialog()
-    this.openNewItemDialog("note", "", "empty")
-  }
-
-  selectNoteTypeHugo() {
-    this.closeNoteTypeDialog()
-    this.openNewItemDialog("note", "", "hugo")
+  onNewNoteKeydown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault()
+      this.submitNewNote()
+    } else if (event.key === "Escape") {
+      this.closeNewNoteDialog()
+    }
   }
 
   // New Folder
@@ -156,26 +263,12 @@ export default class extends Controller {
     this.openNewItemDialog("folder", this.contextItem.path)
   }
 
-  // New Note in Folder (from context menu)
-  newNoteInFolder() {
-    this.hideContextMenu()
-    if (!this.contextItem || this.contextItem.type !== "folder") return
-
-    if (this.hasNoteTypeDialogTarget) {
-      this.noteTypeDialogTarget.showModal()
-      // Store parent for after type selection
-      this.newItemParent = this.contextItem.path
-    }
-  }
-
-  openNewItemDialog(type, parent = "", template = null) {
+  openNewItemDialog(type, parent = "") {
     this.newItemType = type
-    this.newItemParent = parent || this.newItemParent || ""
-    this.newItemTemplate = template
+    this.newItemParent = parent || ""
 
     if (this.hasNewItemTitleTarget) {
-      const titleKey = type === "folder" ? "dialogs.new_item.new_folder" : "dialogs.new_item.new_note"
-      this.newItemTitleTarget.textContent = window.t(titleKey)
+      this.newItemTitleTarget.textContent = window.t("dialogs.new_item.new_folder")
     }
 
     if (this.hasNewItemLocationTarget) {
@@ -188,9 +281,7 @@ export default class extends Controller {
 
     if (this.hasNewItemInputTarget) {
       this.newItemInputTarget.value = ""
-      this.newItemInputTarget.placeholder = type === "folder"
-        ? window.t("dialogs.new_item.folder_placeholder")
-        : window.t("dialogs.new_item.note_placeholder")
+      this.newItemInputTarget.placeholder = window.t("dialogs.new_item.folder_placeholder")
     }
 
     if (this.hasNewItemDialogTarget) {
@@ -205,7 +296,6 @@ export default class extends Controller {
     }
     this.newItemType = null
     this.newItemParent = ""
-    this.newItemTemplate = null
   }
 
   async submitNewItem() {
@@ -214,16 +304,10 @@ export default class extends Controller {
     const name = this.newItemInputTarget.value.trim()
     if (!name) return
 
-    const type = this.newItemType
     const parent = this.newItemParent
-    const template = this.newItemTemplate
 
     try {
-      if (type === "folder") {
-        await this.createFolder(name, parent)
-      } else {
-        await this.createNote(name, parent, template)
-      }
+      await this.createFolder(name, parent)
       this.closeNewItemDialog()
     } catch (error) {
       console.error("Failed to create item:", error)
