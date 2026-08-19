@@ -23,7 +23,10 @@ services:
     # Run as host user for proper volume permissions
     user: "${UID:-1000}:${GID:-1000}"
     ports:
-      - "${PORT:-7591}:80"
+      # Host bind address defaults to all interfaces (preserves existing
+      # behavior). Set FRANKMD_BIND_ADDRESS=127.0.0.1 for local-only access,
+      # including VPN-protected setups where broad LAN access is firewalled.
+      - "${FRANKMD_BIND_ADDRESS:-0.0.0.0}:${PORT:-7591}:80"
     volumes:
       # Notes directory - default to ./notes, override with NOTES_PATH env var
       - ${NOTES_PATH:-./notes}:/rails/notes
