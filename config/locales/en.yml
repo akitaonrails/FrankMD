@@ -138,24 +138,24 @@ en:
       title: "Rename"
       placeholder: "New name"
 
-    # New item dialog
+    # New item dialog (folders)
     new_item:
-      new_note: "New Note"
       new_folder: "New Folder"
-      placeholder: "Name"
-      note_placeholder: "Note name"
       folder_placeholder: "Folder name"
       creating_in: "In:"
       root_location: "root folder"
 
-    # Note type dialog
-    note_type:
+    # New Note dialog (single step: name, type cards, live path preview)
+    new_note:
       title: "New Note"
-      empty_document: "Empty Document"
-      empty_description: "Plain markdown file"
-      hugo_post: "Hugo Blog Post"
-      hugo_description: "YYYY/MM/DD/slug/index.md"
-      new_hugo_post: "New Hugo Blog Post"
+      name_placeholder: "Note name"
+      name_slot: "note-name"
+      root: "root"
+      empty_title: "Empty Document"
+      empty_subtitle: "Plain markdown"
+      hugo_title: "Hugo Blog Post"
+      hugo_subtitle: "Hugo page bundle"
+      invalid_name: "Name cannot contain slashes"
 
     # Table editor dialog
     table_editor:

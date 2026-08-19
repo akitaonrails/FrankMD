@@ -138,24 +138,24 @@ pt-BR:
       title: "Renomear"
       placeholder: "Novo nome"
 
-    # Diálogo de novo item
+    # Diálogo de novo item (pastas)
     new_item:
-      new_note: "Nova Nota"
       new_folder: "Nova Pasta"
-      placeholder: "Nome"
-      note_placeholder: "Nome da nota"
       folder_placeholder: "Nome da pasta"
       creating_in: "Em:"
       root_location: "pasta raiz"
 
-    # Diálogo de tipo de nota
-    note_type:
+    # Diálogo de nova nota (etapa única: nome, cartões de tipo, prévia do caminho)
+    new_note:
       title: "Nova Nota"
-      empty_document: "Documento Vazio"
-      empty_description: "Arquivo markdown simples"
-      hugo_post: "Post Hugo Blog"
-      hugo_description: "AAAA/MM/DD/slug/index.md"
-      new_hugo_post: "Novo Post Hugo Blog"
+      name_placeholder: "Nome da nota"
+      name_slot: "nome-da-nota"
+      root: "raiz"
+      empty_title: "Documento Vazio"
+      empty_subtitle: "Markdown simples"
+      hugo_title: "Post Hugo Blog"
+      hugo_subtitle: "Pacote de página Hugo"
+      invalid_name: "O nome não pode conter barras"
 
     # Diálogo do editor de tabela
     table_editor:

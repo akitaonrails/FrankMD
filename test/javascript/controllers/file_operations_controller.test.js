@@ -29,7 +29,13 @@ describe("FileOperationsController", () => {
         <dialog data-file-operations-target="renameDialog">
           <input data-file-operations-target="renameInput" type="text" />
         </dialog>
-        <dialog data-file-operations-target="noteTypeDialog"></dialog>
+        <dialog data-file-operations-target="newNoteDialog">
+          <input data-file-operations-target="newNoteInput" type="text" />
+          <button data-file-operations-target="newNoteTemplateCard" data-template="empty" aria-pressed="true">Empty Document</button>
+          <button data-file-operations-target="newNoteTemplateCard" data-template="hugo" aria-pressed="false">Hugo Blog Post</button>
+          <div><span data-file-operations-target="newNotePath"></span></div>
+          <button data-file-operations-target="newNoteSubmit" disabled>Create</button>
+        </dialog>
         <dialog data-file-operations-target="newItemDialog">
           <h3 data-file-operations-target="newItemTitle"></h3>
           <p data-file-operations-target="newItemLocation"></p>
@@ -85,6 +91,10 @@ describe("FileOperationsController", () => {
 
     it("initializes new item parent to empty string", () => {
       expect(controller.newItemParent).toBe("")
+    })
+
+    it("initializes the new note template to empty document", () => {
+      expect(controller.newNoteTemplate).toBe("empty")
     })
   })
 
@@ -151,10 +161,10 @@ describe("FileOperationsController", () => {
   })
 
   describe("newNote()", () => {
-    it("shows note type dialog", () => {
+    it("opens the new note dialog directly", () => {
       controller.newNote()
 
-      expect(controller.noteTypeDialogTarget.showModal).toHaveBeenCalled()
+      expect(controller.newNoteDialogTarget.showModal).toHaveBeenCalled()
     })
 
     it("clears a stale parent from a prior folder-scoped new note", () => {
@@ -165,36 +175,271 @@ describe("FileOperationsController", () => {
 
       expect(controller.newItemParent).toBe("")
     })
-  })
 
-  describe("closeNoteTypeDialog()", () => {
-    it("closes the note type dialog", () => {
+    it("resets the input and selects the empty template", () => {
+      controller.newNoteInputTarget.value = "leftover"
+
       controller.newNote()
-      controller.closeNoteTypeDialog()
 
-      expect(controller.noteTypeDialogTarget.close).toHaveBeenCalled()
+      expect(controller.newNoteInputTarget.value).toBe("")
+      expect(controller.newNoteTemplate).toBe("empty")
+      expect(controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "empty").getAttribute("aria-pressed")).toBe("true")
+      expect(controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo").getAttribute("aria-pressed")).toBe("false")
+    })
+
+    it("disables create while the name is empty", () => {
+      controller.newNote()
+
+      expect(controller.newNoteSubmitTarget.disabled).toBe(true)
     })
   })
 
-  describe("selectNoteTypeEmpty()", () => {
-    it("closes note type dialog and opens new item dialog", () => {
-      const openSpy = vi.spyOn(controller, "openNewItemDialog")
+  describe("newNoteInFolder()", () => {
+    it("hides context menu and opens the new note dialog with the folder as parent", () => {
+      controller.contextItem = { path: "parent/folder", type: "folder" }
+      controller.contextMenuTarget.classList.remove("hidden")
 
-      controller.selectNoteTypeEmpty()
+      controller.newNoteInFolder()
 
-      expect(controller.noteTypeDialogTarget.close).toHaveBeenCalled()
-      expect(openSpy).toHaveBeenCalledWith("note", "", "empty")
+      expect(controller.contextMenuTarget.classList.contains("hidden")).toBe(true)
+      expect(controller.newNoteDialogTarget.showModal).toHaveBeenCalled()
+      expect(controller.newItemParent).toBe("parent/folder")
+    })
+
+    it("previews the path inside the parent folder", () => {
+      controller.contextItem = { path: "parent/folder", type: "folder" }
+      controller.newNoteInFolder()
+      controller.newNoteInputTarget.value = "my-note"
+      controller.onNewNoteInput()
+
+      expect(controller.newNotePathTarget.textContent).toBe("parent/folder/my-note.md")
+    })
+
+    it("does nothing if context item is not a folder", () => {
+      controller.contextItem = { path: "test.md", type: "file" }
+
+      controller.newNoteInFolder()
+
+      expect(controller.newNoteDialogTarget.showModal).not.toHaveBeenCalled()
+    })
+
+    it("does nothing if no context item", () => {
+      controller.contextItem = null
+
+      controller.newNoteInFolder()
+
+      expect(controller.newNoteDialogTarget.showModal).not.toHaveBeenCalled()
     })
   })
 
-  describe("selectNoteTypeHugo()", () => {
-    it("closes note type dialog and opens new item dialog with hugo template", () => {
-      const openSpy = vi.spyOn(controller, "openNewItemDialog")
+  describe("selectNewNoteTemplate()", () => {
+    it("switches the selection to the hugo card", () => {
+      controller.newNote()
 
-      controller.selectNoteTypeHugo()
+      controller.selectNewNoteTemplate({ currentTarget: controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo") })
 
-      expect(controller.noteTypeDialogTarget.close).toHaveBeenCalled()
-      expect(openSpy).toHaveBeenCalledWith("note", "", "hugo")
+      expect(controller.newNoteTemplate).toBe("hugo")
+      expect(controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "empty").getAttribute("aria-pressed")).toBe("false")
+      expect(controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo").getAttribute("aria-pressed")).toBe("true")
+    })
+
+    it("styles the selected card with the accent border", () => {
+      controller.newNote()
+
+      const hugoCard = controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo")
+      controller.selectNewNoteTemplate({ currentTarget: hugoCard })
+
+      expect(hugoCard.classList.contains("border-[var(--theme-accent)]")).toBe(true)
+      expect(hugoCard.classList.contains("ring-1")).toBe(true)
+      expect(hugoCard.classList.contains("bg-[var(--theme-bg-hover)]")).toBe(true)
+      expect(hugoCard.classList.contains("border-[var(--theme-border)]")).toBe(false)
+    })
+
+    it("switches the preview to a dated hugo page bundle", () => {
+      controller.newNote()
+      controller.newNoteInputTarget.value = "my-post"
+
+      controller.selectNewNoteTemplate({ currentTarget: controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo") })
+
+      // window.t is mocked to return the key, so the root segment is the key
+      expect(controller.newNotePathTarget.textContent).toMatch(/\/\d{4}\/\d{2}\/\d{2}\/my-post\/index\.md$/)
+    })
+
+    it("switches back to the empty document preview", () => {
+      controller.newNote()
+      controller.newNoteInputTarget.value = "my-post"
+      controller.selectNewNoteTemplate({ currentTarget: controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo") })
+
+      controller.selectNewNoteTemplate({ currentTarget: controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "empty") })
+
+      expect(controller.newNoteTemplate).toBe("empty")
+      expect(controller.newNotePathTarget.textContent).toBe("dialogs.new_note.root/my-post.md")
+    })
+  })
+
+  describe("updateNewNotePreview() / onNewNoteInput()", () => {
+    it("shows the muted placeholder slot while the name is empty", () => {
+      controller.newNote()
+
+      expect(controller.newNotePathTarget.textContent).toBe("dialogs.new_note.root/dialogs.new_note.name_slot.md")
+      expect(controller.newNotePathTarget.classList.contains("text-[var(--theme-text-faint)]")).toBe(true)
+      expect(controller.newNoteSubmitTarget.disabled).toBe(true)
+    })
+
+    it("previews root/<name>.md as the user types", () => {
+      controller.newNote()
+      controller.newNoteInputTarget.value = "my-note"
+      controller.onNewNoteInput()
+
+      expect(controller.newNotePathTarget.textContent).toBe("dialogs.new_note.root/my-note.md")
+      expect(controller.newNoteSubmitTarget.disabled).toBe(false)
+      expect(controller.newNotePathTarget.classList.contains("text-[var(--theme-text-muted)]")).toBe(true)
+    })
+
+    it("flags slash-containing names as invalid", () => {
+      controller.newNote()
+      controller.newNoteInputTarget.value = "nested/path"
+      controller.onNewNoteInput()
+
+      expect(controller.newNotePathTarget.classList.contains("text-[var(--theme-error)]")).toBe(true)
+      expect(controller.newNoteSubmitTarget.disabled).toBe(true)
+      expect(controller.newNotePathTarget.parentElement.title).toBe("dialogs.new_note.invalid_name")
+    })
+
+    it("flags hugo names that slugify to nothing as invalid", () => {
+      controller.newNote()
+      controller.selectNewNoteTemplate({ currentTarget: controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo") })
+      controller.newNoteInputTarget.value = "!!!"
+      controller.onNewNoteInput()
+
+      expect(controller.newNoteSubmitTarget.disabled).toBe(true)
+      expect(controller.newNotePathTarget.classList.contains("text-[var(--theme-error)]")).toBe(true)
+    })
+
+    it("enables create for a valid hugo name", () => {
+      controller.newNote()
+      controller.selectNewNoteTemplate({ currentTarget: controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo") })
+      controller.newNoteInputTarget.value = "My Post"
+      controller.onNewNoteInput()
+
+      expect(controller.newNoteSubmitTarget.disabled).toBe(false)
+    })
+  })
+
+  describe("closeNewNoteDialog()", () => {
+    it("closes the new note dialog", () => {
+      controller.newNote()
+      controller.closeNewNoteDialog()
+
+      expect(controller.newNoteDialogTarget.close).toHaveBeenCalled()
+    })
+
+    it("resets state", () => {
+      controller.newNote()
+      controller.newItemParent = "parent"
+
+      controller.closeNewNoteDialog()
+
+      expect(controller.newItemType).toBeNull()
+      expect(controller.newItemParent).toBe("")
+      expect(controller.newNoteTemplate).toBe("empty")
+    })
+  })
+
+  describe("submitNewNote()", () => {
+    it("does nothing with empty input", async () => {
+      controller.newNote()
+      controller.newNoteInputTarget.value = ""
+
+      await controller.submitNewNote()
+
+      expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    it("does nothing with an invalid name (slashes)", async () => {
+      controller.newNote()
+      controller.newNoteInputTarget.value = "nested/path"
+
+      await controller.submitNewNote()
+
+      expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    it("creates an empty-document note via API", async () => {
+      controller.newNote()
+      controller.newNoteInputTarget.value = "test"
+
+      await controller.submitNewNote()
+
+      expect(global.fetch).toHaveBeenCalledWith("/notes/test.md", expect.objectContaining({
+        method: "POST"
+      }))
+    })
+
+    it("creates a hugo post via the template API", async () => {
+      controller.newNote()
+      controller.selectNewNoteTemplate({ currentTarget: controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo") })
+      controller.newNoteInputTarget.value = "My Post"
+
+      await controller.submitNewNote()
+
+      expect(global.fetch).toHaveBeenCalledWith("/notes", expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"template":"hugo"')
+      }))
+      const body = JSON.parse(global.fetch.mock.calls[0][1].body)
+      expect(body.title).toBe("My Post")
+      expect(body.parent).toBe("")
+    })
+
+    it("passes the parent folder for folder-scoped notes", async () => {
+      controller.contextItem = { path: "docs", type: "folder" }
+      controller.newNoteInFolder()
+      controller.newNoteInputTarget.value = "My Post"
+      controller.selectNewNoteTemplate({ currentTarget: controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo") })
+
+      await controller.submitNewNote()
+
+      const body = JSON.parse(global.fetch.mock.calls[0][1].body)
+      expect(body.parent).toBe("docs")
+    })
+
+    it("dispatches file-created event", async () => {
+      const handler = vi.fn()
+      element.addEventListener("file-operations:file-created", handler)
+
+      controller.newNote()
+      controller.newNoteInputTarget.value = "test"
+
+      await controller.submitNewNote()
+
+      expect(handler).toHaveBeenCalled()
+    })
+
+    it("closes the dialog after successful creation", async () => {
+      controller.newNote()
+      controller.newNoteInputTarget.value = "test"
+
+      await controller.submitNewNote()
+
+      expect(controller.newNoteDialogTarget.close).toHaveBeenCalled()
+    })
+
+    it("keeps the dialog open and alerts on failure", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        headers: { get: () => "application/json" },
+        json: () => Promise.resolve({ error: "already exists" }),
+        text: () => Promise.resolve('{"error": "already exists"}')
+      })
+      global.alert = vi.fn()
+      controller.newNote()
+      controller.newNoteInputTarget.value = "test"
+
+      await controller.submitNewNote()
+
+      expect(global.alert).toHaveBeenCalledWith("already exists")
+      expect(controller.newNoteDialogTarget.close).not.toHaveBeenCalled()
     })
   })
 
@@ -256,7 +501,7 @@ describe("FileOperationsController", () => {
 
   describe("openNewItemDialog()", () => {
     it("shows the new item dialog", () => {
-      controller.openNewItemDialog("note", "")
+      controller.openNewItemDialog("folder", "")
 
       expect(controller.newItemDialogTarget.showModal).toHaveBeenCalled()
     })
@@ -268,13 +513,7 @@ describe("FileOperationsController", () => {
       expect(controller.newItemParent).toBe("parent")
     })
 
-    it("sets appropriate title for notes", () => {
-      controller.openNewItemDialog("note", "")
-
-      expect(controller.newItemTitleTarget.textContent).toBe("dialogs.new_item.new_note")
-    })
-
-    it("sets appropriate title for folders", () => {
+    it("always shows the folder title", () => {
       controller.openNewItemDialog("folder", "")
 
       expect(controller.newItemTitleTarget.textContent).toBe("dialogs.new_item.new_folder")
@@ -283,14 +522,14 @@ describe("FileOperationsController", () => {
 
   describe("closeNewItemDialog()", () => {
     it("closes the new item dialog", () => {
-      controller.openNewItemDialog("note", "")
+      controller.openNewItemDialog("folder", "")
       controller.closeNewItemDialog()
 
       expect(controller.newItemDialogTarget.close).toHaveBeenCalled()
     })
 
     it("resets state", () => {
-      controller.newItemType = "note"
+      controller.newItemType = "folder"
       controller.newItemParent = "parent"
 
       controller.closeNewItemDialog()
@@ -302,23 +541,12 @@ describe("FileOperationsController", () => {
 
   describe("submitNewItem()", () => {
     it("does nothing with empty input", async () => {
-      controller.openNewItemDialog("note", "")
+      controller.openNewItemDialog("folder", "")
       controller.newItemInputTarget.value = ""
 
       await controller.submitNewItem()
 
       expect(global.fetch).not.toHaveBeenCalled()
-    })
-
-    it("creates note via API", async () => {
-      controller.openNewItemDialog("note", "", "empty")
-      controller.newItemInputTarget.value = "test"
-
-      await controller.submitNewItem()
-
-      expect(global.fetch).toHaveBeenCalledWith("/notes/test.md", expect.objectContaining({
-        method: "POST"
-      }))
     })
 
     it("creates folder via API", async () => {
@@ -331,18 +559,6 @@ describe("FileOperationsController", () => {
         expect.stringContaining("/folders/newfolder"),
         expect.objectContaining({ method: "POST" })
       )
-    })
-
-    it("dispatches file-created event", async () => {
-      const handler = vi.fn()
-      element.addEventListener("file-operations:file-created", handler)
-
-      controller.openNewItemDialog("note", "", "empty")
-      controller.newItemInputTarget.value = "test"
-
-      await controller.submitNewItem()
-
-      expect(handler).toHaveBeenCalled()
     })
 
     it("dispatches folder-created event", async () => {
@@ -532,6 +748,27 @@ describe("FileOperationsController", () => {
       const event = { key: "Escape", preventDefault: vi.fn() }
 
       controller.onNewItemKeydown(event)
+
+      expect(closeSpy).toHaveBeenCalled()
+    })
+  })
+
+  describe("onNewNoteKeydown()", () => {
+    it("submits on Enter", () => {
+      const submitSpy = vi.spyOn(controller, "submitNewNote")
+      const event = { key: "Enter", preventDefault: vi.fn() }
+
+      controller.onNewNoteKeydown(event)
+
+      expect(event.preventDefault).toHaveBeenCalled()
+      expect(submitSpy).toHaveBeenCalled()
+    })
+
+    it("closes on Escape", () => {
+      const closeSpy = vi.spyOn(controller, "closeNewNoteDialog")
+      const event = { key: "Escape", preventDefault: vi.fn() }
+
+      controller.onNewNoteKeydown(event)
 
       expect(closeSpy).toHaveBeenCalled()
     })

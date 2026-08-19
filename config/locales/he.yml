@@ -129,24 +129,24 @@ he:
       title: "שנה שם"
       placeholder: "שם חדש"
 
-    # דיאלוג פריט חדש
+    # דיאלוג פריט חדש (תיקיות)
     new_item:
-      new_note: "הערה חדשה"
       new_folder: "תיקייה חדשה"
-      placeholder: "שם"
-      note_placeholder: "שם ההערה"
       folder_placeholder: "שם התיקייה"
       creating_in: "ב־"
       root_location: "תיקיית השורש"
 
-    # דיאלוג סוג הערה
-    note_type:
+    # דיאלוג הערה חדשה (שלב אחד: שם, כרטיסי סוג, תצוגה מקדימה של הנתיב)
+    new_note:
       title: "הערה חדשה"
-      empty_document: "מסמך ריק"
-      empty_description: "קובץ מרקדאון פשוט"
-      hugo_post: "פוסט בלוג Hugo"
-      hugo_description: "YYYY/MM/DD/slug/index.md"
-      new_hugo_post: "פוסט בלוג Hugo חדש"
+      name_placeholder: "שם ההערה"
+      name_slot: "שם-הערה"
+      root: "שורש"
+      empty_title: "מסמך ריק"
+      empty_subtitle: "מרקדאון פשוט"
+      hugo_title: "פוסט בלוג Hugo"
+      hugo_subtitle: "חבילת עמוד Hugo"
+      invalid_name: "השם לא יכול להכיל קווים נטויים"
 
     # דיאלוג עורך טבלה
     table_editor:
