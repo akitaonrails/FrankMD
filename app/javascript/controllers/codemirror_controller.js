@@ -325,6 +325,31 @@ export default class extends Controller {
   }
 
   /**
+   * Get the top visible line (1-based) for line-anchored scroll sync
+   * @returns {number}
+   */
+  getTopVisibleLine() {
+    if (!this.editor) return 1
+
+    const scrollTop = this.editor.scrollDOM.scrollTop
+    const block = this.editor.lineBlockAtHeight(scrollTop + 1)
+    return this.editor.state.doc.lineAt(block.from).number
+  }
+
+  /**
+   * Scroll so a line (1-based) is at the top of the viewport
+   * @param {number} n - Line number
+   */
+  scrollToLine(n) {
+    if (!this.editor) return
+
+    const doc = this.editor.state.doc
+    const line = Math.max(1, Math.min(n, doc.lines))
+    const block = this.editor.lineBlock(doc.line(line))
+    this.editor.scrollDOM.scrollTop = block.top
+  }
+
+  /**
    * Get scroll ratio (0-1)
    * @returns {number}
    */

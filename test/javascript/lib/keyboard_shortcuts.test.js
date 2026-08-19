@@ -144,6 +144,18 @@ describe("DEFAULT_SHORTCUTS", () => {
       preventDefault: false
     })
   })
+
+  it("includes toggleScrollSync on Ctrl+Shift+\\, distinct from typewriter's Ctrl+\\", () => {
+    expect(DEFAULT_SHORTCUTS.toggleScrollSync).toEqual({
+      key: "\\",
+      ctrl: true,
+      shift: true
+    })
+    expect(DEFAULT_SHORTCUTS.typewriterMode).toEqual({
+      key: "\\",
+      ctrl: true
+    })
+  })
 })
 
 describe("findMatchingAction", () => {
@@ -170,6 +182,14 @@ describe("findMatchingAction", () => {
   it("matches shift+ctrl shortcuts correctly", () => {
     const event = createEvent("V", { ctrl: true, shift: true })
     expect(findMatchingAction(event, DEFAULT_SHORTCUTS)).toBe("togglePreview")
+  })
+
+  it("matches Ctrl+Shift+\\ as toggleScrollSync (not typewriterMode)", () => {
+    const event = createEvent("\\", { ctrl: true, shift: true })
+    expect(findMatchingAction(event, DEFAULT_SHORTCUTS)).toBe("toggleScrollSync")
+
+    const withoutShift = createEvent("\\", { ctrl: true })
+    expect(findMatchingAction(withoutShift, DEFAULT_SHORTCUTS)).toBe("typewriterMode")
   })
 
   it("matches Escape key", () => {

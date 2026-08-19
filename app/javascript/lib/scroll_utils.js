@@ -83,3 +83,40 @@ export function calculateScrollToCenterLine(lineNumber, totalLines, scrollHeight
 
   return Math.max(0, lineRatio * maxScroll)
 }
+
+/**
+ * Calculate an element's top position relative to a scroll container's content.
+ * Takes pre-computed rects so the result is invariant to where the container
+ * sits on the page (offsetTop is only reliable when ancestors are positioned).
+ * @param {DOMRect} elRect - getBoundingClientRect() of the target element
+ * @param {DOMRect} containerRect - getBoundingClientRect() of the scroll container
+ * @param {number} containerScrollTop - The container's current scrollTop
+ * @returns {number} - Element top in container-content coordinates
+ */
+export function scrollTopForElement(elRect, containerRect, containerScrollTop) {
+  return elRect.top - containerRect.top + containerScrollTop
+}
+
+/**
+ * Find the source line for a scroll position from pre-computed entries.
+ * @param {Array<{line: number, top: number}>} entries - Entries with container-relative tops
+ * @param {number} scrollTop - Current container scroll position
+ * @returns {number|null} - Line of the last entry at/above the viewport top, first entry's line above it, or null
+ */
+export function lineAtScroll(entries, scrollTop) {
+  if (!entries || entries.length === 0) return null
+
+  let closest = null
+  let closestTop = -Infinity
+
+  for (const entry of entries) {
+    if (entry.top <= scrollTop && entry.top > closestTop) {
+      closestTop = entry.top
+      closest = entry
+    }
+  }
+
+  if (closest) return closest.line
+
+  return entries[0].line
+}

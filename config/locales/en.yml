@@ -33,6 +33,7 @@ en:
     toggle_explorer: "Toggle Explorer (Ctrl+E)"
     toggle_typewriter: "Toggle Typewriter Mode (Ctrl+B)"
     toggle_vim: "Toggle Vim Mode"
+    toggle_scroll_sync: "Toggle Scroll Sync (Ctrl+Shift+\\)"
     toggle_preview: "Toggle Preview (Ctrl+Shift+P)"
     change_theme: "Change Theme"
     change_language: "Change Language"

@@ -124,6 +124,18 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal true, config.get(:vim_mode)
   end
 
+  test "scroll_sync is a UI setting that defaults to true" do
+    assert_includes Config::UI_KEYS, "scroll_sync"
+    assert_equal :boolean, Config::SCHEMA["scroll_sync"][:type]
+    assert_equal true, Config::SCHEMA["scroll_sync"][:default]
+  end
+
+  test "reads scroll_sync from the config file" do
+    File.write(@test_dir.join(".fed"), "scroll_sync = false\n")
+    config = Config.new(base_path: @test_dir)
+    assert_equal false, config.get(:scroll_sync)
+  end
+
   # === Upload extensions ===
 
   test "upload_extensions returns the default image list" do

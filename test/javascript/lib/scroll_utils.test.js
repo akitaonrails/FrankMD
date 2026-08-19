@@ -7,7 +7,9 @@ import {
   calculateScrollForLine,
   calculateLineFromScroll,
   calculateSyncedScrollPosition,
-  calculateScrollToCenterLine
+  calculateScrollToCenterLine,
+  scrollTopForElement,
+  lineAtScroll
 } from "../../../app/javascript/lib/scroll_utils"
 
 describe("calculateScrollRatio", () => {
@@ -140,5 +142,59 @@ describe("calculateScrollToCenterLine", () => {
 
   it("handles zero lines", () => {
     expect(calculateScrollToCenterLine(1, 0, 200, 200)).toBe(0)
+  })
+})
+
+describe("scrollTopForElement", () => {
+  it("computes element top relative to container content", () => {
+    // Element 100px into the content, container scrolled 200px, container top at 50
+    expect(scrollTopForElement({ top: 150 }, { top: 50 }, 200)).toBe(300)
+  })
+
+  it("is invariant to the container's page offset (editor -> preview direction)", () => {
+    // Same geometry, but the whole container sits 5000px down the page
+    const nearTop = scrollTopForElement({ top: 5150 }, { top: 5050 }, 200)
+    expect(nearTop).toBe(300)
+  })
+
+  it("matches at a zero page offset", () => {
+    expect(scrollTopForElement({ top: 150 }, { top: 50 }, 200))
+      .toBe(scrollTopForElement({ top: 5150 }, { top: 5050 }, 200))
+  })
+
+  it("accounts for positive container scrollTop", () => {
+    // Element above the current viewport: rect top above container top
+    expect(scrollTopForElement({ top: -50 }, { top: 50 }, 100)).toBe(0)
+  })
+})
+
+describe("lineAtScroll", () => {
+  const entries = [
+    { line: 1, top: 0 },
+    { line: 5, top: 100 },
+    { line: 10, top: 200 }
+  ]
+
+  it("returns first line at scroll top 0", () => {
+    expect(lineAtScroll(entries, 0)).toBe(1)
+  })
+
+  it("returns the last entry at or above the scroll position", () => {
+    expect(lineAtScroll(entries, 100)).toBe(5)
+    expect(lineAtScroll(entries, 150)).toBe(5)
+    expect(lineAtScroll(entries, 500)).toBe(10)
+  })
+
+  it("returns first entry's line when scrolled above all entries (preview -> editor direction)", () => {
+    expect(lineAtScroll(entries, -10)).toBe(1)
+  })
+
+  it("keeps the earlier entry when tops tie (matches previous behavior)", () => {
+    expect(lineAtScroll([{ line: 2, top: 50 }, { line: 7, top: 50 }], 60)).toBe(2)
+  })
+
+  it("returns null for empty entries", () => {
+    expect(lineAtScroll([], 100)).toBeNull()
+    expect(lineAtScroll(null, 100)).toBeNull()
   })
 })

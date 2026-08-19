@@ -5,6 +5,7 @@
 
 import { marked } from "marked"
 import { sanitizeHtml } from "lib/html_sanitizer"
+import { lineAtScroll } from "lib/scroll_utils"
 
 /**
  * Parse markdown and return HTML with source line annotations
@@ -110,28 +111,18 @@ export function findLineAtScroll(container, scrollTop) {
   const elements = container.querySelectorAll("[data-source-line]")
   if (elements.length === 0) return null
 
-  const viewportTop = scrollTop
-
-  // Find the element at or just above the viewport top
-  let closestElement = null
-  let closestTop = -Infinity
-
+  // Compute container-relative tops via rects: element.offsetTop is only
+  // container-relative when the offsetParent chain lines up, which breaks
+  // when the container's ancestors are not CSS-positioned.
+  const containerRect = container.getBoundingClientRect()
+  const entries = []
   for (const el of elements) {
-    const elTop = el.offsetTop
-    if (elTop <= viewportTop && elTop > closestTop) {
-      closestTop = elTop
-      closestElement = el
-    }
+    const rect = el.getBoundingClientRect()
+    entries.push({
+      line: parseInt(el.dataset.sourceLine, 10),
+      top: rect.top - containerRect.top + container.scrollTop
+    })
   }
 
-  if (closestElement) {
-    return parseInt(closestElement.dataset.sourceLine, 10)
-  }
-
-  // If no element found above viewport, return first element's line
-  if (elements.length > 0) {
-    return parseInt(elements[0].dataset.sourceLine, 10)
-  }
-
-  return null
+  return lineAtScroll(entries, scrollTop)
 }

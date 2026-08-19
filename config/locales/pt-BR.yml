@@ -33,6 +33,7 @@ pt-BR:
     toggle_explorer: "Alternar Explorador (Ctrl+E)"
     toggle_typewriter: "Alternar Modo Máquina de Escrever (Ctrl+B)"
     toggle_vim: "Alternar Modo Vim"
+    toggle_scroll_sync: "Alternar Sincronização de Rolagem (Ctrl+Shift+\\)"
     toggle_preview: "Alternar Visualização (Ctrl+Shift+P)"
     change_theme: "Alterar Tema"
     change_language: "Alterar Idioma"

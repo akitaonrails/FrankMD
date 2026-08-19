@@ -16,6 +16,9 @@ describe("ScrollSyncController", () => {
 
   const mockPreviewController = {
     isVisible: true,
+    hasContentTarget: true,
+    contentTarget: null,
+    getTopSourceLine: vi.fn(() => null),
     syncScrollRatio: vi.fn(),
     syncToCursor: vi.fn(),
     render: vi.fn(),
@@ -27,6 +30,8 @@ describe("ScrollSyncController", () => {
     getValue: vi.fn(() => "# Hello"),
     getCursorPosition: vi.fn(() => ({ offset: 0 })),
     getScrollRatio: vi.fn(() => 0.5),
+    getTopVisibleLine: vi.fn(() => 1),
+    scrollToLine: vi.fn(),
     getScrollInfo: vi.fn(() => ({ top: 0, height: 1000, clientHeight: 500 })),
     scrollTo: vi.fn(),
   }
@@ -48,24 +53,45 @@ describe("ScrollSyncController", () => {
     controller.getPreviewController = () => mockPreviewController
     controller.getCodemirrorController = () => mockCodemirrorController
 
-    // Reset mocks
+    // Reset mocks (and any mockReturnValue overrides from previous tests)
     vi.clearAllMocks()
+    mockCodemirrorController.getScrollInfo.mockReturnValue({ top: 0, height: 1000, clientHeight: 500 })
+    mockCodemirrorController.getScrollRatio.mockReturnValue(0.5)
+    mockCodemirrorController.getTopVisibleLine.mockReturnValue(1)
+    mockPreviewController.getTopSourceLine.mockReturnValue(null)
   })
 
   afterEach(() => {
     if (controller && controller._scrollSourceTimeout) {
       clearTimeout(controller._scrollSourceTimeout)
     }
+    if (controller && controller._resizeTimeout) {
+      clearTimeout(controller._resizeTimeout)
+    }
+    if (controller && controller._previewResizeObserver) {
+      controller._previewResizeObserver.disconnect()
+    }
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
     application.stop()
     document.body.innerHTML = ""
   })
 
   describe("onEditorScroll()", () => {
-    it("syncs preview scroll ratio when preview is visible", () => {
+    it("syncs preview scroll ratio with the editor's top visible line", () => {
+      mockCodemirrorController.getTopVisibleLine.mockReturnValue(7)
+
       controller.onEditorScroll({ detail: { scrollRatio: 0.5 } })
 
-      expect(mockPreviewController.syncScrollRatio).toHaveBeenCalledWith(0.5)
+      expect(mockPreviewController.syncScrollRatio).toHaveBeenCalledWith(0.5, 7)
+    })
+
+    it("passes null line when the editor lacks line info (ratio fallback)", () => {
+      mockCodemirrorController.getTopVisibleLine.mockReturnValue(undefined)
+
+      controller.onEditorScroll({ detail: { scrollRatio: 0.5 } })
+
+      expect(mockPreviewController.syncScrollRatio).toHaveBeenCalledWith(0.5, null)
     })
 
     it("does not sync when preview is not visible", () => {
@@ -109,6 +135,7 @@ describe("ScrollSyncController", () => {
       })
 
       expect(mockCodemirrorController.scrollTo).not.toHaveBeenCalled()
+      expect(mockCodemirrorController.scrollToLine).not.toHaveBeenCalled()
     })
 
     it("scrolls to top when scrollRatio is near 0", () => {
@@ -136,17 +163,13 @@ describe("ScrollSyncController", () => {
       expect(mockCodemirrorController.scrollTo).toHaveBeenCalledWith(500) // maxScroll
     })
 
-    it("uses line-based sync when sourceLine is available", () => {
-      mockCodemirrorController.getScrollInfo.mockReturnValue({
-        top: 0, height: 1000, clientHeight: 500
-      })
-
+    it("uses line-anchored scrollToLine when sourceLine is available", () => {
       controller.onPreviewScroll({
         detail: { scrollRatio: 0.5, sourceLine: 50, totalLines: 100 }
       })
 
-      // lineRatio = (50-1)/(100-1) ≈ 0.4949, targetScroll ≈ 0.4949 * 500 ≈ 247
-      expect(mockCodemirrorController.scrollTo).toHaveBeenCalled()
+      expect(mockCodemirrorController.scrollToLine).toHaveBeenCalledWith(50)
+      expect(mockCodemirrorController.scrollTo).not.toHaveBeenCalled()
     })
 
     it("does not scroll when maxScroll is 0", () => {
@@ -167,6 +190,41 @@ describe("ScrollSyncController", () => {
       })
 
       expect(controller._scrollSource).toBe("preview")
+    })
+  })
+
+  describe("onProgrammaticPreviewScroll()", () => {
+    it("marks the single lock as editor-initiated", () => {
+      controller.onProgrammaticPreviewScroll()
+
+      expect(controller._scrollSource).toBe("editor")
+    })
+
+    it("typing-path programmatic scroll blocks late preview echo from re-scrolling the editor", () => {
+      // Preview controller signals a programmatic scroll (typing path)
+      controller.onProgrammaticPreviewScroll()
+
+      // Late preview scroll event (e.g. smooth-scroll animation tail)
+      controller.onPreviewScroll({
+        detail: { scrollRatio: 0.5, sourceLine: null, totalLines: 0 }
+      })
+
+      expect(mockCodemirrorController.scrollTo).not.toHaveBeenCalled()
+      expect(mockCodemirrorController.scrollToLine).not.toHaveBeenCalled()
+    })
+
+    it("genuine user scroll after the lock expires syncs the editor", async () => {
+      controller.onProgrammaticPreviewScroll()
+
+      // Lock expires after 400ms
+      await new Promise((resolve) => setTimeout(resolve, 450))
+      expect(controller._scrollSource).toBeNull()
+
+      controller.onPreviewScroll({
+        detail: { scrollRatio: 0.5, sourceLine: null, totalLines: 0 }
+      })
+
+      expect(mockCodemirrorController.scrollTo).toHaveBeenCalled()
     })
   })
 
@@ -241,11 +299,13 @@ describe("ScrollSyncController", () => {
   })
 
   describe("onPreviewToggled()", () => {
-    it("updates preview and syncs scroll when preview becomes visible", () => {
+    it("updates preview and syncs scroll with the editor's top line when preview becomes visible", () => {
+      mockCodemirrorController.getTopVisibleLine.mockReturnValue(9)
+
       controller.onPreviewToggled({ detail: { visible: true } })
 
       expect(mockPreviewController.render).toHaveBeenCalled()
-      expect(mockPreviewController.syncScrollRatio).toHaveBeenCalledWith(0.5)
+      expect(mockPreviewController.syncScrollRatio).toHaveBeenCalledWith(0.5, 9)
     })
 
     it("does nothing when preview is hidden", () => {
@@ -253,6 +313,27 @@ describe("ScrollSyncController", () => {
 
       expect(mockPreviewController.render).not.toHaveBeenCalled()
       expect(mockPreviewController.syncScrollRatio).not.toHaveBeenCalled()
+    })
+
+    it("holds the lock for the re-sync echo, then clears it so user scroll isn't swallowed", async () => {
+      controller.onPreviewToggled({ detail: { visible: true } })
+
+      // Echo of the toggle re-sync is blocked while the lock is held
+      expect(controller._scrollSource).toBe("editor")
+      controller.onPreviewScroll({
+        detail: { scrollRatio: 0.5, sourceLine: null, totalLines: 0 }
+      })
+      expect(mockCodemirrorController.scrollTo).not.toHaveBeenCalled()
+
+      // Lock clears on the next animation frames (before the 400ms timeout)
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      expect(controller._scrollSource).toBeNull()
+
+      // User scroll right after the toggle now syncs the editor
+      controller.onPreviewScroll({
+        detail: { scrollRatio: 0.5, sourceLine: null, totalLines: 0 }
+      })
+      expect(mockCodemirrorController.scrollTo).toHaveBeenCalled()
     })
   })
 
@@ -263,6 +344,78 @@ describe("ScrollSyncController", () => {
 
       controller.onTypewriterToggled({ detail: { enabled: false } })
       expect(controller.typewriterModeEnabled).toBe(false)
+    })
+  })
+
+  describe("re-anchoring after resize", () => {
+    it("zoom change re-anchors the preview to the editor's top line (editor lock held)", () => {
+      mockCodemirrorController.getTopVisibleLine.mockReturnValue(7)
+      controller._markScrollFromEditor()
+
+      controller.onPreviewZoomChanged()
+
+      expect(mockPreviewController.syncScrollRatio).toHaveBeenCalledWith(0.5, 7)
+    })
+
+    it("zoom change re-anchors the editor to the preview's top line (preview lock held)", () => {
+      mockPreviewController.getTopSourceLine.mockReturnValue(12)
+      controller._markScrollFromPreview()
+
+      controller.onPreviewZoomChanged()
+
+      expect(mockCodemirrorController.scrollToLine).toHaveBeenCalledWith(12)
+    })
+
+    it("zoom change falls back to ratio when the preview has no line annotations", () => {
+      mockPreviewController.getTopSourceLine.mockReturnValue(null)
+      controller._markScrollFromPreview()
+
+      const content = document.createElement("div")
+      Object.defineProperty(content, "scrollHeight", { value: 1000, configurable: true })
+      Object.defineProperty(content, "clientHeight", { value: 500, configurable: true })
+      content.scrollTop = 250
+      mockPreviewController.contentTarget = content
+
+      controller.onPreviewZoomChanged()
+
+      // preview ratio 0.5 * editor maxScroll 500 = 250
+      expect(mockCodemirrorController.scrollTo).toHaveBeenCalledWith(250)
+    })
+
+    it("debounced window resize re-anchors both panes", async () => {
+      mockCodemirrorController.getTopVisibleLine.mockReturnValue(3)
+
+      window.dispatchEvent(new Event("resize"))
+      expect(mockPreviewController.syncScrollRatio).not.toHaveBeenCalled()
+
+      await new Promise((resolve) => setTimeout(resolve, 250))
+
+      expect(mockPreviewController.syncScrollRatio).toHaveBeenCalledWith(0.5, 3)
+    })
+
+    it("ResizeObserver on preview content re-anchors while a lock is held", () => {
+      const instances = []
+      class MockResizeObserver {
+        constructor(cb) { this.cb = cb; instances.push(this) }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+      vi.stubGlobal("ResizeObserver", MockResizeObserver)
+
+      const content = document.createElement("div")
+      mockPreviewController.contentTarget = content
+      controller._setupPreviewResizeObserver()
+
+      expect(instances).toHaveLength(1)
+
+      mockCodemirrorController.getTopVisibleLine.mockReturnValue(7)
+      controller._markScrollFromEditor()
+
+      // Simulate the observer firing (image loaded, preview reflowed)
+      instances[0].cb()
+
+      expect(mockPreviewController.syncScrollRatio).toHaveBeenCalledWith(0.5, 7)
     })
   })
 })

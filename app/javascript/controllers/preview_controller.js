@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { calculateLineFromScroll } from "lib/scroll_utils"
+import { calculateLineFromScroll, scrollTopForElement } from "lib/scroll_utils"
 import { parseWithLineNumbers, findElementByLine, findLineAtScroll } from "lib/markdown_line_mapper"
 
 // Preview Controller
@@ -79,8 +79,6 @@ export default class extends Controller {
     this._lastSyncedTotalLines = null
     this._previewRenderTimeout = null
     this._lastRenderedContent = null // Cache to skip identical content updates
-    this._scrollSource = null // Track who initiated the scroll: 'editor' or 'preview'
-    this._scrollSourceTimeout = null
     this._isUpdatingContent = false // Prevents preview scroll from syncing to editor during content updates
     this._contentUpdateTimeout = null
     this.applyZoom()
@@ -93,54 +91,30 @@ export default class extends Controller {
     if (this._previewRenderTimeout) {
       clearTimeout(this._previewRenderTimeout)
     }
-    if (this._scrollSourceTimeout) {
-      clearTimeout(this._scrollSourceTimeout)
-    }
     if (this._contentUpdateTimeout) {
       clearTimeout(this._contentUpdateTimeout)
     }
     this.editorTextarea = null
   }
 
-  // Mark that scroll was initiated by editor (prevents reverse sync)
-  _markScrollFromEditor() {
-    this._scrollSource = "editor"
-    if (this._scrollSourceTimeout) {
-      clearTimeout(this._scrollSourceTimeout)
-    }
-    // Clear flag after scroll animations complete (smooth scroll can take 300ms+)
-    // Use 400ms to cover debounced render (150ms) + smooth scroll (300ms)
-    this._scrollSourceTimeout = setTimeout(() => {
-      this._scrollSource = null
-    }, 400)
-  }
-
-  // Mark that scroll was initiated by preview (prevents reverse sync)
-  _markScrollFromPreview() {
-    this._scrollSource = "preview"
-    if (this._scrollSourceTimeout) {
-      clearTimeout(this._scrollSourceTimeout)
-    }
-    this._scrollSourceTimeout = setTimeout(() => {
-      this._scrollSource = null
-    }, 400)
+  // Notify the scroll-sync controller that the preview is about to be scrolled
+  // programmatically (typing, cursor jump, toggle re-sync). The scroll-sync
+  // controller owns the single feedback-loop lock and marks it so the echo
+  // scroll events are not synced back to the editor.
+  _notifyProgrammaticScroll() {
+    this.dispatch("programmatic-scroll")
   }
 
   // Handle scroll event on preview content - sync to editor
   // IMPORTANT: This should ONLY sync to editor when user explicitly scrolls the preview
   // It should NOT sync during content updates (editing), which would disrupt the editor
+  // Echoes of programmatic scrolls are blocked by the scroll-sync controller's lock
   onPreviewScroll() {
     if (!this.syncScrollEnabledValue) return
     if (!this.isVisible) return
 
-    // Don't sync back if this scroll was caused by editor sync
-    if (this._scrollSource === "editor") return
-
     // Don't sync during content updates - only explicit user scroll should sync to editor
     if (this._isUpdatingContent) return
-
-    // Mark that preview initiated this scroll
-    this._markScrollFromPreview()
 
     // Try to find the source line at current scroll position (more accurate)
     const sourceLine = this.hasContentTarget
@@ -263,17 +237,16 @@ export default class extends Controller {
   }
 
   // Sync scroll to line with element-aware positioning
-  // Tries to find the closest rendered element to the current line
+  // Uses the same data-source-line anchors as syncScrollRatio so both paths
+  // (typing and editor scrolling) resolve the same target element for a line
   syncToLineSmooth(currentLine, totalLines) {
+    if (!this.syncScrollEnabledValue) return
     if (!this.isVisible) return
     if (!this.hasContentTarget) return
     if (totalLines <= 1) return
 
-    // Don't sync if this was triggered by preview scroll
-    if (this._scrollSource === "preview") return
-
-    // Mark that editor initiated this scroll
-    this._markScrollFromEditor()
+    // Notify scroll-sync that this is a programmatic scroll (typing path)
+    this._notifyProgrammaticScroll()
 
     // Wait for DOM to fully settle after render
     if (this.syncScrollTimeout) {
@@ -285,47 +258,58 @@ export default class extends Controller {
       requestAnimationFrame(() => {
         const preview = this.contentTarget
 
-        // Get all block-level elements that correspond to markdown lines
-        const blockElements = preview.querySelectorAll("h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, pre, hr, table, img, iframe, .video-embed")
+        // Preferred path: line annotations (same anchors as the scroll path)
+        const annotated = preview.querySelector("[data-source-line]")
+        let targetElement = annotated ? findElementByLine(preview, currentLine) : null
 
-        let targetScroll
-        if (blockElements.length === 0) {
-          // Fallback to ratio-based scroll
-          const lineRatio = (currentLine - 1) / Math.max(totalLines - 1, 1)
-          const previewScrollHeight = preview.scrollHeight - preview.clientHeight
-          targetScroll = Math.max(0, lineRatio * previewScrollHeight)
-        } else {
-          // Estimate which element corresponds to the current line
+        // Fallback: estimate by element-count ratio when no annotations exist
+        if (!targetElement) {
+          const blockElements = preview.querySelectorAll("h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, pre, hr, table, img, iframe, .video-embed")
+          if (blockElements.length === 0) {
+            // Fallback to ratio-based scroll
+            const lineRatio = (currentLine - 1) / Math.max(totalLines - 1, 1)
+            const previewScrollHeight = preview.scrollHeight - preview.clientHeight
+            this._scrollPreviewTo(Math.max(0, lineRatio * previewScrollHeight))
+            return
+          }
+
           const lineRatio = (currentLine - 1) / Math.max(totalLines - 1, 1)
           const targetElementIndex = Math.min(
             Math.floor(lineRatio * blockElements.length),
             blockElements.length - 1
           )
-
-          const targetElement = blockElements[targetElementIndex]
-          if (!targetElement) return
-
-          // Get element position relative to preview container
-          const previewRect = preview.getBoundingClientRect()
-          const elementRect = targetElement.getBoundingClientRect()
-          const elementTop = elementRect.top - previewRect.top + preview.scrollTop
-
-          // Scroll so the element is near the top (with some padding)
-          targetScroll = Math.max(0, elementTop - 50)
+          targetElement = blockElements[targetElementIndex]
         }
 
-        // Only scroll if change exceeds threshold (prevents jitter)
-        if (this.lastScrollTarget === null ||
-            Math.abs(targetScroll - this.lastScrollTarget) > this.scrollThreshold) {
-          this.lastScrollTarget = targetScroll
-          // Use smooth scrolling for animation
-          preview.scrollTo({
-            top: targetScroll,
-            behavior: "smooth"
-          })
-        }
+        if (!targetElement) return
+
+        // Get element position relative to preview container (rect-based,
+        // correct even when the container's ancestors are not positioned)
+        const elementTop = scrollTopForElement(
+          targetElement.getBoundingClientRect(),
+          preview.getBoundingClientRect(),
+          preview.scrollTop
+        )
+
+        // Scroll so the element is near the top (with some padding)
+        this._scrollPreviewTo(Math.max(0, elementTop - 50))
       })
     })
+  }
+
+  // Smooth-scroll the preview to a target position, skipping sub-threshold changes
+  _scrollPreviewTo(targetScroll) {
+    const preview = this.contentTarget
+    // Only scroll if change exceeds threshold (prevents jitter)
+    if (this.lastScrollTarget === null ||
+        Math.abs(targetScroll - this.lastScrollTarget) > this.scrollThreshold) {
+      this.lastScrollTarget = targetScroll
+      // Use smooth scrolling for animation
+      preview.scrollTo({
+        top: targetScroll,
+        behavior: "smooth"
+      })
+    }
   }
 
   // Zoom in
@@ -364,17 +348,16 @@ export default class extends Controller {
   }
 
   // Sync scroll based on ratio (for normal scrolling)
-  // Uses line-based positioning when available for better accuracy with images/embeds
-  syncScrollRatio(scrollRatio) {
+  // Uses line-based positioning when available for better accuracy with images/embeds.
+  // An explicit sourceLine (top visible editor line) takes precedence over the
+  // ratio-derived line, keeping the mapping exact (incl. frontmatter offsets).
+  syncScrollRatio(scrollRatio, sourceLine = null) {
     if (!this.syncScrollEnabledValue) return
     if (!this.isVisible) return
     if (!this.hasContentTarget) return
 
-    // Don't sync if this was triggered by preview scroll
-    if (this._scrollSource === "preview") return
-
-    // Mark that editor initiated this scroll
-    this._markScrollFromEditor()
+    // Notify scroll-sync that this is a programmatic scroll (editor/toggle path)
+    this._notifyProgrammaticScroll()
 
     // Debounce to avoid excessive updates
     if (this.syncScrollTimeout) {
@@ -404,16 +387,22 @@ export default class extends Controller {
       }
 
       // Try line-based sync first (more accurate with images/embeds)
-      if (this.totalSourceLines > 1) {
-        // Convert scroll ratio to approximate source line
-        const targetLine = Math.round(scrollRatio * this.totalSourceLines) + 1
+      const effectiveLine = sourceLine ||
+        (this.totalSourceLines > 1 ? Math.round(scrollRatio * this.totalSourceLines) + 1 : null)
 
+      if (effectiveLine) {
         // Find the closest element with that line number
-        const targetElement = findElementByLine(preview, targetLine)
+        const targetElement = findElementByLine(preview, effectiveLine)
 
         if (targetElement) {
-          // Calculate scroll position to show target element at top
-          const elementTop = targetElement.offsetTop
+          // Calculate scroll position to show target element at top.
+          // Rect-based math keeps this correct even when the container's
+          // ancestors are not CSS-positioned (offsetTop would be body-relative).
+          const elementTop = scrollTopForElement(
+            targetElement.getBoundingClientRect(),
+            preview.getBoundingClientRect(),
+            preview.scrollTop
+          )
 
           // Clamp to valid scroll range
           const targetScroll = Math.max(0, Math.min(elementTop, previewScrollHeight))
@@ -438,11 +427,8 @@ export default class extends Controller {
     if (!this.hasContentTarget) return
     if (totalLines <= 1) return
 
-    // Don't sync if this was triggered by preview scroll
-    if (this._scrollSource === "preview") return
-
-    // Mark that editor initiated this scroll
-    this._markScrollFromEditor()
+    // Notify scroll-sync that this is a programmatic scroll (cursor jump)
+    this._notifyProgrammaticScroll()
 
     const lineRatio = (linesBefore - 1) / (totalLines - 1)
     const preview = this.contentTarget
@@ -458,16 +444,20 @@ export default class extends Controller {
     }
   }
 
+  // Current top visible source line in the preview (null when unannotated)
+  getTopSourceLine() {
+    if (!this.hasContentTarget) return null
+    return findLineAtScroll(this.contentTarget, this.contentTarget.scrollTop)
+  }
+
   // Sync scroll in typewriter mode (center content)
   syncToTypewriter(currentLine, totalLines) {
+    if (!this.syncScrollEnabledValue) return
     if (!this.hasContentTarget) return
     if (totalLines <= 1) return
 
-    // Don't sync if this was triggered by preview scroll
-    if (this._scrollSource === "preview") return
-
-    // Mark that editor initiated this scroll
-    this._markScrollFromEditor()
+    // Notify scroll-sync that this is a programmatic scroll (typing path)
+    this._notifyProgrammaticScroll()
 
     // Wait for DOM to fully settle after render
     if (this.syncScrollTimeout) {
