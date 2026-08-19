@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { get, patch } from "@rails/request.js"
+import { toggleMenu } from "lib/menu_bounds"
 
 export default class extends Controller {
   static targets = ["menu", "currentTheme"]
@@ -78,7 +79,7 @@ export default class extends Controller {
 
   toggle(event) {
     event.stopPropagation()
-    this.menuTarget.classList.toggle("hidden")
+    toggleMenu(this.menuTarget)
   }
 
   selectTheme(event) {

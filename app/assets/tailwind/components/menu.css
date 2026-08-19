@@ -1,0 +1,19 @@
+/* Dropdown menus — viewport-bounded scrolling
+ *
+ * Menus are absolutely or fixed positioned and can contain long lists
+ * (themes, locales, text formats). Without a height bound the menu grows
+ * past the viewport and forces the whole document to scroll (issue #141).
+ *
+ * Classes:
+ *   .frankmd-menu — shared dropdown chrome + height management:
+ *     - Static fallback bounds height (60vh) with internal scrolling.
+ *     - When opened via MenuBounds.clamp(), an inline max-height based on
+ *       the actual remaining viewport space replaces the static bound, so
+ *       the menu never overlaps the viewport edge it points away from.
+ */
+
+.frankmd-menu {
+  max-height: 60vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
