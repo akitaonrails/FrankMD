@@ -75,6 +75,7 @@
 @import "./components/prose.css";
 @import "./components/tree.css";
 @import "./components/dialog.css";
+@import "./components/menu.css";
 @import "./components/image-picker.css";
 @import "./components/table-editor.css";
 @import "./components/ai-diff.css";

@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { clampMenuToViewport } from "lib/menu_bounds"
 
 // Text Format Controller
 // Handles text formatting context menu for inline markdown formatting
@@ -60,6 +61,7 @@ export default class extends Controller {
     this.renderMenu()
     this.positionMenu(x, y)
     this.menuTarget.classList.remove("hidden")
+    clampMenuToViewport(this.menuTarget)
     this.menuTarget.focus()
   }
 

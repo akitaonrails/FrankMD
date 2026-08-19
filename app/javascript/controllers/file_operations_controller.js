@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { post, destroy } from "@rails/request.js"
 import { encodePath } from "lib/url_utils"
+import { clampMenuToViewport } from "lib/menu_bounds"
 
 // File Operations Controller
 // Handles file/folder creation, renaming, deletion and context menu
@@ -110,6 +111,8 @@ export default class extends Controller {
     if (menuRect.bottom > window.innerHeight) {
       this.contextMenuTarget.style.top = `${window.innerHeight - menuRect.height - 10}px`
     }
+    // Bound height to the viewport so long menus scroll internally (issue #141)
+    clampMenuToViewport(this.contextMenuTarget)
   }
 
   hideContextMenu() {
