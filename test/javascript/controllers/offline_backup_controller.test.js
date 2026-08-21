@@ -66,14 +66,26 @@ describe("OfflineBackupController", () => {
 
     it("handles localStorage quota exceeded gracefully", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-      const origSetItem = localStorage.setItem
-      localStorage.setItem = () => { throw new DOMException("QuotaExceededError") }
+      // Stub the whole global so the controller's localStorage lookup is
+      // deterministic across jsdom/node versions (instance method patching
+      // is fragile when methods live on Storage.prototype).
+      const quotaError = new DOMException("QuotaExceededError")
+      vi.stubGlobal("localStorage", {
+        getItem: () => null,
+        setItem: () => { throw quotaError },
+        removeItem: () => {},
+        clear: () => {},
+        length: 0,
+        key: () => null
+      })
 
-      // Should not throw
-      expect(() => controller.save("test.md", "content")).not.toThrow()
-      expect(warnSpy).toHaveBeenCalledWith("localStorage backup failed:", expect.any(DOMException))
-
-      localStorage.setItem = origSetItem
+      try {
+        // Should not throw
+        expect(() => controller.save("test.md", "content")).not.toThrow()
+        expect(warnSpy).toHaveBeenCalledWith("localStorage backup failed:", quotaError)
+      } finally {
+        vi.unstubAllGlobals()
+      }
     })
   })
 
