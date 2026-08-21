@@ -435,6 +435,7 @@ he:
       search_placeholder: "חפש אימוג'ים..."
       tab_emoji: "אימוג'י"
       tab_emoticons: "אמוטיקונים"
+      tab_icons: "סמלים"
 
     # Recovery diff dialog
     recovery:

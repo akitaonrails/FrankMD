@@ -470,6 +470,7 @@ pt-BR:
       search_placeholder: "Buscar emojis..."
       tab_emoji: "Emoji"
       tab_emoticons: "Emoticons"
+      tab_icons: "Ícones"
 
     # Recovery diff dialog
     recovery:

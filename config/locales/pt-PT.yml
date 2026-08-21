@@ -463,6 +463,7 @@ pt-PT:
       search_placeholder: "Pesquisar emojis..."
       tab_emoji: "Emoji"
       tab_emoticons: "Emoticons"
+      tab_icons: "Ícones"
 
     # Recovery diff dialog
     recovery:

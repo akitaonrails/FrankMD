@@ -289,3 +289,11 @@
     background: var(--theme-bg-tertiary);
   }
 }
+
+/* Inline icon glyphs (:ph-name: shorthand) — baseline alignment for
+ * svg icons inside prose text; class-based so preview sanitization
+ * (which strips inline style attributes) does not affect it. */
+.frankmd-inline-icon {
+  display: inline-block;
+  vertical-align: -0.125em;
+}

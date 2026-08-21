@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest"
-import { wikilinkExtension } from "../../../app/javascript/lib/marked_extensions.js"
+import { iconExtension, wikilinkExtension } from "../../../app/javascript/lib/marked_extensions.js"
 
 describe("wikilinkExtension", () => {
   describe("start()", () => {
@@ -91,6 +91,57 @@ describe("wikilinkExtension", () => {
       const html = wikilinkExtension.renderer({ target: 'Note "with" quotes', displayText: null })
       expect(html).toContain("&quot;")
       expect(html).not.toContain('path="Note "with"')
+    })
+  })
+})
+
+describe("iconExtension", () => {
+  describe("start()", () => {
+    it("returns index of :ph- in source", () => {
+      expect(iconExtension.start("hello :ph-heart: world")).toBe(6)
+    })
+
+    it("returns -1 when no :ph- prefix found", () => {
+      expect(iconExtension.start("no icons here, just :smile:")).toBe(-1)
+    })
+  })
+
+  describe("tokenizer()", () => {
+    it("matches a known icon shortcode", () => {
+      const token = iconExtension.tokenizer(":ph-heart: rest")
+      expect(token).toBeDefined()
+      expect(token.type).toBe("icon")
+      expect(token.raw).toBe(":ph-heart:")
+      expect(typeof token.path).toBe("string")
+      expect(token.path.length).toBeGreaterThan(0)
+      expect(token.viewBox).toBe("0 0 256 256")
+    })
+
+    it("returns undefined for an unknown icon name", () => {
+      expect(iconExtension.tokenizer(":ph-not-a-real-icon:")).toBeUndefined()
+    })
+
+    it("returns undefined for a plain emoji shortcode", () => {
+      expect(iconExtension.tokenizer(":smile:")).toBeUndefined()
+    })
+
+    it("returns undefined for non-matching input", () => {
+      expect(iconExtension.tokenizer("not an icon")).toBeUndefined()
+    })
+  })
+
+  describe("renderer()", () => {
+    it("renders an inline SVG using the token's path and viewBox", () => {
+      const html = iconExtension.renderer({ path: "M1 2 3", viewBox: "0 0 256 256" })
+
+      expect(html).toContain("<svg")
+      expect(html).toContain('viewBox="0 0 256 256"')
+      expect(html).toContain('fill="currentColor"')
+      expect(html).toContain('width="1em"')
+      expect(html).toContain('height="1em"')
+      expect(html).toContain('<path d="M1 2 3"/>')
+      expect(html).toContain('class="frankmd-inline-icon"')
+      expect(html).not.toContain('style="')
     })
   })
 })

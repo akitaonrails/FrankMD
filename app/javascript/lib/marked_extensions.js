@@ -4,6 +4,7 @@
 // Import emoji data from the picker controller
 // We need to extract this to avoid circular dependencies
 import { getEmojiMap } from "lib/emoji_data"
+import { getIconMap } from "lib/icon_data"
 
 // Superscript extension: ^text^ -> <sup>text</sup>
 export const superscriptExtension = {
@@ -102,6 +103,34 @@ export const emojiExtension = {
   }
 }
 
+// Icon extension: :ph-icon-name: -> inline Phosphor Icons SVG
+export const iconExtension = {
+  name: "icon",
+  level: "inline",
+  start(src) {
+    return src.indexOf(":ph-")
+  },
+  tokenizer(src) {
+    // Match :ph-icon-name: pattern
+    const match = src.match(/^:ph-([a-z0-9-]+):/)
+    if (match) {
+      const name = match[1]
+      const icon = getIconMap()[name]
+      if (icon) {
+        return {
+          type: "icon",
+          raw: match[0],
+          path: icon.path,
+          viewBox: icon.viewBox,
+        }
+      }
+    }
+  },
+  renderer(token) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${token.viewBox}" fill="currentColor" width="1em" height="1em" class="frankmd-inline-icon" aria-hidden="true"><path d="${token.path}"/></svg>`
+  },
+}
+
 function escapeHtml(str) {
   return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
@@ -141,5 +170,6 @@ export const allExtensions = [
   subscriptExtension,
   highlightExtension,
   emojiExtension,
+  iconExtension,
   wikilinkExtension
 ]
