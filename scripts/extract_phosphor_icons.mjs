@@ -139,8 +139,16 @@ const ICON_NAMES = [
 ]
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
+// Source of the extracted SVGs: the @phosphor-icons/core package installed
+// temporarily (npm install --no-save @phosphor-icons/core). Pass the assets
+// directory as the first argument or via PHOSPHOR_SVG_DIR; the default
+// covers a local install in this checkout.
+// Example (Windows): node scripts/extract_phosphor_icons.mjs "C:/Users/you/AppData/Local/Temp/phosphor-extract/node_modules/@phosphor-icons/core/assets/regular"
+// Example (Linux):   node scripts/extract_phosphor_icons.mjs ./node_modules/@phosphor-icons/core/assets/regular
 const svgDir =
-  "C:/Users/Ronas/AppData/Local/Temp/phosphor-extract/node_modules/@phosphor-icons/core/assets/regular"
+  process.argv[2] ||
+  process.env.PHOSPHOR_SVG_DIR ||
+  path.join(scriptDir, "..", "node_modules", "@phosphor-icons", "core", "assets", "regular")
 
 const results = []
 const missing = []
@@ -168,7 +176,7 @@ if (missing.length) {
 const output = `// Phosphor Icons (regular style) data — curated subset.
 // Source: https://github.com/phosphor-icons/core (MIT License)
 // Format: [name, svgPathData, viewBox, keywords]
-// Regenerate with: node scripts/extract_phosphor_icons.mjs
+// Regenerate with: node scripts/extract_phosphor_icons.mjs [svgDir]
 
 export const ICON_DATA = ${JSON.stringify(results, null, 2)}
 `

@@ -127,7 +127,7 @@ export const iconExtension = {
     }
   },
   renderer(token) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${token.viewBox}" fill="currentColor" width="1em" height="1em" style="display:inline-block;vertical-align:-0.125em" aria-hidden="true"><path d="${token.path}"/></svg>`
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${token.viewBox}" fill="currentColor" width="1em" height="1em" class="frankmd-inline-icon" aria-hidden="true"><path d="${token.path}"/></svg>`
   },
 }
 

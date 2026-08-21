@@ -140,6 +140,8 @@ describe("iconExtension", () => {
       expect(html).toContain('width="1em"')
       expect(html).toContain('height="1em"')
       expect(html).toContain('<path d="M1 2 3"/>')
+      expect(html).toContain('class="frankmd-inline-icon"')
+      expect(html).not.toContain('style="')
     })
   })
 })
