@@ -95,6 +95,27 @@ class NotesTest < ApplicationSystemTestCase
     assert_selector "[data-path='#{date_path}/hello-world/index.md']", wait: 3
   end
 
+  test "new note dialog template card titles do not clip in longer locales" do
+    # Spanish has the longest card labels ("Publicación de Blog Hugo", 24ch);
+    # titles must wrap rather than truncate (issue #151).
+    visit root_url(locale: "es")
+    assert_selector "[data-app-target='fileTree']"
+    sleep 0.5
+
+    page.execute_script("document.querySelector('button[title=\"Nueva Nota (Ctrl+N)\"]').click()")
+    assert_selector "[data-file-operations-target='newNoteDialog'][open]", wait: 3
+
+    clipped = page.evaluate_script(<<~JS)
+      (function() {
+        const dlg = document.querySelector("[data-file-operations-target='newNoteDialog']");
+        return Array.from(dlg.querySelectorAll("[data-file-operations-target='newNoteTemplateCard'] .font-medium"))
+          .filter(el => el.scrollWidth > el.clientWidth + 1)
+          .map(el => el.textContent);
+      })()
+    JS
+    assert_equal [], clipped, "template card titles are clipped: #{clipped.join(', ')}"
+  end
+
   test "creating a new folder via dialog" do
     visit root_url
 
