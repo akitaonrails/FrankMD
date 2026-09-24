@@ -158,6 +158,11 @@ class NotesController < ApplicationController
       return
     end
 
+    if full_path == notes_path.join(NotesService::FILESYSTEM_LOCK_FILENAME).cleanpath
+      head :not_found
+      return
+    end
+
     if full_path.file?
       content_type = Rack::Mime.mime_type(full_path.extname, "application/octet-stream")
       send_file full_path, type: content_type, disposition: :inline

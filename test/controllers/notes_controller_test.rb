@@ -131,6 +131,15 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "show returns 404 for the internal filesystem lock file" do
+    @test_notes_dir.join(NotesService::FILESYSTEM_LOCK_FILENAME).write("internal lock")
+
+    get note_url(path: NotesService::FILESYSTEM_LOCK_FILENAME)
+
+    assert_response :not_found
+    refute_includes response.body, "internal lock"
+  end
+
   test "show blocks path traversal for assets" do
     get note_url(path: "../../etc/passwd")
     assert_response :forbidden
