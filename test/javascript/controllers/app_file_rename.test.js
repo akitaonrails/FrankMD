@@ -104,6 +104,7 @@ describe("onFileRenamed: autosave synchronization", () => {
       app: {
         currentFile,
         expandedFolders: new Set(),
+        invalidateTreeRefreshes: AppController.prototype.invalidateTreeRefreshes,
         getAutosaveController: () => autosave,
         updatePathDisplay: vi.fn(),
         updateUrl: vi.fn()
@@ -142,6 +143,7 @@ describe("onFileRenamed: autosave synchronization", () => {
       currentFile: "foo.md",
       hasTextareaTarget: false,
       hasEditorToolbarTarget: false,
+      invalidateTreeRefreshes: AppController.prototype.invalidateTreeRefreshes,
       getAutosaveController: () => autosave,
       updatePathDisplay: vi.fn(),
       updateUrl: vi.fn(),
@@ -166,6 +168,7 @@ describe("onFileRenamed: autosave synchronization", () => {
     }
     const app = {
       currentFile: "foo.md",
+      invalidateTreeRefreshes: AppController.prototype.invalidateTreeRefreshes,
       getAutosaveController: () => autosave,
       updatePathDisplay: vi.fn(),
       updateUrl: vi.fn(),

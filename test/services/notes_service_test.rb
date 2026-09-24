@@ -149,6 +149,41 @@ class NotesServiceTest < ActiveSupport::TestCase
     assert_equal "New content", File.read(@test_notes_dir.join("new.md"))
   end
 
+  test "create refuses to replace an existing note" do
+    create_test_note("existing.md", "Original content")
+
+    assert_raises(NotesService::AlreadyExistsError) do
+      @service.create("existing.md", "replacement")
+    end
+
+    assert_equal "Original content", @test_notes_dir.join("existing.md").read
+  end
+
+  test "concurrent creates for the same destination preserve one winner" do
+    services = [ @service, NotesService.new(base_path: @test_notes_dir) ]
+    ready = Queue.new
+    start = Queue.new
+    writers = services.each_with_index.map do |service, index|
+      Thread.new do
+        ready << true
+        start.pop
+        service.create("shared.md", "writer #{index}")
+        :created
+      rescue NotesService::AlreadyExistsError
+        :conflict
+      end
+    end
+
+    2.times { ready.pop }
+    2.times { start << true }
+    results = writers.map(&:value)
+
+    assert_equal 1, results.count(:created)
+    assert_equal 1, results.count(:conflict)
+    assert_includes [ "writer 0", "writer 1" ], @test_notes_dir.join("shared.md").read
+    assert_equal [ "shared.md" ], Dir.children(@test_notes_dir).sort
+  end
+
   test "write overwrites existing file" do
     create_test_note("existing.md", "Old content")
 
@@ -286,6 +321,39 @@ class NotesServiceTest < ActiveSupport::TestCase
 
     refute @test_notes_dir.join("root.md").exist?
     assert @test_notes_dir.join("subfolder/moved.md").exist?
+  end
+
+  test "concurrent renames to the same destination preserve the losing source" do
+    create_test_note("first.md", "first content")
+    create_test_note("second.md", "second content")
+    services = [ @service, NotesService.new(base_path: @test_notes_dir) ]
+    sources = %w[first.md second.md]
+    ready = Queue.new
+    start = Queue.new
+    renames = services.each_with_index.map do |service, index|
+      Thread.new do
+        ready << true
+        start.pop
+        service.rename(sources[index], "shared.md")
+        [ :renamed, sources[index] ]
+      rescue NotesService::AlreadyExistsError
+        [ :conflict, sources[index] ]
+      end
+    end
+
+    2.times { ready.pop }
+    2.times { start << true }
+    results = renames.map(&:value)
+
+    winner = results.find { |result| result.first == :renamed }.last
+    loser = results.find { |result| result.first == :conflict }.last
+    assert_equal 1, results.count { |result| result.first == :renamed }
+    assert_equal 1, results.count { |result| result.first == :conflict }
+    winner_content = "#{winner.delete_suffix('.md')} content"
+    loser_content = "#{loser.delete_suffix('.md')} content"
+    assert_equal winner_content, @test_notes_dir.join("shared.md").read
+    assert_equal loser_content, @test_notes_dir.join(loser).read
+    refute @test_notes_dir.join(winner).exist?
   end
 
   test "rename moves folder with contents" do

@@ -198,6 +198,16 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "create preserves a note created after the availability check" do
+    create_test_note("raced.md", "Original content")
+    Note.any_instance.stubs(:exists?).returns(false)
+
+    post create_note_url(path: "raced.md"), params: { content: "replacement" }, as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal "Original content", @test_notes_dir.join("raced.md").read
+  end
+
   # === create with Hugo template ===
 
   test "create with hugo template generates date-based path" do
@@ -369,6 +379,17 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
 
     refute @test_notes_dir.join("root.md").exist?
     assert @test_notes_dir.join("subfolder/moved.md").exist?
+  end
+
+  test "rename conflict preserves both source and destination contents" do
+    create_test_note("source.md", "Source content")
+    create_test_note("destination.md", "Destination content")
+
+    post rename_note_url(path: "source.md"), params: { new_path: "destination.md" }, as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal "Source content", @test_notes_dir.join("source.md").read
+    assert_equal "Destination content", @test_notes_dir.join("destination.md").read
   end
 
   test "rename returns 404 for missing note" do

@@ -49,6 +49,9 @@ class Folder
     end
     service.create_folder(path)
     true
+  rescue NotesService::AlreadyExistsError
+    errors.add(:base, I18n.t("errors.folder_already_exists"))
+    false
   rescue NotesService::InvalidPathError => e
     errors.add(:path, e.message)
     false
@@ -85,6 +88,9 @@ class Folder
     update_hugo_index_slug(new_path)
 
     true
+  rescue NotesService::AlreadyExistsError
+    errors.add(:base, I18n.t("errors.folder_already_exists"))
+    false
   rescue NotesService::NotFoundError
     errors.add(:base, I18n.t("errors.folder_not_found"))
     false

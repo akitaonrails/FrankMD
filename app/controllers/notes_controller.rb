@@ -76,7 +76,7 @@ class NotesController < ApplicationController
       return
     end
 
-    if @note.save
+    if @note.save(create_only: true)
       respond_to do |format|
         format.turbo_stream {
           load_tree_for_turbo_stream(selected: @note.path)
