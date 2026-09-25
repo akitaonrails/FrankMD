@@ -7,14 +7,18 @@ import { WebImageSource } from "../../../app/javascript/lib/image_sources/web_im
 describe("WebImageSource", () => {
   let source
   let originalFetch
+  let originalTranslation
 
   beforeEach(() => {
     source = new WebImageSource()
     originalFetch = global.fetch
+    originalTranslation = window.t
   })
 
   afterEach(() => {
     global.fetch = originalFetch
+    if (originalTranslation === undefined) delete window.t
+    else window.t = originalTranslation
     vi.restoreAllMocks()
   })
 
@@ -91,6 +95,24 @@ describe("WebImageSource", () => {
 
       expect(result.message).toBe("No images found")
       expect(source.results).toEqual([])
+    })
+
+    it("uses localized empty and result messages while keeping server diagnostics intact", async () => {
+      window.t = vi.fn((key, options = {}) => {
+        if (key === "dialogs.image_picker.no_images_found") return "No pictures in this locale"
+        if (key === "dialogs.image_picker.search_result_many") return `${options.count} localized pictures`
+        if (key === "dialogs.image_picker.search_keywords_required") return "Localized search prompt"
+        return key
+      })
+      global.fetch = vi.fn()
+        .mockResolvedValueOnce({ json: () => Promise.resolve({ images: [] }) })
+        .mockResolvedValueOnce({ json: () => Promise.resolve({ images: [{ url: "one" }, { url: "two" }] }) })
+        .mockResolvedValueOnce({ json: () => Promise.resolve({ error: "Provider rate limit reached" }) })
+
+      expect((await source.search("")).error).toBe("Localized search prompt")
+      expect((await source.search("no results")).message).toBe("No pictures in this locale")
+      expect((await source.search("two results")).message).toBe("2 localized pictures")
+      expect((await source.search("server error")).error).toBe("Provider rate limit reached")
     })
 
     it("handles empty results with note", async () => {

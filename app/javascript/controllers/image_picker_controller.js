@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { get } from "@rails/request.js"
+import { clearInlineError, showInlineError } from "lib/inline_messages"
 
 // Image Picker Controller
 // Thin orchestration layer that coordinates between source-specific controllers
@@ -14,7 +15,7 @@ export default class extends Controller {
     "panelDrop", "panelLocal", "panelFolder", "panelWeb", "panelGoogle", "panelPinterest", "panelAi",
     // Common options
     "options", "selectedName", "alt", "link",
-    "loading", "loadingText", "insertBtn"
+    "loading", "loadingText", "insertBtn", "error"
   ]
 
   connect() {
@@ -77,6 +78,7 @@ export default class extends Controller {
 
   // Dialog management
   async open() {
+    clearInlineError(this.hasErrorTarget ? this.errorTarget : null)
     this.resetAll()
     this.switchTab({ currentTarget: { dataset: { tab: "drop" } } })
 
@@ -262,12 +264,13 @@ export default class extends Controller {
   // Insert image
   async insertImage() {
     if (!this.selectedSource || !this.selectedImageData) return
+    clearInlineError(this.hasErrorTarget ? this.errorTarget : null)
 
     const ctrl = this.getSourceController(this.selectedSource)
     if (!ctrl) return
 
     try {
-      this.showLoading("Processing image...")
+      this.showLoading(window.t("dialogs.image_picker.processing_image"))
       this.insertBtnTarget.disabled = true
 
       const imageUrl = await ctrl.getImageUrl()
@@ -291,7 +294,8 @@ export default class extends Controller {
       this.close()
     } catch (error) {
       console.error("Error inserting image:", error)
-      alert(`Failed to insert image: ${error.message}`)
+      showInlineError(this.hasErrorTarget ? this.errorTarget : null,
+        window.t("dialogs.image_picker.insert_failed", { error: error.message }))
       this.hideLoading()
       this.insertBtnTarget.disabled = false
     }

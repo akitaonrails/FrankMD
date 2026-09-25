@@ -9,8 +9,43 @@ describe("LogViewerController", () => {
   let application
   let container
   let controller
+  let originalTranslator
 
   beforeEach(() => {
+    originalTranslator = window.t
+    const translations = {
+      "dialogs.log_viewer.title_logs": "Rails Log",
+      "dialogs.log_viewer.title_config": "Configuration",
+      "dialogs.log_viewer.refresh": "Refresh",
+      "dialogs.log_viewer.close": "Close (Esc)",
+      "dialogs.log_viewer.logs": "Logs",
+      "dialogs.log_viewer.config": "Config",
+      "dialogs.log_viewer.loading": "Loading...",
+      "dialogs.log_viewer.empty_logs": "(log is empty)",
+      "dialogs.log_viewer.line_count_one": "%{count} line",
+      "dialogs.log_viewer.line_count": "%{count} lines",
+      "dialogs.log_viewer.error_loading_logs": "Error loading logs: %{error}",
+      "dialogs.log_viewer.no_config_file": "(no .fed file)",
+      "dialogs.log_viewer.key_count": "%{count} keys",
+      "dialogs.log_viewer.key_count_one": "%{count} key",
+      "dialogs.log_viewer.error_loading_config": "Error loading config: %{error}",
+      "dialogs.log_viewer.config_file_label": "Config file",
+      "dialogs.log_viewer.file_exists_label": "File exists",
+      "dialogs.log_viewer.ai_configured_label": "AI configured in .fed",
+      "dialogs.log_viewer.yes": "yes",
+      "dialogs.log_viewer.no": "no",
+      "dialogs.log_viewer.ai_configured_yes": "yes (ENV AI vars ignored)",
+      "dialogs.log_viewer.ai_configured_no": "no (using ENV vars)",
+      "dialogs.log_viewer.key": "Key",
+      "dialogs.log_viewer.value": "Value",
+      "dialogs.log_viewer.source": "Source",
+      "dialogs.log_viewer.env_var": "ENV var",
+      "dialogs.log_viewer.source_default": "default",
+      "dialogs.log_viewer.null_value": "nil",
+      "dialogs.log_viewer.empty_config": "No configuration values"
+    }
+    window.t = vi.fn((key, options = {}) => (translations[key] || key).replace(/%\{(\w+)\}/g, (match, name) => options[name] ?? match))
+
     // Setup DOM
     document.body.innerHTML = `
       <div data-controller="log-viewer">
@@ -49,6 +84,8 @@ describe("LogViewerController", () => {
     vi.restoreAllMocks()
     application.stop()
     document.body.innerHTML = ""
+    if (originalTranslator) window.t = originalTranslator
+    else delete window.t
   })
 
   // Note: Keyboard shortcut (Ctrl+Shift+O) is now handled by app_controller
@@ -74,6 +111,7 @@ describe("LogViewerController", () => {
       controller.open()
 
       expect(content.textContent).toBe("Loading...")
+      expect(window.t).toHaveBeenCalledWith("dialogs.log_viewer.loading")
     })
 
     it("defaults to logs tab", async () => {
@@ -168,6 +206,23 @@ describe("LogViewerController", () => {
       expect(status.textContent).toBe("5 lines")
     })
 
+    it("uses the singular line count label", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          environment: "test",
+          file: "test.log",
+          lines: ["one line"]
+        })
+      })
+      const status = container.querySelector('[data-log-viewer-target="status"]')
+
+      await controller.fetchLogs()
+
+      expect(status.textContent).toBe("1 line")
+      expect(window.t).toHaveBeenCalledWith("dialogs.log_viewer.line_count_one", { count: 1 })
+    })
+
     it("handles fetch errors gracefully", async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error("Network error"))
       const content = container.querySelector('[data-log-viewer-target="content"]')
@@ -175,6 +230,7 @@ describe("LogViewerController", () => {
       await controller.fetchLogs()
 
       expect(content.textContent).toContain("Error loading logs")
+      expect(window.t).toHaveBeenCalledWith("dialogs.log_viewer.error_loading_logs", { error: "Network error" })
     })
 
     it("handles non-ok response", async () => {
@@ -255,6 +311,48 @@ describe("LogViewerController", () => {
       expect(status.textContent).toBe("2 keys")
     })
 
+    it("uses the singular key count label", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          config_file: "/notes/.fed",
+          config_file_exists: true,
+          ai_configured_in_file: false,
+          environment: "test",
+          entries: [{ key: "theme", value: "dark", source: "file", env_var: null, sensitive: false }]
+        })
+      })
+      const status = container.querySelector('[data-log-viewer-target="status"]')
+
+      await controller.fetchConfig()
+
+      expect(status.textContent).toBe("1 key")
+      expect(window.t).toHaveBeenCalledWith("dialogs.log_viewer.key_count_one", { count: 1 })
+    })
+
+    it("localizes config labels and shows an empty state when there are no entries", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
+          config_file: "/notes/.fed",
+          config_file_exists: false,
+          ai_configured_in_file: true,
+          environment: "test",
+          entries: []
+        })
+      })
+      const configContent = container.querySelector('[data-log-viewer-target="configContent"]')
+
+      await controller.fetchConfig()
+
+      expect(configContent.textContent).toContain("Config file:")
+      expect(configContent.textContent).toContain("File exists:")
+      expect(configContent.textContent).toContain("AI configured in .fed:")
+      expect(configContent.textContent).toContain("No configuration values")
+      expect(window.t).toHaveBeenCalledWith("dialogs.log_viewer.empty_config", {})
+      expect(window.t).toHaveBeenCalledWith("dialogs.log_viewer.no_config_file")
+    })
+
     it("handles fetch errors gracefully", async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error("Network error"))
       const configContent = container.querySelector('[data-log-viewer-target="configContent"]')
@@ -262,10 +360,20 @@ describe("LogViewerController", () => {
       await controller.fetchConfig()
 
       expect(configContent.textContent).toContain("Error loading config")
+      expect(window.t).toHaveBeenCalledWith("dialogs.log_viewer.error_loading_config", { error: "Network error" })
     })
   })
 
   describe("tab switching", () => {
+    it("localizes config loading state", () => {
+      controller.activeTab = "config"
+
+      controller.showLoading()
+
+      expect(controller.configContentTarget.textContent).toBe("Loading...")
+      expect(window.t).toHaveBeenCalledWith("dialogs.log_viewer.loading")
+    })
+
     it("showLogs reveals log content and hides config", () => {
       const content = container.querySelector('[data-log-viewer-target="content"]')
       const configContent = container.querySelector('[data-log-viewer-target="configContent"]')

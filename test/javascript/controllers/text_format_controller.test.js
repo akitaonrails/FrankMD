@@ -7,8 +7,12 @@ import TextFormatController from "../../../app/javascript/controllers/text_forma
 
 describe("TextFormatController", () => {
   let application, controller, element
+  let originalTranslator
 
   beforeEach(() => {
+    originalTranslator = window.t
+    window.t = vi.fn((key) => key.split(".").at(-1))
+
     document.body.innerHTML = `
       <div data-controller="text-format">
         <div data-text-format-target="menu"
@@ -34,6 +38,8 @@ describe("TextFormatController", () => {
   afterEach(() => {
     application.stop()
     vi.restoreAllMocks()
+    if (originalTranslator) window.t = originalTranslator
+    else delete window.t
   })
 
   describe("static formats", () => {
@@ -180,6 +186,9 @@ describe("TextFormatController", () => {
     it("renders a button for each format", () => {
       const buttons = controller.menuTarget.querySelectorAll("button")
       expect(buttons).toHaveLength(7)
+      expect(window.t).toHaveBeenCalledWith("dialogs.text_format.bold")
+      expect(window.t).toHaveBeenCalledWith("dialogs.text_format.link")
+      expect(buttons[0].textContent).toContain("bold")
     })
 
     it("highlights selected item with accent color", () => {

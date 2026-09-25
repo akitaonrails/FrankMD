@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { AiImageSource } from "lib/image_sources/ai_images"
 import { encodePath } from "lib/url_utils"
 import { defaultS3Prefix } from "lib/s3_key"
+import { clearInlineError, showInlineError } from "lib/inline_messages"
 
 // AI Images Tab Controller
 // Handles generating images using AI (Gemini/Imagen)
@@ -13,7 +14,7 @@ export default class extends Controller {
     "revisedPromptContainer", "revisedPrompt",
     "s3Option", "saveS3", "keyOption", "keyInput",
     "refSection", "refPreviewContainer", "refPreview", "refName",
-    "refPicker", "refSearch", "refGrid"
+    "refPicker", "refSearch", "refGrid", "error"
   ]
 
   static values = {
@@ -78,6 +79,7 @@ export default class extends Controller {
   }
 
   async generate() {
+    clearInlineError(this.hasErrorTarget ? this.errorTarget : null)
     const prompt = this.promptTarget.value.trim()
     this.generatedPrompt = prompt
 
@@ -104,7 +106,7 @@ export default class extends Controller {
     if (this.hasGenerateBtnTarget) this.generateBtnTarget.disabled = false
 
     if (result.error) {
-      alert(result.error)
+      showInlineError(this.hasErrorTarget ? this.errorTarget : null, result.error)
       return
     }
 
@@ -141,7 +143,10 @@ export default class extends Controller {
 
     const data = await this.source.loadRefImages(search)
     if (!data.error) {
+      clearInlineError(this.hasErrorTarget ? this.errorTarget : null)
       this.source.renderRefImageGrid(data.images, this.refGridTarget, "click->ai-images#selectRefImage")
+    } else {
+      showInlineError(this.hasErrorTarget ? this.errorTarget : null, data.error)
     }
   }
 

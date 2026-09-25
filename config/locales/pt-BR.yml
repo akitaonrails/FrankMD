@@ -16,6 +16,8 @@ pt-BR:
     search: "Buscar"
     insert: "Inserir"
     edit: "Editar"
+    alert: "Aviso"
+    confirm: "Confirmar"
     ok: "OK"
 
   # Idiomas
@@ -135,6 +137,10 @@ pt-BR:
 
   # Títulos e conteúdo dos diálogos
   dialogs:
+    confirm:
+      delete_file: 'Tem certeza que deseja excluir "%{name}"? Esta ação não pode ser desfeita.'
+      delete_folder: 'Tem certeza que deseja excluir "%{name}" e todo o seu conteúdo? Esta ação não pode ser desfeita.'
+
     # Diálogo de renomear
     rename:
       title: "Renomear"
@@ -200,8 +206,8 @@ pt-BR:
       tab_search: "Busca YouTube"
       url_label: "URL ou Caminho do Vídeo"
       url_placeholder: "URL do YouTube ou caminho do arquivo de vídeo..."
-      url_hint_youtube: "YouTube: https://youtube.com/watch?v=... ou https://youtu.be/..."
-      url_hint_file: "Arquivo de vídeo: /caminho/para/video.mp4, .webm, .mkv, .mov, .avi"
+      url_hint_youtube: "https://youtube.com/watch?v=... ou https://youtu.be/..."
+      url_hint_file: "/caminho/para/video.mp4, .webm, .mkv, .mov, .avi"
       preview_hint: "Digite uma URL para ver a visualização"
       unknown_format: "Formato desconhecido. Digite uma URL do YouTube ou caminho de arquivo de vídeo."
       insert_video: "Inserir Vídeo"
@@ -225,6 +231,7 @@ pt-BR:
       drop_hint: "Arraste e solte uma imagem aqui"
       drop_rejected: "%{name}: %{ext} não é um tipo de imagem aceito. Aceitos: %{list}"
       processing_image_paste: "Processando imagem..."
+      processing_image: "Processando imagem..."
       tab_local: "Local"
       tab_folder: "Pasta"
       tab_web: "Busca Web"
@@ -252,6 +259,7 @@ pt-BR:
       delete_image: "Excluir imagem"
       delete_confirm: "Excluir \"%{name}\"? Esta ação não pode ser desfeita."
       delete_failed: "Não foi possível excluir a imagem."
+      insert_failed: "Falha ao inserir imagem: %{error}"
       # Imagens de pasta
       filesystem_api_required: "API de Acesso ao Sistema de Arquivos Necessária"
       filesystem_api_description: "Este recurso requer a API de Acesso ao Sistema de Arquivos, que pode estar desabilitada no seu navegador."
@@ -270,6 +278,27 @@ pt-BR:
       # Busca web
       search_web_placeholder: "Buscar imagens na web..."
       search_status: "Digite palavras-chave e clique em Buscar ou pressione Enter"
+      search_keywords_required: "Digite palavras-chave para buscar"
+      search_failed: "A busca falhou. Tente novamente."
+      search_result_one: "1 imagem encontrada - clique para selecionar"
+      search_result_many: "%{count} imagens encontradas - clique para selecionar"
+      no_images_found: "Nenhuma imagem encontrada"
+      no_images_in_folder: "Nenhuma imagem encontrada na pasta"
+      folder_showing_recent: "Mostrando as %{shown} imagens mais recentes de %{total}"
+      folder_images_found_one: "1 imagem encontrada"
+      folder_images_found_many: "%{count} imagens encontradas"
+      folder_api_not_supported: "File System Access API não é compatível"
+      folder_access_failed: "Não foi possível acessar a pasta"
+      folder_read_failed: "Não foi possível ler a pasta"
+      image_load_failed: "Não foi possível carregar as imagens"
+      image_delete_failed: "Não foi possível excluir a imagem"
+      image_upload_failed: "Não foi possível enviar a imagem"
+      ai_prompt_required: "Descreva a imagem que deseja gerar"
+      ai_not_configured: "A geração de imagens por IA não está configurada. Adicione sua chave da API Gemini ao arquivo .fed"
+      ai_generation_failed: "Não foi possível gerar a imagem. Tente novamente."
+      ai_no_generated_data: "Não há dados de imagem gerada disponíveis"
+      ai_save_failed: "Não foi possível salvar a imagem"
+      no_file_extension: "sem extensão"
       # Imagens Google
       google_api_required: "Configuração da API Google Necessária"
       google_api_description: "Para buscar no Google Imagens, você precisa configurar uma chave API do Google e um ID do Custom Search Engine."
@@ -414,6 +443,7 @@ pt-BR:
       openai_description: "Use modelos GPT:"
       provider_selection: "Seleção de Provedor"
       provider_override: "Sobrescrever auto-detecção:"
+      get_key_from: "Obtenha a chave em"
       original: "Original"
       deletions_hint: "(exclusões em vermelho)"
       corrected: "Corrigido"
@@ -449,6 +479,39 @@ pt-BR:
     file_finder:
       placeholder: "Digite para buscar arquivos..."
       esc_to_close: "esc para fechar"
+      preview_error: "Não foi possível carregar a visualização prévia"
+
+    # Diálogo do visualizador de logs
+    log_viewer:
+      title_logs: "Log do Rails"
+      title_config: "Configuração"
+      refresh: "Atualizar"
+      close: "Fechar (Esc)"
+      logs: "Logs"
+      config: "Configuração"
+      loading: "Carregando..."
+      empty_logs: "(o log está vazio)"
+      line_count_one: "%{count} linha"
+      line_count: "%{count} linhas"
+      error_loading_logs: "Erro ao carregar os logs: %{error}"
+      no_config_file: "(nenhum arquivo .fed)"
+      key_count: "%{count} chaves"
+      key_count_one: "%{count} chave"
+      error_loading_config: "Erro ao carregar a configuração: %{error}"
+      config_file_label: "Arquivo de configuração"
+      file_exists_label: "Arquivo existe"
+      ai_configured_label: "IA configurada no .fed"
+      yes: "sim"
+      no: "não"
+      ai_configured_yes: "sim (variáveis de IA do ENV ignoradas)"
+      ai_configured_no: "não (usando variáveis do ENV)"
+      key: "Chave"
+      value: "Valor"
+      source: "Origem"
+      env_var: "Variável ENV"
+      source_default: "padrão"
+      null_value: "nulo"
+      empty_config: "Não há valores de configuração"
 
     # Diálogo de busca de conteúdo
     content_search:

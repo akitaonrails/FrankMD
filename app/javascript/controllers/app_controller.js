@@ -20,6 +20,7 @@ import {
   insertVideoEmbed
 } from "lib/codemirror_content_insertion"
 import { setWikilinkFileProvider } from "lib/codemirror_wikilink"
+import { appAlert } from "lib/app_prompt"
 export default class extends Controller {
   static targets = [
     "fileTree",
@@ -1335,14 +1336,14 @@ export default class extends Controller {
 
   async openAiDialog() {
     if (!this.currentFile) {
-      alert(window.t("errors.no_file_open"))
+      appAlert(window.t("errors.no_file_open"))
       return
     }
 
     const codemirrorController = this.getCodemirrorController()
     const text = codemirrorController ? codemirrorController.getValue() : ""
     if (!text.trim()) {
-      alert(window.t("errors.no_text_to_check"))
+      appAlert(window.t("errors.no_text_to_check"))
       return
     }
 

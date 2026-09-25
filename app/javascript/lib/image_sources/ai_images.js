@@ -4,6 +4,7 @@
 import { get, post } from "@rails/request.js"
 import { escapeHtml } from "lib/text_utils"
 import { encodePath } from "lib/url_utils"
+import { imagePickerText } from "lib/image_sources/image_picker_text"
 
 export class AiImageSource {
   constructor() {
@@ -44,11 +45,11 @@ export class AiImageSource {
 
   async generate(prompt) {
     if (!prompt) {
-      return { error: "Please enter a prompt describing the image you want to generate" }
+      return { error: imagePickerText("ai_prompt_required", {}, "Please enter a prompt describing the image you want to generate") }
     }
 
     if (!this.enabled) {
-      return { error: "AI image generation is not configured. Please add your Gemini API key to .fed" }
+      return { error: imagePickerText("ai_not_configured", {}, "AI image generation is not configured. Please add your Gemini API key to .fed") }
     }
 
     this.abortController = new AbortController()
@@ -92,7 +93,7 @@ export class AiImageSource {
         return { cancelled: true }
       }
       console.error("AI image generation error:", error)
-      return { error: "Failed to generate image. Please try again." }
+      return { error: imagePickerText("ai_generation_failed", {}, "Failed to generate image. Please try again.") }
     } finally {
       this.abortController = null
     }
@@ -118,19 +119,21 @@ export class AiImageSource {
       const response = await get(url, { responseKind: "json" })
 
       if (!response.ok) {
-        throw new Error("Failed to load images")
+        const data = await response.json
+        return { error: data.error || imagePickerText("image_load_failed", {}, "Error loading images") }
       }
 
       return await response.json
     } catch (error) {
       console.error("Error loading reference images:", error)
-      return { error: "Error loading images" }
+      return { error: imagePickerText("image_load_failed", {}, "Error loading images") }
     }
   }
 
   renderRefImageGrid(images, container, onSelectAction) {
     if (!images || images.length === 0) {
-      container.innerHTML = '<div class="col-span-6 text-center text-[var(--theme-text-muted)] py-4 text-xs">No images found</div>'
+      const message = escapeHtml(imagePickerText("no_images_found", {}, "No images found"))
+      container.innerHTML = `<div class="col-span-6 text-center text-[var(--theme-text-muted)] py-4 text-xs">${message}</div>`
       return
     }
 
@@ -152,7 +155,7 @@ export class AiImageSource {
 
   async save(uploadToS3, s3Prefix = "") {
     if (!this.generatedData) {
-      return { error: "No generated image data available" }
+      return { error: imagePickerText("ai_no_generated_data", {}, "No generated image data available") }
     }
 
     try {
@@ -172,7 +175,7 @@ export class AiImageSource {
 
         if (!response.ok) {
           const data = await response.json
-          throw new Error(data.error || "Failed to save image")
+          throw new Error(data.error || imagePickerText("ai_save_failed", {}, "Failed to save image"))
         }
 
         return await response.json
@@ -188,7 +191,7 @@ export class AiImageSource {
 
           if (!response.ok) {
             const data = await response.json
-            throw new Error(data.error || "Failed to upload to S3")
+            throw new Error(data.error || imagePickerText("image_upload_failed", {}, "Failed to upload to S3"))
           }
 
           return await response.json
