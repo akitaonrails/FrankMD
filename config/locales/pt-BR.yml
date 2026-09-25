@@ -528,6 +528,7 @@ pt-BR:
   # Mensagens de confirmação
   confirm:
     delete_note: "Tem certeza que deseja excluir esta nota?"
+    undo_created_note: "Excluir a nota recém-criada \"%{name}\" e desfazer sua criação?"
     delete_folder: "Tem certeza que deseja excluir esta pasta e todo seu conteúdo?"
 
   # Mensagens de sucesso

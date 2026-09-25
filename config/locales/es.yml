@@ -520,6 +520,7 @@ es:
   # Confirm messages
   confirm:
     delete_note: "¿Estás seguro de que quieres eliminar esta nota?"
+    undo_created_note: "¿Eliminar la nota recién creada \"%{name}\" y deshacer su creación?"
     delete_folder: "¿Estás seguro de que quieres eliminar esta carpeta y todo su contenido?"
 
   # Success messages

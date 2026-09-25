@@ -536,6 +536,7 @@ en:
   # Confirm messages
   confirm:
     delete_note: "Are you sure you want to delete this note?"
+    undo_created_note: "Delete the newly created note \"%{name}\" and undo its creation?"
     delete_folder: "Are you sure you want to delete this folder and all its contents?"
 
   # Success messages

@@ -20,6 +20,7 @@ export default class extends Controller {
     this.isOffline = false
     this.hasUnsavedChanges = false
     this._isSaving = false
+    this._saveCompletion = null
     this._lastSavedContent = null
     this._lastSaveTime = 0
     this._fileVersion = 0
@@ -152,6 +153,39 @@ export default class extends Controller {
     // newly active editor. Flush the local draft first, then invalidate timers.
     this.clearPendingTimers()
     return result
+  }
+
+  // Prepare an active note for a guarded file deletion. Drain any autosave
+  // already in flight before returning its latest successful server revision,
+  // then cancel follow-up debounce timers that that save may have scheduled.
+  async prepareForFileDeletion(path) {
+    if (this.currentFile !== path) return { ok: false, stale: true }
+
+    const prepared = this.prepareForTransition()
+    if (!prepared.ok) return prepared
+
+    while (this._isSaving) {
+      const saveCompletion = this._saveCompletion
+      if (!saveCompletion) {
+        return { ok: false, error: new Error("Unable to wait for the active note save") }
+      }
+      await saveCompletion
+      if (this.currentFile !== path) return { ok: false, stale: true }
+    }
+
+    // A completed save can schedule another debounced save if the editor
+    // changed while its request was in flight. The deletion will remove that
+    // note, so stop the follow-up request and use the latest revision already
+    // acknowledged by the server.
+    this.clearPendingTimers()
+    if (this.currentFile !== path) return { ok: false, stale: true }
+
+    const revision = this._knownBaseRevisions.get(path) || this._baseRevision
+    if (typeof revision !== "string" || !revision) {
+      return { ok: false, error: new Error("Cannot delete the note without a known server revision") }
+    }
+
+    return { ok: true, revision }
   }
 
   clearFile() {
@@ -856,6 +890,9 @@ export default class extends Controller {
     }
 
     this._isSaving = true
+    let resolveSaveCompletion
+    const saveCompletion = new Promise((resolve) => { resolveSaveCompletion = resolve })
+    this._saveCompletion = saveCompletion
     try {
       const response = await patch(`/notes/${encodePath(filePath)}`, {
         body: { content },
@@ -943,6 +980,8 @@ export default class extends Controller {
       }
     } finally {
       this._isSaving = false
+      if (this._saveCompletion === saveCompletion) this._saveCompletion = null
+      resolveSaveCompletion()
     }
   }
 
@@ -1022,7 +1061,7 @@ export default class extends Controller {
     // the content-loss action without anything to undo.
     if (!undidEditorChange && this._contentLossWarningActive &&
       typeof this._lastSavedContent === "string" && codemirrorController) {
-      codemirrorController.loadContent(this._lastSavedContent)
+      codemirrorController.loadContent(this._lastSavedContent, this.currentFile)
     }
 
     const content = codemirrorController ? codemirrorController.getValue() : ""

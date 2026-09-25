@@ -104,6 +104,9 @@ describe("onFileRenamed: autosave synchronization", () => {
       app: {
         currentFile,
         expandedFolders: new Set(),
+        // This suite isolates rename's existing autosave/path behavior; session
+        // history lifecycle behavior is covered by app_navigation.test.js.
+        remapSessionNotePaths: vi.fn(),
         invalidateTreeRefreshes: AppController.prototype.invalidateTreeRefreshes,
         getAutosaveController: () => autosave,
         updatePathDisplay: vi.fn(),
@@ -143,6 +146,8 @@ describe("onFileRenamed: autosave synchronization", () => {
       currentFile: "foo.md",
       hasTextareaTarget: false,
       hasEditorToolbarTarget: false,
+      getCodemirrorController: () => null,
+      evictCreatedNoteBoundaries: vi.fn(),
       invalidateTreeRefreshes: AppController.prototype.invalidateTreeRefreshes,
       getAutosaveController: () => autosave,
       updatePathDisplay: vi.fn(),
@@ -168,6 +173,8 @@ describe("onFileRenamed: autosave synchronization", () => {
     }
     const app = {
       currentFile: "foo.md",
+      getCodemirrorController: () => null,
+      evictCreatedNoteBoundaries: vi.fn(),
       invalidateTreeRefreshes: AppController.prototype.invalidateTreeRefreshes,
       getAutosaveController: () => autosave,
       updatePathDisplay: vi.fn(),

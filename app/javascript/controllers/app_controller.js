@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { get, patch } from "@rails/request.js"
+import { destroy, get, patch, post } from "@rails/request.js"
 import { marked } from "marked"
 import { escapeHtml } from "lib/text_utils"
 import { nextNoteIndex } from "lib/vim_mode"
@@ -20,6 +20,18 @@ import {
   insertVideoEmbed
 } from "lib/codemirror_content_insertion"
 import { setWikilinkFileProvider } from "lib/codemirror_wikilink"
+
+function pathMatchesScope(candidatePath, path, type) {
+  if (typeof candidatePath !== "string") return false
+  return candidatePath === path || (type === "folder" && candidatePath.startsWith(`${path}/`))
+}
+
+function remapScopedPath(candidatePath, oldPath, newPath, type) {
+  return pathMatchesScope(candidatePath, oldPath, type)
+    ? `${newPath}${candidatePath.slice(oldPath.length)}`
+    : candidatePath
+}
+
 export default class extends Controller {
   static targets = [
     "fileTree",
@@ -63,6 +75,8 @@ export default class extends Controller {
     this.installUnauthorizedRedirect()
     this.currentFile = null
     this.currentFileType = null  // "markdown", "config", or null
+    // Session-only creation boundaries used by file-scoped undo.
+    this.createdNoteBoundaries = new Map()
     this.expandedFolders = new Set()
     this._navigationGeneration = 0
     this._treeRevision = 0
@@ -171,6 +185,9 @@ export default class extends Controller {
     }
     if (this.boundKeydownHandler) {
       document.removeEventListener("keydown", this.boundKeydownHandler)
+    }
+    if (this.boundRootRedoHandler) {
+      document.removeEventListener("keydown", this.boundRootRedoHandler)
     }
     if (this.boundTreeStreamRenderHandler) {
       document.removeEventListener("turbo:before-stream-render", this.boundTreeStreamRenderHandler)
@@ -433,6 +450,7 @@ export default class extends Controller {
   onItemMoved(event) {
     const { oldPath, newPath, type } = event.detail
     this.invalidateTreeRefreshes()
+    this.remapSessionNotePaths(oldPath, newPath, type)
 
     if (type === "folder") {
       // Preserve expand/collapse state for moved folder and its descendants
@@ -490,20 +508,23 @@ export default class extends Controller {
             updateHistory,
             replaceHistory: false
           })
-          return
+          return null
         }
         throw new Error(window.t("errors.failed_to_load"))
       }
 
       const data = await response.json
       if (!this.isCurrentNavigation(generation)) return
-      this.applyLoadedFile(path, data.content, data.revision, generation, { updateHistory })
+      const applied = this.applyLoadedFile(path, data.content, data.revision, generation, { updateHistory })
+      if (!applied) return null
+      return { path, content: data.content, revision: data.revision }
     } catch (error) {
       if (!this.isCurrentNavigation(generation)) return
       console.error("Error loading file:", error)
       this.restoreCurrentFileUrl()
       const autosave = this.getAutosaveController()
       if (autosave) autosave.showSaveStatus(window.t("status.error_loading"), true)
+      return null
     }
   }
 
@@ -539,7 +560,9 @@ export default class extends Controller {
     // Set content via CodeMirror controller
     const codemirrorController = this.getCodemirrorController()
     if (codemirrorController) {
-      codemirrorController.loadContent(editorContent)
+      codemirrorController.setUndoAtHistoryStartHandler?.((path) => this.onUndoAtHistoryStart(path))
+      codemirrorController.setRedoAtHistoryEndHandler?.((path) => this.onRedoAtHistoryEnd(path))
+      codemirrorController.loadContent(editorContent, this.currentFile)
       codemirrorController.focus()
     } else {
       // Fallback to hidden textarea
@@ -1420,8 +1443,267 @@ export default class extends Controller {
 
   // === File Operations Event Handlers ===
 
+  acquireCreatedNoteUndoEditorLock(codemirror) {
+    if (codemirror?.acquireReadOnlyLock) return codemirror.acquireReadOnlyLock()
+
+    if (codemirror?.setReadOnly) {
+      const wasReadOnly = Boolean(codemirror.readOnlyValue)
+      codemirror.setReadOnly(true)
+      return () => codemirror.setReadOnly(wasReadOnly)
+    }
+
+    if (this.hasTextareaTarget) {
+      const textarea = this.textareaTarget
+      const wasDisabled = textarea.disabled
+      textarea.disabled = true
+      return () => { textarea.disabled = wasDisabled }
+    }
+
+    return () => {}
+  }
+
+  onUndoAtHistoryStart(path) {
+    if (!path || path !== this.currentFile || this.getFileType(path) !== "markdown") return false
+    if (this._pendingCreatedNoteUndo?.size) return true
+
+    const boundary = this.createdNoteBoundaries?.get(path)
+    if (!boundary || boundary.deleted) return false
+
+    const codemirror = this.getCodemirrorController()
+    if (!codemirror || codemirror.getValue() !== boundary.initialContent) return false
+
+    const name = path.split("/").pop()
+    if (!window.confirm(window.t("confirm.undo_created_note", { name }))) return true
+
+    const autosave = this.getAutosaveController()
+    if (!autosave?.prepareForFileDeletion) {
+      this.showTemporaryMessage(window.t("status.draft_storage_error"), 5000)
+      return true
+    }
+
+    const contentAtConfirmation = codemirror.getValue()
+    if (contentAtConfirmation !== boundary.initialContent) return true
+
+    const releaseEditorLock = this.acquireCreatedNoteUndoEditorLock(codemirror)
+
+    this._pendingCreatedNoteUndo ??= new Set()
+    this._pendingCreatedNoteUndo.add(path)
+    void this.performCreatedNoteUndo(
+      path,
+      boundary,
+      autosave,
+      this._navigationGeneration,
+      contentAtConfirmation,
+      releaseEditorLock
+    )
+    return true
+  }
+
+  async performCreatedNoteUndo(path, boundary, autosave, navigationGeneration, expectedContent, releaseEditorLock) {
+    let deletionSucceeded = false
+    try {
+      const preparation = await autosave.prepareForFileDeletion(path)
+      if (!preparation.ok) {
+        if (!preparation.stale) {
+          if (preparation.error) console.error("Unable to prepare created note for deletion:", preparation.error)
+          this.showTemporaryMessage(window.t("status.draft_storage_error"), 5000)
+        }
+        return
+      }
+      // The user may have navigated while an autosave was draining. Keep the
+      // explicit confirmation tied to the note that was active at keypress.
+      if (this.currentFile !== path || this._navigationGeneration !== navigationGeneration) {
+        return
+      }
+
+      // The editor stays interaction-locked while the server request is in
+      // flight. This second check also protects against programmatic edits or
+      // a read-only lock that could not be acquired on a fallback editor.
+      if (this.getCodemirrorController()?.getValue() !== expectedContent) {
+        this.showTemporaryMessage(window.t("errors.failed_to_delete"), 5000)
+        return
+      }
+
+      const expectedRevision = preparation.revision || boundary.initialRevision
+      const response = await destroy(
+        `/notes/${encodePath(path)}?expected_revision=${encodeURIComponent(expectedRevision)}`,
+        { responseKind: "turbo-stream" }
+      )
+
+      if (!response.ok) {
+        const data = await response.json
+        this.showTemporaryMessage(data.error || window.t("errors.failed_to_delete"), 5000)
+        return
+      }
+
+      // Keep this boundary and the CodeMirror history cached by path: redo can
+      // use them to recreate the note and restore its undone text edits.
+      deletionSucceeded = true
+      boundary.deleted = true
+      const shouldReturnToPrevious = this.currentFile === path &&
+        this._navigationGeneration === navigationGeneration
+      this.onFileDeleted({ detail: { path, type: "file" } }, { preserveSessionState: true })
+
+      if (shouldReturnToPrevious && boundary.previousPath && boundary.previousPath !== path) {
+        const loadedPrevious = await this.loadFile(boundary.previousPath, { updateHistory: false })
+        if (loadedPrevious && this.currentFile === boundary.previousPath) {
+          this.updateUrl(boundary.previousPath, { replace: true })
+        }
+      }
+    } catch (error) {
+      console.error("Failed to undo note creation:", error)
+      this.showTemporaryMessage(error.message || window.t("errors.failed_to_delete"), 5000)
+    } finally {
+      try {
+        if (!deletionSucceeded) autosave.resumeAfterTransition?.()
+      } catch (resumeError) {
+        console.error("Unable to resume autosave after created-note undo:", resumeError)
+      } finally {
+        try {
+          releaseEditorLock?.()
+        } catch (unlockError) {
+          console.error("Unable to unlock the editor after created-note undo:", unlockError)
+        } finally {
+          this._pendingCreatedNoteUndo?.delete(path)
+        }
+      }
+    }
+  }
+
+  onRedoAtHistoryEnd(path) {
+    if (!path || path !== this.currentFile || this.getFileType(path) !== "markdown") return false
+
+    // A deleted creation is the next redo boundary only after the current
+    // note's native CodeMirror redo history has been exhausted.
+    const boundary = Array.from(this.createdNoteBoundaries?.values?.() || []).reverse().find((candidate) =>
+      candidate.deleted && candidate.previousPath === path
+    )
+    if (!boundary) return false
+
+    return this.requestCreatedNoteRedo(boundary)
+  }
+
+  onGlobalRedoAtRootBoundary(event) {
+    if (this.currentFile) return false
+    if (!event || event.defaultPrevented || event.altKey) return false
+
+    const ctrlOrMeta = event.ctrlKey || event.metaKey
+    const key = event.key?.toLowerCase()
+    const isRedoShortcut = ctrlOrMeta && (
+      (key === "y" && !event.shiftKey) || (key === "z" && event.shiftKey)
+    )
+    if (!isRedoShortcut) return false
+
+    const target = event.target instanceof Element ? event.target : null
+    const targetIsEditor = Boolean(target?.closest(".cm-content"))
+    const hiddenEditorHasFocus = targetIsEditor && this.hasEditorTarget &&
+      this.editorTarget.classList.contains("hidden")
+    if (target?.closest("input, textarea, select, [contenteditable='true'], [contenteditable='']") &&
+        !hiddenEditorHasFocus) return false
+
+    if (this._pendingCreatedNoteUndo?.size || this._pendingCreatedNoteRedo?.size) return false
+
+    const boundary = Array.from(this.createdNoteBoundaries?.values?.() || []).reverse().find((candidate) =>
+      candidate.deleted && candidate.previousPath == null
+    )
+    if (!boundary) return false
+
+    event.preventDefault()
+    return this.requestCreatedNoteRedo(boundary)
+  }
+
+  requestCreatedNoteRedo(boundary) {
+    if (this._pendingCreatedNoteRedo?.has(boundary.path)) return true
+
+    const autosave = this.getAutosaveController()
+    if (!autosave?.prepareForTransition) {
+      this.showTemporaryMessage(window.t("status.draft_storage_error"), 5000)
+      return true
+    }
+
+    // Preserve the active predecessor's draft before creating/opening another
+    // note. A blocked draft write cancels redo without changing the file.
+    let preparation
+    try {
+      preparation = autosave.prepareForTransition()
+    } catch (error) {
+      console.error("Unable to prepare for created-note redo:", error)
+      try {
+        autosave.resumeAfterTransition?.()
+      } catch (resumeError) {
+        console.error("Unable to resume autosave after created-note redo preparation:", resumeError)
+      }
+      return true
+    }
+    if (!preparation?.ok) {
+      try {
+        autosave.resumeAfterTransition?.()
+      } catch (resumeError) {
+        console.error("Unable to resume autosave after blocked created-note redo:", resumeError)
+      }
+      return true
+    }
+
+    this._pendingCreatedNoteRedo ??= new Set()
+    this._pendingCreatedNoteRedo.add(boundary.path)
+    void this.performCreatedNoteRedo(boundary, this._navigationGeneration, autosave)
+    return true
+  }
+
+  async performCreatedNoteRedo(boundary, navigationGeneration, autosave) {
+    const path = boundary.path
+    try {
+      const response = await post("/notes", {
+        body: { path, content: boundary.initialContent },
+        responseKind: "json"
+      })
+
+      if (!response.ok) {
+        const data = await response.json
+        this.showTemporaryMessage(data.error || window.t("errors.failed_to_create"), 5000)
+        return
+      }
+
+      // The create endpoint uses create-only semantics. Once it succeeds, the
+      // note exists again; never retry creation by overwriting its path.
+      boundary.deleted = false
+
+      const shouldReopenNote = this.currentFile === boundary.previousPath &&
+        this._navigationGeneration === navigationGeneration
+      if (shouldReopenNote) {
+        const loadedNote = await this.loadFile(path)
+        if (loadedNote && this.currentFile === path) return
+
+        // The note exists, but an interrupted or blocked load must not replace
+        // the currently active predecessor.
+        await this.refreshTree()
+        this.showTemporaryMessage(window.t("errors.failed_to_load"), 5000)
+        return
+      }
+
+      // The user navigated while the create request was in flight. Preserve
+      // that navigation and still reveal the newly created note in the tree.
+      await this.refreshTree()
+    } catch (error) {
+      console.error("Failed to redo note creation:", error)
+      this.showTemporaryMessage(error.message || window.t("errors.failed_to_create"), 5000)
+    } finally {
+      // prepareForTransition flushed and paused follow-up autosave work. Resume
+      // whichever file is active now on create failure, stale navigation, or
+      // load failure; after a successful note switch this is a harmless no-op.
+      try {
+        autosave?.resumeAfterTransition?.()
+      } catch (resumeError) {
+        console.error("Unable to resume autosave after created-note redo:", resumeError)
+      } finally {
+        this._pendingCreatedNoteRedo?.delete(path)
+      }
+    }
+  }
+
   async onFileCreated(event) {
     const { path } = event.detail
+    const previousPath = this.currentFile
     this.invalidateTreeRefreshes()
 
     // Expand parent folders
@@ -1432,8 +1714,19 @@ export default class extends Controller {
       this.expandedFolders.add(expandPath)
     }
 
-    // Tree is already updated by Turbo Stream
-    await this.loadFile(path)
+    // Tree is already updated by Turbo Stream. Capture the initial server
+    // state only after the created note has been loaded and applied; this also
+    // captures server-generated content such as Hugo templates.
+    const loadedNote = await this.loadFile(path)
+    if (!loadedNote || this.currentFile !== path || this.getFileType(path) !== "markdown") return
+    if (typeof loadedNote.content !== "string" || typeof loadedNote.revision !== "string") return
+
+    this.createdNoteBoundaries.set(path, {
+      path,
+      initialContent: loadedNote.content,
+      initialRevision: loadedNote.revision,
+      previousPath
+    })
   }
 
   onFolderCreated(event) {
@@ -1446,6 +1739,7 @@ export default class extends Controller {
   onFileRenamed(event) {
     const { oldPath, newPath, type } = event.detail
     this.invalidateTreeRefreshes()
+    this.remapSessionNotePaths(oldPath, newPath, type)
 
     if (type === "folder") {
       // Preserve expand/collapse state for renamed folder and its descendants.
@@ -1478,7 +1772,47 @@ export default class extends Controller {
     // Tree is already updated by Turbo Stream
   }
 
-  onFileDeleted(event) {
+  remapSessionNotePaths(oldPath, newPath, type) {
+    this.getCodemirrorController()?.remapHistoryPaths?.(oldPath, newPath, type)
+
+    const boundaries = this.createdNoteBoundaries
+    if (!boundaries || typeof boundaries.entries !== "function") return
+
+    const entries = Array.from(boundaries.entries()).map(([key, boundary]) => {
+      const remappedKey = remapScopedPath(key, oldPath, newPath, type)
+      if (boundary && typeof boundary === "object") {
+        boundary.path = remapScopedPath(boundary.path, oldPath, newPath, type)
+        boundary.previousPath = remapScopedPath(boundary.previousPath, oldPath, newPath, type)
+      }
+      return [key, remappedKey, boundary, key !== remappedKey]
+    })
+    const destinationPaths = new Set(entries.filter(([, , , moved]) => moved).map(([, path]) => path))
+    boundaries.clear()
+
+    // Preserve insertion order for redo selection while allowing the moved
+    // note to replace any stale destination boundary from a previously deleted note.
+    for (const [key, remappedKey, boundary, moved] of entries) {
+      if (!moved && destinationPaths.has(key)) continue
+      boundaries.set(remappedKey, boundary)
+    }
+  }
+
+  evictCreatedNoteBoundaries(path, type) {
+    const boundaries = this.createdNoteBoundaries
+    if (!boundaries || typeof boundaries.entries !== "function") return
+
+    for (const [key, boundary] of boundaries.entries()) {
+      if (pathMatchesScope(key, path, type) || pathMatchesScope(boundary?.path, path, type)) {
+        boundaries.delete(key)
+      } else if (pathMatchesScope(boundary?.previousPath, path, type)) {
+        // Keep an independently created note undoable, but sever a deleted
+        // predecessor so a future note at the same path cannot inherit its redo.
+        boundary.previousPath = null
+      }
+    }
+  }
+
+  onFileDeleted(event, { preserveSessionState = false } = {}) {
     const { path, type } = event.detail
     this.invalidateTreeRefreshes()
     const activeFileWasDeleted = this.currentFile === path || (
@@ -1489,6 +1823,11 @@ export default class extends Controller {
     const cleanup = autosave?.deleteFile(path, type)
     if (cleanup && !cleanup.ok) {
       this.showTemporaryMessage(window.t("status.draft_storage_error"), 5000)
+    }
+
+    if (!preserveSessionState) {
+      this.getCodemirrorController()?.evictHistoryPaths?.(path, type)
+      this.evictCreatedNoteBoundaries(path, type)
     }
 
     // Clear editor if deleted file was currently open
@@ -1577,6 +1916,8 @@ export default class extends Controller {
     })
 
     document.addEventListener("keydown", this.boundKeydownHandler)
+    this.boundRootRedoHandler = (event) => this.onGlobalRedoAtRootBoundary(event)
+    document.addEventListener("keydown", this.boundRootRedoHandler)
   }
 
   // Execute an action triggered by a keyboard shortcut

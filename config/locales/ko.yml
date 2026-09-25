@@ -520,6 +520,7 @@ ko:
   # 확인 메시지
   confirm:
     delete_note: "이 노트를 삭제하시겠습니까?"
+    undo_created_note: "새로 만든 노트 \"%{name}\"를 삭제하고 생성을 취소하시겠습니까?"
     delete_folder: "이 폴더와 모든 내용을 삭제하시겠습니까?"
 
   # 성공 메시지

@@ -520,6 +520,7 @@ ja:
   # Confirm messages
   confirm:
     delete_note: "このノートを削除してもよろしいですか？"
+    undo_created_note: "新しく作成したノート「%{name}」を削除して、作成を取り消しますか？"
     delete_folder: "このフォルダとすべての内容を削除してもよろしいですか？"
 
   # Success messages
