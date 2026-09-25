@@ -356,6 +356,31 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     refute @test_notes_dir.join("to_delete.md").exist?
   end
 
+  test "destroy deletes note when expected revision matches" do
+    content = "current content"
+    create_test_note("to_delete.md", content)
+
+    delete destroy_note_url(path: "to_delete.md"),
+      params: { expected_revision: Digest::SHA256.hexdigest(content) },
+      as: :json
+
+    assert_response :success
+    refute @test_notes_dir.join("to_delete.md").exist?
+  end
+
+  test "destroy returns a conflict and preserves note when expected revision is stale" do
+    create_test_note("to_delete.md", "updated content")
+
+    delete destroy_note_url(path: "to_delete.md"),
+      params: { expected_revision: Digest::SHA256.hexdigest("old content") },
+      as: :json
+
+    assert_response :conflict
+    assert_equal "revision_conflict", JSON.parse(response.body)["code"]
+    assert_match(/changed since it was loaded/i, JSON.parse(response.body)["error"])
+    assert_equal "updated content", @test_notes_dir.join("to_delete.md").read
+  end
+
   test "destroy returns 404 for missing note" do
     delete destroy_note_url(path: "nonexistent.md"), as: :json
     assert_response :not_found

@@ -487,6 +487,7 @@ pt-PT:
   # Mensagens de erro
   errors:
     note_not_found: "Nota não encontrada"
+    note_changed_since_loaded: "Esta nota foi alterada desde que foi carregada. Volte a carregá-la antes de a eliminar."
     note_already_exists: "A nota já existe"
     note_is_empty: "A nota está vazia"
     folder_not_found: "Pasta não encontrada"

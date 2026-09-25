@@ -459,6 +459,7 @@ he:
   # הודעות שגיאה
   errors:
     note_not_found: "ההערה לא נמצאה"
+    note_changed_since_loaded: "הפתק השתנה מאז שנטען. יש לטעון אותו מחדש לפני המחיקה."
     note_already_exists: "ההערה כבר קיימת"
     note_is_empty: "ההערה ריקה"
     folder_not_found: "התיקייה לא נמצאה"
