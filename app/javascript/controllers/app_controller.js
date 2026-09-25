@@ -42,6 +42,8 @@ export default class extends Controller {
     "contextMenu",
     "editorToolbar",
     "helpDialog",
+    "undoCreatedNoteDialog",
+    "undoCreatedNoteMessage",
     "tableHint",
     "sidebar",
     "sidebarToggle",
@@ -1472,9 +1474,6 @@ export default class extends Controller {
     const codemirror = this.getCodemirrorController()
     if (!codemirror || codemirror.getValue() !== boundary.initialContent) return false
 
-    const name = path.split("/").pop()
-    if (!window.confirm(window.t("confirm.undo_created_note", { name }))) return true
-
     const autosave = this.getAutosaveController()
     if (!autosave?.prepareForFileDeletion) {
       this.showTemporaryMessage(window.t("status.draft_storage_error"), 5000)
@@ -1484,19 +1483,91 @@ export default class extends Controller {
     const contentAtConfirmation = codemirror.getValue()
     if (contentAtConfirmation !== boundary.initialContent) return true
 
-    const releaseEditorLock = this.acquireCreatedNoteUndoEditorLock(codemirror)
-
     this._pendingCreatedNoteUndo ??= new Set()
     this._pendingCreatedNoteUndo.add(path)
-    void this.performCreatedNoteUndo(
+    void this.confirmAndPerformCreatedNoteUndo(
       path,
       boundary,
       autosave,
       this._navigationGeneration,
-      contentAtConfirmation,
-      releaseEditorLock
+      contentAtConfirmation
     )
     return true
+  }
+
+  confirmCreatedNoteUndo(path) {
+    const name = path.split("/").pop() || path
+    const dialog = this.undoCreatedNoteDialogTarget
+    const messageTarget = this.undoCreatedNoteMessageTarget
+
+    if (!dialog || typeof dialog.showModal !== "function" || !messageTarget) {
+      return Promise.resolve(window.confirm(window.t("confirm.undo_created_note", { name })))
+    }
+
+    const filenameToken = "__FRANKMD_UNDO_FILENAME__"
+    const message = window.t("confirm.undo_created_note", { name: filenameToken })
+    const parts = String(message).split(filenameToken)
+    const fragment = document.createDocumentFragment()
+
+    parts.forEach((part, index) => {
+      if (part) fragment.append(document.createTextNode(part))
+      if (index < parts.length - 1) {
+        const filename = document.createElement("span")
+        filename.className = "confirm-dialog__filename"
+        filename.textContent = name
+        fragment.append(filename)
+      }
+    })
+
+    if (parts.length > 1) {
+      messageTarget.replaceChildren(fragment)
+    } else {
+      // Keep a useful localized message if a locale has not loaded its
+      // placeholder-based translation yet.
+      messageTarget.textContent = window.t("confirm.undo_created_note", { name })
+    }
+
+    dialog.returnValue = ""
+    return new Promise((resolve) => {
+      dialog.addEventListener("close", () => {
+        resolve(dialog.returnValue === "confirm")
+      }, { once: true })
+      dialog.showModal()
+    })
+  }
+
+  async confirmAndPerformCreatedNoteUndo(path, boundary, autosave, navigationGeneration, expectedContent) {
+    let releaseEditorLock
+    try {
+      if (!await this.confirmCreatedNoteUndo(path)) return
+
+      if (this.currentFile !== path || this._navigationGeneration !== navigationGeneration ||
+          this.createdNoteBoundaries?.get(path) !== boundary || boundary.deleted) return
+
+      const codemirror = this.getCodemirrorController()
+      if (!codemirror || codemirror.getValue() !== expectedContent ||
+          codemirror.getValue() !== boundary.initialContent) {
+        this.showTemporaryMessage(window.t("errors.failed_to_delete"), 5000)
+        return
+      }
+
+      releaseEditorLock = this.acquireCreatedNoteUndoEditorLock(codemirror)
+      await this.performCreatedNoteUndo(
+        path,
+        boundary,
+        autosave,
+        navigationGeneration,
+        expectedContent,
+        releaseEditorLock
+      )
+      releaseEditorLock = null
+    } catch (error) {
+      console.error("Failed to confirm created-note undo:", error)
+      this.showTemporaryMessage(error.message || window.t("errors.failed_to_delete"), 5000)
+    } finally {
+      releaseEditorLock?.()
+      this._pendingCreatedNoteUndo?.delete(path)
+    }
   }
 
   async performCreatedNoteUndo(path, boundary, autosave, navigationGeneration, expectedContent, releaseEditorLock) {

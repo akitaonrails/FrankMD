@@ -520,7 +520,8 @@ pt-PT:
   # Mensagens de confirmação
   confirm:
     delete_note: "Tem a certeza que deseja eliminar esta nota?"
-    undo_created_note: "Eliminar a nota recém-criada \"%{name}\" e anular a sua criação?"
+    undo_created_note_title: "Anular a criação da nota?"
+    undo_created_note: "Anular a criação elimina \"%{name}\". Pode refazer esta ação durante esta sessão."
     delete_folder: "Tem a certeza que deseja eliminar esta pasta e todo o seu conteúdo?"
 
   # Mensagens de sucesso

@@ -1,0 +1,30 @@
+<dialog
+  class="w-96 max-w-[calc(100vw-2rem)] p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)]"
+  data-app-target="undoCreatedNoteDialog"
+  aria-labelledby="undo-created-note-title"
+  aria-describedby="undo-created-note-message"
+>
+  <form method="dialog" class="w-full p-5 text-[var(--theme-text-primary)]">
+    <h2 id="undo-created-note-title" class="text-base font-semibold">
+      <%= t('confirm.undo_created_note_title') %>
+    </h2>
+    <p
+      id="undo-created-note-message"
+      data-app-target="undoCreatedNoteMessage"
+      class="mt-2 text-sm leading-relaxed text-[var(--theme-text-secondary)]"
+    ></p>
+    <div class="mt-5 flex justify-end gap-2">
+      <button
+        type="submit"
+        value="cancel"
+        autofocus
+        class="rounded-md px-3 py-1.5 text-sm text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
+      ><%= t('common.cancel') %></button>
+      <button
+        type="submit"
+        value="confirm"
+        class="rounded-md border border-[var(--theme-error)] px-3 py-1.5 text-sm text-[var(--theme-error)] hover:bg-[var(--theme-bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-error)]"
+      ><%= t('common.delete') %></button>
+    </div>
+  </form>
+</dialog>

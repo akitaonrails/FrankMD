@@ -342,6 +342,14 @@ describe("AppController navigation", () => {
       .mockResolvedValueOnce(response({ ok: true }))
       .mockResolvedValueOnce(response({ json: { content: "previous content", revision: "previous-revision" } }))
     const app = makeApp({ currentFile: "created.md", autosave, codemirror })
+    const dialog = document.createElement("dialog")
+    dialog.showModal = vi.fn()
+    const messageTarget = document.createElement("p")
+    app.undoCreatedNoteDialogTarget = dialog
+    app.undoCreatedNoteMessageTarget = messageTarget
+    window.t.mockImplementation((key, options = {}) => key === "confirm.undo_created_note"
+      ? `Undoing creation will delete \"${options.name}\". You can redo it during this session.`
+      : key)
     const boundary = {
       path: "created.md",
       initialContent: "created baseline",
@@ -351,10 +359,19 @@ describe("AppController navigation", () => {
     app.createdNoteBoundaries.set(boundary.path, boundary)
 
     expect(app.onUndoAtHistoryStart("created.md")).toBe(true)
+    expect(dialog.showModal).toHaveBeenCalledOnce()
+    expect(messageTarget.textContent).toBe(
+      'Undoing creation will delete "created.md". You can redo it during this session.'
+    )
+    const highlightedFilename = messageTarget.querySelector(".confirm-dialog__filename")
+    expect(highlightedFilename.textContent).toBe("created.md")
+    expect(highlightedFilename.className).toContain("confirm-dialog__filename")
+    dialog.returnValue = "confirm"
+    dialog.dispatchEvent(new Event("close"))
     await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
     await vi.waitFor(() => expect(app.currentFile).toBe("previous.md"))
 
-    expect(window.confirm).toHaveBeenCalledWith("confirm.undo_created_note")
+    expect(window.confirm).not.toHaveBeenCalled()
     expect(autosave.prepareForFileDeletion).toHaveBeenCalledWith("created.md")
     expect(codemirror.acquireReadOnlyLock).toHaveBeenCalledOnce()
     expect(releaseEditorLock).toHaveBeenCalledOnce()
@@ -367,14 +384,17 @@ describe("AppController navigation", () => {
     expect(app.updateUrl).toHaveBeenCalledWith("previous.md", { replace: true })
   })
 
-  it("does nothing when the user cancels the created-note deletion prompt", () => {
-    window.confirm.mockReturnValue(false)
+  it("does nothing when the user cancels the created-note deletion prompt", async () => {
     const autosave = { prepareForFileDeletion: vi.fn() }
     const codemirror = {
       getValue: vi.fn(() => "created baseline"),
       acquireReadOnlyLock: vi.fn()
     }
     const app = makeApp({ currentFile: "created.md", autosave, codemirror })
+    const dialog = document.createElement("dialog")
+    dialog.showModal = vi.fn()
+    app.undoCreatedNoteDialogTarget = dialog
+    app.undoCreatedNoteMessageTarget = document.createElement("p")
     const boundary = {
       path: "created.md",
       initialContent: "created baseline",
@@ -384,8 +404,12 @@ describe("AppController navigation", () => {
     app.createdNoteBoundaries.set(boundary.path, boundary)
 
     expect(app.onUndoAtHistoryStart("created.md")).toBe(true)
+    dialog.returnValue = "cancel"
+    dialog.dispatchEvent(new Event("close"))
+    await vi.waitFor(() => expect(app._pendingCreatedNoteUndo.size).toBe(0))
 
     expect(autosave.prepareForFileDeletion).not.toHaveBeenCalled()
+    expect(window.confirm).not.toHaveBeenCalled()
     expect(codemirror.acquireReadOnlyLock).not.toHaveBeenCalled()
     expect(global.fetch).not.toHaveBeenCalled()
     expect(boundary.deleted).toBeUndefined()
