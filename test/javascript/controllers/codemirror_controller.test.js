@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
-import { undo } from "@codemirror/commands"
+import { redo, undo } from "@codemirror/commands"
 import { Application } from "@hotwired/stimulus"
 import CodemirrorController from "../../../app/javascript/controllers/codemirror_controller.js"
 
@@ -93,18 +93,205 @@ describe("CodemirrorController", () => {
   })
 
   describe("loadContent()", () => {
-    it("starts a fresh undo history without dispatching a user change", () => {
+    it("loads content without recording it as a user change", () => {
       const changeHandler = vi.fn()
       element.addEventListener("codemirror:change", changeHandler)
       controller.setValue("Edited previous note")
       changeHandler.mockClear()
 
-      controller.loadContent("New note content")
+      controller.loadContent("New note content", "new.md")
 
       expect(controller.getValue()).toBe("New note content")
       expect(undo(controller.getEditorView())).toBe(false)
       expect(controller.getValue()).toBe("New note content")
       expect(changeHandler).not.toHaveBeenCalled()
+    })
+
+    it("preserves independent undo and redo history for each note", () => {
+      const changeHandler = vi.fn()
+      element.addEventListener("codemirror:change", changeHandler)
+      controller.loadContent("file 1 baseline", "file1.md")
+      controller.setValue("file 1 edit")
+
+      controller.loadContent("file 2 baseline", "file2.md")
+      expect(undo(controller.getEditorView())).toBe(false)
+      controller.setValue("file 2 edit")
+
+      changeHandler.mockClear()
+      controller.loadContent("file 1 edit", "file1.md")
+      expect(changeHandler).not.toHaveBeenCalled()
+      expect(controller.getValue()).toBe("file 1 edit")
+      expect(undo(controller.getEditorView())).toBe(true)
+      expect(controller.getValue()).toBe("file 1 baseline")
+      expect(redo(controller.getEditorView())).toBe(true)
+      expect(controller.getValue()).toBe("file 1 edit")
+
+      controller.loadContent("file 2 edit", "file2.md")
+      expect(controller.getValue()).toBe("file 2 edit")
+      expect(undo(controller.getEditorView())).toBe(true)
+      expect(controller.getValue()).toBe("file 2 baseline")
+      expect(redo(controller.getEditorView())).toBe(true)
+      expect(controller.getValue()).toBe("file 2 edit")
+    })
+
+    it("remaps active and cached history paths when a folder is moved", () => {
+      controller.loadContent("first baseline", "old/first.md")
+      controller.setValue("first edit")
+      controller.loadContent("second baseline", "old/nested/second.md")
+      controller.setValue("second edit")
+
+      controller.remapHistoryPaths("old", "new", "folder")
+
+      expect(controller._activeHistoryPath).toBe("new/nested/second.md")
+      expect(controller._noteEditorStates.has("old/first.md")).toBe(false)
+      expect(controller._noteEditorStates.has("new/first.md")).toBe(true)
+
+      controller.loadContent("first edit", "new/first.md")
+      expect(undo(controller.getEditorView())).toBe(true)
+      expect(controller.getValue()).toBe("first baseline")
+
+      controller.loadContent("second edit", "new/nested/second.md")
+      expect(undo(controller.getEditorView())).toBe(true)
+      expect(controller.getValue()).toBe("second baseline")
+    })
+
+    it("remaps a file history and discards stale destination history", () => {
+      controller.loadContent("source baseline", "source.md")
+      controller.setValue("source edit")
+      controller.loadContent("destination baseline", "destination.md")
+      controller.setValue("destination edit")
+      controller.loadContent("other baseline", "other.md")
+
+      controller.remapHistoryPaths("source.md", "destination.md", "file")
+
+      expect(controller._noteEditorStates.has("source.md")).toBe(false)
+      expect(controller._noteEditorStates.has("destination.md")).toBe(true)
+      controller.loadContent("source edit", "destination.md")
+      expect(undo(controller.getEditorView())).toBe(true)
+      expect(controller.getValue()).toBe("source baseline")
+    })
+
+    it("evicts deleted file and folder subtree history before a path can be reused", () => {
+      controller.loadContent("file baseline", "deleted.md")
+      controller.setValue("file edit")
+      controller.loadContent("folder baseline", "deleted-folder/nested.md")
+      controller.setValue("folder edit")
+      controller.loadContent("other baseline", "other.md")
+
+      controller.evictHistoryPaths("deleted.md", "file")
+      controller.evictHistoryPaths("deleted-folder", "folder")
+
+      expect(controller._noteEditorStates.has("deleted.md")).toBe(false)
+      expect(controller._noteEditorStates.has("deleted-folder/nested.md")).toBe(false)
+
+      controller.loadContent("new file at reused path", "deleted.md")
+      expect(undo(controller.getEditorView())).toBe(false)
+      controller.loadContent("new note in reused folder", "deleted-folder/nested.md")
+      expect(undo(controller.getEditorView())).toBe(false)
+    })
+
+    it("discards a note's cached history when its loaded content no longer matches", () => {
+      controller.loadContent("file 1 baseline", "file1.md")
+      controller.setValue("file 1 edit")
+
+      controller.loadContent("file 2 baseline", "file2.md")
+      controller.loadContent("external file 1 update", "file1.md")
+
+      expect(controller.getValue()).toBe("external file 1 update")
+      expect(undo(controller.getEditorView())).toBe(false)
+    })
+  })
+
+  describe("undo at the history boundary", () => {
+    function pressUndo(view) {
+      const event = new KeyboardEvent("keydown", {
+        key: "z",
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true
+      })
+      view.contentDOM.dispatchEvent(event)
+      return event
+    }
+
+    it("uses normal text undo before asking the app to handle an exhausted history", () => {
+      controller.loadContent("created note baseline", "created.md")
+      controller.setUndoAtHistoryStartHandler(vi.fn(() => true))
+      controller.setValue("edited created note")
+      const handler = controller.undoAtHistoryStartHandler
+      const view = controller.getEditorView()
+
+      pressUndo(view)
+      expect(controller.getValue()).toBe("created note baseline")
+      expect(handler).not.toHaveBeenCalled()
+
+      const event = pressUndo(view)
+      expect(handler).toHaveBeenCalledOnce()
+      expect(event.defaultPrevented).toBe(true)
+    })
+
+    it("leaves exhausted Ctrl+Z to Vim mode", () => {
+      controller.loadContent("created note baseline", "created.md")
+      const handler = vi.fn(() => true)
+      controller.setUndoAtHistoryStartHandler(handler)
+      controller.vimModeValue = true
+
+      pressUndo(controller.getEditorView())
+
+      expect(handler).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("redo at the history boundary", () => {
+    function pressRedo(view, { key = "y", shiftKey = false } = {}) {
+      const event = new KeyboardEvent("keydown", {
+        key,
+        ctrlKey: true,
+        shiftKey,
+        bubbles: true,
+        cancelable: true
+      })
+      view.contentDOM.dispatchEvent(event)
+      return event
+    }
+
+    it("uses the active note's redo history before asking the app to handle an exhausted history", () => {
+      controller.loadContent("note baseline", "note.md")
+      const handler = vi.fn(() => true)
+      controller.setRedoAtHistoryEndHandler(handler)
+      controller.setValue("note edit")
+      expect(undo(controller.getEditorView())).toBe(true)
+      const view = controller.getEditorView()
+
+      pressRedo(view)
+      expect(controller.getValue()).toBe("note edit")
+      expect(handler).not.toHaveBeenCalled()
+
+      const event = pressRedo(view)
+      expect(handler).toHaveBeenCalledOnce()
+      expect(event.defaultPrevented).toBe(true)
+    })
+
+    it("routes exhausted Ctrl+Shift+Z to the creation boundary", () => {
+      controller.loadContent("note baseline", "note.md")
+      const handler = vi.fn(() => true)
+      controller.setRedoAtHistoryEndHandler(handler)
+
+      const event = pressRedo(controller.getEditorView(), { key: "z", shiftKey: true })
+
+      expect(handler).toHaveBeenCalledOnce()
+      expect(event.defaultPrevented).toBe(true)
+    })
+
+    it("leaves exhausted redo to Vim mode", () => {
+      controller.loadContent("note baseline", "note.md")
+      const handler = vi.fn(() => true)
+      controller.setRedoAtHistoryEndHandler(handler)
+      controller.vimModeValue = true
+
+      pressRedo(controller.getEditorView())
+
+      expect(handler).not.toHaveBeenCalled()
     })
   })
 
@@ -423,6 +610,18 @@ describe("CodemirrorController", () => {
     it("updates read-only state", () => {
       controller.setReadOnly(true)
       expect(controller.readOnlyValue).toBe(true)
+      expect(controller.getEditorView().contentDOM.getAttribute("contenteditable")).toBe("false")
+    })
+
+    it("keeps a temporary interaction lock until released, even if base read-only changes", () => {
+      const releaseLock = controller.acquireReadOnlyLock()
+      expect(controller.getEditorView().contentDOM.getAttribute("contenteditable")).toBe("false")
+
+      controller.setReadOnly(false)
+      expect(controller.getEditorView().contentDOM.getAttribute("contenteditable")).toBe("false")
+
+      releaseLock()
+      expect(controller.getEditorView().contentDOM.getAttribute("contenteditable")).toBe("true")
     })
   })
 

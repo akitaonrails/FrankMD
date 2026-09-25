@@ -3,7 +3,7 @@
 
 import { EditorView, keymap, placeholder, lineNumbers, highlightActiveLineGutter, drawSelection, rectangularSelection, highlightActiveLine, ViewPlugin } from "@codemirror/view"
 import { EditorState, Compartment, Prec } from "@codemirror/state"
-import { history, defaultKeymap, historyKeymap, indentWithTab } from "@codemirror/commands"
+import { history, historyKeymap, redoDepth, undoDepth, defaultKeymap, indentWithTab } from "@codemirror/commands"
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
 import { bracketMatching } from "@codemirror/language"
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search"
@@ -178,6 +178,23 @@ const markdownKeymap = Prec.highest(keymap.of([
   }
 ]))
 
+function createHistoryBoundaryKeymap(onUndoAtHistoryStart, onRedoAtHistoryEnd) {
+  const undo = (view) => {
+    if (undoDepth(view.state) > 0) return false
+    return onUndoAtHistoryStart ? onUndoAtHistoryStart(view) : false
+  }
+  const redo = (view) => {
+    if (redoDepth(view.state) > 0) return false
+    return onRedoAtHistoryEnd ? onRedoAtHistoryEnd(view) : false
+  }
+
+  return Prec.highest(keymap.of([
+    { key: "Mod-z", run: undo },
+    { key: "Mod-y", mac: "Mod-Shift-z", run: redo },
+    { key: "Ctrl-Shift-z", run: redo }
+  ]))
+}
+
 /**
  * Create the base extensions for the editor
  * @param {Object} options - Configuration options
@@ -190,6 +207,8 @@ const markdownKeymap = Prec.highest(keymap.of([
  * @param {Function} options.onSelectionChange - Callback for selection changes
  * @param {Function} options.onScroll - Callback for scroll events
  * @param {Function} options.onPaste - Callback(file) when an image is pasted
+ * @param {Function} options.onUndoAtHistoryStart - Callback when undo history is exhausted
+ * @param {Function} options.onRedoAtHistoryEnd - Callback when redo history is exhausted
  * @returns {Extension[]} - Array of CodeMirror extensions
  */
 export function createExtensions(options = {}) {
@@ -203,13 +222,21 @@ export function createExtensions(options = {}) {
     onUpdate = null,
     onSelectionChange = null,
     onScroll = null,
-    onPaste = null
+    onPaste = null,
+    onUndoAtHistoryStart = null,
+    onRedoAtHistoryEnd = null
   } = options
 
   const extensions = [
     // Vim keymap FIRST so, when enabled, its modal bindings take precedence over
     // the default keymap. Empty when disabled. (In a compartment for live toggle.)
     vimCompartment.of(createVimExtension(vimMode)),
+
+    // When this note's undo or redo history is exhausted, the app may handle a
+    // created-note boundary. Ordinary edits continue through historyKeymap.
+    // Keep the boundary keymap at Prec.highest while placing Vim's compartment
+    // first so Vim's own modal bindings retain their established precedence.
+    createHistoryBoundaryKeymap(onUndoAtHistoryStart, onRedoAtHistoryEnd),
 
     // Theme (in compartment for dynamic switching)
     themeCompartment.of(createTheme({ fontFamily, fontSize, lineHeight })),
@@ -220,8 +247,8 @@ export function createExtensions(options = {}) {
     // Read-only state (in compartment for toggling)
     readOnlyCompartment.of(EditorState.readOnly.of(false)),
 
-    // History (undo/redo), reconfigurable so loading another note can clear
-    // the previous note's undo stack.
+    // History (undo/redo), reconfigurable so programmatic content replacement
+    // can clear stale history while note switches preserve per-note state.
     historyCompartment.of(history()),
 
     // Markdown language support

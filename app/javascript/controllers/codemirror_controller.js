@@ -23,6 +23,17 @@ import {
   setIsSelecting
 } from "lib/codemirror_typewriter"
 
+function pathMatchesScope(candidatePath, path, type) {
+  if (typeof candidatePath !== "string") return false
+  return candidatePath === path || (type === "folder" && candidatePath.startsWith(`${path}/`))
+}
+
+function remapScopedPath(candidatePath, oldPath, newPath, type) {
+  return pathMatchesScope(candidatePath, oldPath, type)
+    ? `${newPath}${candidatePath.slice(oldPath.length)}`
+    : candidatePath
+}
+
 // CodeMirror Controller
 // Main Stimulus controller that manages the CodeMirror 6 editor
 // Replaces the textarea-based syntax highlighting with native CodeMirror
@@ -53,6 +64,10 @@ export default class extends Controller {
       this.editor.destroy()
       this.editor = null
     }
+
+    this._noteEditorStates?.clear()
+    this._activeHistoryPath = null
+    this._readOnlyLocks?.clear()
   }
 
   createEditor() {
@@ -67,7 +82,13 @@ export default class extends Controller {
       onUpdate: (update) => this.onDocumentChange(update),
       onSelectionChange: (update) => this.onSelectionChange(update),
       onScroll: (event, view) => this.onScroll(event, view),
-      onPaste: (file) => this.onImagePaste(file)
+      onPaste: (file) => this.onImagePaste(file),
+      onUndoAtHistoryStart: (view) => !this.vimModeValue && this.undoAtHistoryStartHandler
+        ? this.undoAtHistoryStartHandler(this._activeHistoryPath, view)
+        : false,
+      onRedoAtHistoryEnd: (view) => !this.vimModeValue && this.redoAtHistoryEndHandler
+        ? this.redoAtHistoryEndHandler(this._activeHistoryPath, view)
+        : false
     })
 
     // Add typewriter extension
@@ -213,11 +234,13 @@ export default class extends Controller {
   }
 
   /**
-   * Load a document as a fresh editor session, without retaining the previous
-   * note's undo history or treating the load as a user edit.
+   * Load note content while preserving its undo/redo state across note switches.
+   * A content mismatch discards that note's cached state so server or recovered
+   * content is never treated as a user edit and stale history cannot overwrite it.
    * @param {string} text - New document content
+   * @param {string|null} path - Note path used to scope its editor state
    */
-  loadContent(text) {
+  loadContent(text, path = this._activeHistoryPath) {
     if (!this.editor) return
 
     const view = this.editor
@@ -225,23 +248,123 @@ export default class extends Controller {
     this._suppressDocumentChange = true
 
     try {
-      // Removing and restoring the history compartment resets its state field.
-      view.dispatch({ effects: historyCompartment.reconfigure([]) })
+      const previousPath = this._activeHistoryPath
+      if (!this._noteEditorStates) this._noteEditorStates = new Map()
 
-      if (view.state.doc.toString() !== text) {
-        view.dispatch({
-          changes: {
-            from: 0,
-            to: view.state.doc.length,
-            insert: text
-          }
-        })
+      if (previousPath !== path) {
+        if (previousPath) this._noteEditorStates.set(previousPath, view.state)
+
+        const savedState = path ? this._noteEditorStates.get(path) : null
+        if (savedState && savedState.doc.toString() === text) {
+          view.setState(savedState)
+          this.applyCurrentEditorSettings()
+        } else {
+          if (path) this._noteEditorStates.delete(path)
+          this.replaceContentWithoutHistory(text)
+        }
+
+        this._activeHistoryPath = path
+      } else if (view.state.doc.toString() !== text) {
+        if (path) this._noteEditorStates.delete(path)
+        this.replaceContentWithoutHistory(text)
       }
     } finally {
-      view.dispatch({ effects: historyCompartment.reconfigure(history()) })
       this._suppressDocumentChange = wasSuppressingDocumentChange
       this.syncToHidden()
     }
+  }
+
+  /**
+   * Keep cached editor states attached to their notes after a path change.
+   * Folder operations remap every descendant note as well as the folder path.
+   */
+  remapHistoryPaths(oldPath, newPath, type = "file") {
+    if (!oldPath || !newPath || oldPath === newPath) return
+
+    if (this._noteEditorStates) {
+      const entries = Array.from(this._noteEditorStates.entries())
+      const remappedEntries = entries.map(([path, state]) => [
+        remapScopedPath(path, oldPath, newPath, type),
+        state,
+        pathMatchesScope(path, oldPath, type)
+      ])
+      const destinationPaths = new Set(
+        remappedEntries.filter(([, , moved]) => moved).map(([path]) => path)
+      )
+      const nextStates = new Map()
+
+      // A successful filesystem move owns its destination. Discard any stale
+      // state that was already cached for a path now occupied by the moved note.
+      for (const [path, state, moved] of remappedEntries) {
+        if (!moved && !destinationPaths.has(path)) nextStates.set(path, state)
+      }
+      for (const [path, state, moved] of remappedEntries) {
+        if (moved) nextStates.set(path, state)
+      }
+      this._noteEditorStates = nextStates
+    }
+
+    this._activeHistoryPath = remapScopedPath(this._activeHistoryPath, oldPath, newPath, type)
+  }
+
+  /** Remove cached undo history when a note or folder subtree is deleted. */
+  evictHistoryPaths(path, type = "file") {
+    if (!path) return
+
+    if (this._noteEditorStates) {
+      for (const cachedPath of this._noteEditorStates.keys()) {
+        if (pathMatchesScope(cachedPath, path, type)) this._noteEditorStates.delete(cachedPath)
+      }
+    }
+
+    if (pathMatchesScope(this._activeHistoryPath, path, type)) {
+      this._activeHistoryPath = null
+    }
+  }
+
+  setUndoAtHistoryStartHandler(handler) {
+    this.undoAtHistoryStartHandler = typeof handler === "function" ? handler : null
+  }
+
+  setRedoAtHistoryEndHandler(handler) {
+    this.redoAtHistoryEndHandler = typeof handler === "function" ? handler : null
+  }
+
+  /**
+   * Replace the current document and clear its history without emitting a
+   * user-facing document change.
+   * @param {string} text - Replacement document content
+   */
+  replaceContentWithoutHistory(text) {
+    const view = this.editor
+    if (!view) return
+
+    // Removing and restoring the history compartment resets its state field.
+    view.dispatch({ effects: historyCompartment.reconfigure([]) })
+
+    if (view.state.doc.toString() !== text) {
+      view.dispatch({
+        changes: {
+          from: 0,
+          to: view.state.doc.length,
+          insert: text
+        }
+      })
+    }
+
+    view.dispatch({ effects: historyCompartment.reconfigure(history()) })
+  }
+
+  /**
+   * Reapply global editor settings after restoring a note's saved EditorState.
+   * @returns {void}
+   */
+  applyCurrentEditorSettings() {
+    this.reconfigureTheme()
+    this.setLineNumberMode(this.lineNumberModeValue)
+    this.setVimMode(this.vimModeValue)
+    this.setReadOnly(this.readOnlyValue)
+    this.setTypewriterMode(this.typewriterModeValue)
   }
 
   /**
@@ -663,8 +786,33 @@ export default class extends Controller {
     if (!this.editor) return
 
     this.readOnlyValue = readOnly
+    this.applyReadOnlyState()
+  }
+
+  acquireReadOnlyLock() {
+    this._readOnlyLocks ??= new Set()
+    const token = {}
+    this._readOnlyLocks.add(token)
+    this.applyReadOnlyState()
+
+    let released = false
+    return () => {
+      if (released) return
+      released = true
+      this._readOnlyLocks.delete(token)
+      this.applyReadOnlyState()
+    }
+  }
+
+  applyReadOnlyState() {
+    if (!this.editor) return
+
+    const readOnly = Boolean(this.readOnlyValue || this._readOnlyLocks?.size)
     this.editor.dispatch({
-      effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly))
+      effects: readOnlyCompartment.reconfigure([
+        EditorState.readOnly.of(readOnly),
+        EditorView.editable.of(!readOnly)
+      ])
     })
   }
 
