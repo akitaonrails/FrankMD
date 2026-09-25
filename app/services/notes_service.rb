@@ -244,9 +244,20 @@ class NotesService
   # External sync tools and writers that ignore advisory locks do not coordinate.
   def with_filesystem_lock(mode = File::LOCK_EX)
     notes_root = @base_path.realpath.to_s
-    lock = open_filesystem_lock(shared_filesystem_lock_path(notes_root), mode)
+    lock = shared_filesystem_lock(notes_root, mode)
     lock ||= open_local_filesystem_lock(notes_root)
     with_locked_file(lock, mode) { yield }
+  end
+
+  # Open the shared NOTES_PATH lock, degrading to nil (so the caller falls back
+  # to the local lock) when it cannot be opened at all — a read-only mount, a
+  # symlinked/ELOOP lock path, ENOSPC, etc. A lock-file problem must not crash
+  # tree reads or mutations; the underlying filesystem op still enforces its own
+  # errors.
+  def shared_filesystem_lock(notes_root, mode)
+    open_filesystem_lock(shared_filesystem_lock_path(notes_root), mode)
+  rescue SystemCallError
+    nil
   end
 
   def shared_filesystem_lock_path(notes_root)
