@@ -1536,6 +1536,11 @@ export default class extends Controller {
     })
   }
 
+  closeUndoCreatedNoteDialog() {
+    const dialog = this.undoCreatedNoteDialogTarget
+    if (typeof dialog.close === "function") dialog.close("cancel")
+  }
+
   async confirmAndPerformCreatedNoteUndo(path, boundary, autosave, navigationGeneration, expectedContent) {
     let releaseEditorLock
     try {

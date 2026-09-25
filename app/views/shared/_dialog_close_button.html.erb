@@ -1,12 +1,14 @@
 <%# Dialog close button with X icon
    Parameters:
    - action: Stimulus action string (required, e.g., "click->my-controller#close")
+   - label: Optional accessible label
    - size: icon size class (default: "w-4 h-4")
    - padding: button padding class (default: "p-1")
    - hover_bg: hover background class (default: "hover:bg-[var(--theme-bg-hover)]")
 %>
 <button
   type="button"
+  <% if local_assigns[:label] %>aria-label="<%= local_assigns[:label] %>"<% end %>
   data-action="<%= action %>"
   class="<%= local_assigns[:padding] || 'p-1' %> rounded <%= local_assigns[:hover_bg] || 'hover:bg-[var(--theme-bg-hover)]' %> text-[var(--theme-text-muted)]"
 >

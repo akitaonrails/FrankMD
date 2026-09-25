@@ -416,6 +416,36 @@ describe("AppController navigation", () => {
     expect(app.currentFile).toBe("created.md")
   })
 
+  it("closes the created-note prompt from the shared dialog header", async () => {
+    const app = makeApp({
+      currentFile: "created.md",
+      autosave: { prepareForFileDeletion: vi.fn() },
+      codemirror: { getValue: vi.fn(() => "created baseline") }
+    })
+    const dialog = document.createElement("dialog")
+    dialog.showModal = vi.fn()
+    dialog.close = vi.fn((returnValue) => {
+      dialog.returnValue = returnValue
+      dialog.dispatchEvent(new Event("close"))
+    })
+    app.undoCreatedNoteDialogTarget = dialog
+    app.undoCreatedNoteMessageTarget = document.createElement("p")
+    app.createdNoteBoundaries.set("created.md", {
+      path: "created.md",
+      initialContent: "created baseline",
+      initialRevision: "creation-revision",
+      previousPath: "previous.md"
+    })
+
+    app.onUndoAtHistoryStart("created.md")
+    app.closeUndoCreatedNoteDialog()
+    await vi.waitFor(() => expect(app._pendingCreatedNoteUndo.size).toBe(0))
+
+    expect(dialog.close).toHaveBeenCalledWith("cancel")
+    expect(window.confirm).not.toHaveBeenCalled()
+    expect(app.currentFile).toBe("created.md")
+  })
+
   it("does not intercept exhausted undo for an ordinary note or non-baseline content", () => {
     const codemirror = { getValue: vi.fn(() => "edited content") }
     const app = makeApp({ currentFile: "ordinary.md", codemirror })

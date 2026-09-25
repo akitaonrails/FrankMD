@@ -2,9 +2,11 @@
    Parameters:
    - title: Dialog title text (required)
    - close_action: Stimulus action for close button (required)
+   - title_id: Optional id for the title heading
+   - close_label: Optional accessible label for the close button
    - margin_bottom: Tailwind margin class (default: 'mb-3')
 %>
 <div class="flex items-center justify-between <%= local_assigns[:margin_bottom] || 'mb-3' %>">
-  <h3 class="text-sm font-semibold"><%= title %></h3>
-  <%= render "shared/dialog_close_button", action: close_action %>
+  <h3<% if local_assigns[:title_id] %> id="<%= local_assigns[:title_id] %>"<% end %> class="text-sm font-semibold"><%= title %></h3>
+  <%= render "shared/dialog_close_button", action: close_action, label: local_assigns[:close_label] %>
 </div>
