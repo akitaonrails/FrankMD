@@ -539,7 +539,7 @@ export default class extends Controller {
     // Set content via CodeMirror controller
     const codemirrorController = this.getCodemirrorController()
     if (codemirrorController) {
-      codemirrorController.setValue(editorContent)
+      codemirrorController.loadContent(editorContent)
       codemirrorController.focus()
     } else {
       // Fallback to hidden textarea

@@ -1009,12 +1009,22 @@ export default class extends Controller {
 
   undoContentLoss() {
     const codemirrorController = this.getCodemirrorController()
+    let undidEditorChange = false
     if (codemirrorController) {
       const view = codemirrorController.getEditorView()
       if (view) {
-        undo(view)
+        undidEditorChange = undo(view)
       }
     }
+
+    // A draft recovered after a reload has no prior CodeMirror edit history.
+    // In that case, restore the server baseline directly instead of leaving
+    // the content-loss action without anything to undo.
+    if (!undidEditorChange && this._contentLossWarningActive &&
+      typeof this._lastSavedContent === "string" && codemirrorController) {
+      codemirrorController.loadContent(this._lastSavedContent)
+    }
+
     const content = codemirrorController ? codemirrorController.getValue() : ""
     this.checkContentRestored(content)
     this.flushDraftWrite(this.currentFile, content, this._baseRevision)

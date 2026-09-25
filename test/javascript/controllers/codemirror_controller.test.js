@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
+import { undo } from "@codemirror/commands"
 import { Application } from "@hotwired/stimulus"
 import CodemirrorController from "../../../app/javascript/controllers/codemirror_controller.js"
 
@@ -88,6 +89,22 @@ describe("CodemirrorController", () => {
     it("syncs to hidden textarea", () => {
       controller.setValue("Updated")
       expect(controller.hiddenTarget.value).toBe("Updated")
+    })
+  })
+
+  describe("loadContent()", () => {
+    it("starts a fresh undo history without dispatching a user change", () => {
+      const changeHandler = vi.fn()
+      element.addEventListener("codemirror:change", changeHandler)
+      controller.setValue("Edited previous note")
+      changeHandler.mockClear()
+
+      controller.loadContent("New note content")
+
+      expect(controller.getValue()).toBe("New note content")
+      expect(undo(controller.getEditorView())).toBe(false)
+      expect(controller.getValue()).toBe("New note content")
+      expect(changeHandler).not.toHaveBeenCalled()
     })
   })
 

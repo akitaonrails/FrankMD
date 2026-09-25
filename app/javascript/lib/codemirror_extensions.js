@@ -21,6 +21,7 @@ export const themeCompartment = new Compartment()
 export const lineNumbersCompartment = new Compartment()
 export const readOnlyCompartment = new Compartment()
 export const vimCompartment = new Compartment()
+export const historyCompartment = new Compartment()
 
 // @replit/codemirror-vim ships its block-cursor colours at Prec.highest, so a
 // rule in the theme compartment (default precedence) never wins. Re-declare them
@@ -219,8 +220,9 @@ export function createExtensions(options = {}) {
     // Read-only state (in compartment for toggling)
     readOnlyCompartment.of(EditorState.readOnly.of(false)),
 
-    // History (undo/redo)
-    history(),
+    // History (undo/redo), reconfigurable so loading another note can clear
+    // the previous note's undo stack.
+    historyCompartment.of(history()),
 
     // Markdown language support
     markdown({ base: markdownLanguage }),

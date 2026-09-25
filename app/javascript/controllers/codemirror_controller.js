@@ -1,11 +1,13 @@
 import { Controller } from "@hotwired/stimulus"
 import { EditorView } from "@codemirror/view"
 import { EditorState } from "@codemirror/state"
+import { history } from "@codemirror/commands"
 import {
   createExtensions,
   themeCompartment,
   lineNumbersCompartment,
   readOnlyCompartment,
+  historyCompartment,
   vimCompartment,
   createVimExtension,
   createLineNumbers,
@@ -141,6 +143,8 @@ export default class extends Controller {
     // Sync to hidden textarea for form submission
     this.syncToHidden()
 
+    if (this._suppressDocumentChange) return
+
     // Dispatch event for app controller
     this.dispatch("change", {
       detail: {
@@ -206,6 +210,38 @@ export default class extends Controller {
         insert: text
       }
     })
+  }
+
+  /**
+   * Load a document as a fresh editor session, without retaining the previous
+   * note's undo history or treating the load as a user edit.
+   * @param {string} text - New document content
+   */
+  loadContent(text) {
+    if (!this.editor) return
+
+    const view = this.editor
+    const wasSuppressingDocumentChange = this._suppressDocumentChange
+    this._suppressDocumentChange = true
+
+    try {
+      // Removing and restoring the history compartment resets its state field.
+      view.dispatch({ effects: historyCompartment.reconfigure([]) })
+
+      if (view.state.doc.toString() !== text) {
+        view.dispatch({
+          changes: {
+            from: 0,
+            to: view.state.doc.length,
+            insert: text
+          }
+        })
+      }
+    } finally {
+      view.dispatch({ effects: historyCompartment.reconfigure(history()) })
+      this._suppressDocumentChange = wasSuppressingDocumentChange
+      this.syncToHidden()
+    }
   }
 
   /**
