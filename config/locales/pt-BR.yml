@@ -495,6 +495,7 @@ pt-BR:
   errors:
     title_required: "Título é obrigatório"
     note_not_found: "Nota não encontrada"
+    note_changed_since_loaded: "Esta nota foi alterada desde que foi carregada. Recarregue-a antes de excluí-la."
     note_already_exists: "Nota já existe"
     note_is_empty: "A nota está vazia"
     folder_not_found: "Pasta não encontrada"
@@ -527,6 +528,8 @@ pt-BR:
   # Mensagens de confirmação
   confirm:
     delete_note: "Tem certeza que deseja excluir esta nota?"
+    undo_created_note_title: "Desfazer a criação da nota?"
+    undo_created_note: "Desfazer a criação excluirá \"%{name}\". Você pode refazer esta ação durante esta sessão."
     delete_folder: "Tem certeza que deseja excluir esta pasta e todo seu conteúdo?"
 
   # Mensagens de sucesso

@@ -338,6 +338,28 @@ class NotesServiceTest < ActiveSupport::TestCase
     refute path.exist?
   end
 
+  test "delete removes file when expected revision matches" do
+    content = "current content"
+    path = create_test_note("to_delete.md", content)
+
+    @service.delete(
+      "to_delete.md",
+      expected_revision: Digest::SHA256.hexdigest(content)
+    )
+
+    refute path.exist?
+  end
+
+  test "delete preserves file when expected revision does not match" do
+    path = create_test_note("to_delete.md", "updated content")
+
+    assert_raises(NotesService::RevisionConflictError) do
+      @service.delete("to_delete.md", expected_revision: Digest::SHA256.hexdigest("old content"))
+    end
+
+    assert_equal "updated content", path.read
+  end
+
   test "delete raises NotFoundError for missing file" do
     assert_raises(NotesService::NotFoundError) do
       @service.delete("nonexistent.md")

@@ -264,6 +264,12 @@ describe("ThemeController", () => {
     })
 
     it("debounces multiple calls", async () => {
+      // connect() runs an async Omarchy availability check before rendering;
+      // wait for it so its fetch cannot land after the mock is cleared below.
+      await vi.waitFor(() => {
+        expect(controller.menuTarget.querySelector("button")).not.toBeNull()
+      })
+
       vi.useFakeTimers()
 
       try {

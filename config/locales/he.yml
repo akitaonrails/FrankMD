@@ -459,6 +459,7 @@ he:
   # הודעות שגיאה
   errors:
     note_not_found: "ההערה לא נמצאה"
+    note_changed_since_loaded: "הפתק השתנה מאז שנטען. יש לטעון אותו מחדש לפני המחיקה."
     note_already_exists: "ההערה כבר קיימת"
     note_is_empty: "ההערה ריקה"
     folder_not_found: "התיקייה לא נמצאה"
@@ -491,6 +492,8 @@ he:
   # הודעות אישור
   confirm:
     delete_note: "האם אתה בטוח שברצונך למחוק הערה זו?"
+    undo_created_note_title: "לבטל את יצירת ההערה?"
+    undo_created_note: "ביטול היצירה ימחק את \"%{name}\". אפשר לשחזר את הפעולה במהלך ההפעלה הזו."
     delete_folder: "האם אתה בטוח שברצונך למחוק תיקייה זו וכל תוכנה?"
 
   # הודעות הצלחה

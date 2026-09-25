@@ -2,10 +2,14 @@
    Parameters:
    - label: Button text (required)
    - type: 'button' or 'submit' (default: 'button')
+   - value: Form value when used as a submit button (optional)
+   - autofocus: Focus this button when its dialog opens (optional)
    - action: Stimulus action string (optional)
 %>
 <button
   type="<%= local_assigns[:type] || 'button' %>"
+  <% if local_assigns[:value] %>value="<%= local_assigns[:value] %>"<% end %>
+  <% if local_assigns[:autofocus] %>autofocus<% end %>
   <% if local_assigns[:action] %>data-action="<%= action %>"<% end %>
   class="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-secondary)]"
 ><%= label %></button>
