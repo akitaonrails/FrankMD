@@ -4,11 +4,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import AppController from "../../../app/javascript/controllers/app_controller"
 
-function response({ ok = true, status = 200, json = {} } = {}) {
+function response({ ok = true, status = 200, json = {}, text = "" } = {}) {
   return {
     ok,
     status,
-    json: () => Promise.resolve(json)
+    json: () => Promise.resolve(json),
+    text: () => Promise.resolve(text)
   }
 }
 
@@ -19,6 +20,8 @@ function makeApp({ currentFile = "a.md", autosave = null } = {}) {
     currentFileType: "markdown",
     expandedFolders: new Set(),
     _navigationGeneration: 0,
+    _treeRevision: 0,
+    _treeRefreshGeneration: 0,
     _fileNotFoundTimeout: null,
     getAutosaveController: () => autosave,
     getFileType: AppController.prototype.getFileType,
@@ -27,6 +30,7 @@ function makeApp({ currentFile = "a.md", autosave = null } = {}) {
     showEditor: vi.fn(),
     updateUrl: vi.fn(),
     refreshTree: vi.fn(),
+    fileTreeTarget: { innerHTML: "initial tree" },
     showFileNotFoundMessage: vi.fn(),
     hideStatsPanel: vi.fn(),
     editorPlaceholderTarget: { classList: { add: vi.fn(), remove: vi.fn() } },
@@ -91,6 +95,27 @@ describe("AppController navigation", () => {
     expect(app.showFileNotFoundMessage).not.toHaveBeenCalled()
     expect(app.showEditor).toHaveBeenCalledTimes(1)
     expect(app.updateUrl).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not apply a delayed tree response after another file is deleted", async () => {
+    const pending = []
+    global.fetch.mockImplementation(() => new Promise((resolve) => pending.push(resolve)))
+    const app = makeApp()
+    app.refreshTree = AppController.prototype.refreshTree
+
+    const refresh = app.refreshTree(0)
+    await vi.waitFor(() => expect(pending).toHaveLength(1))
+
+    // Turbo invalidates pending refreshes before it applies the mutation stream.
+    app.invalidateTreeRefreshesForStream({
+      target: { getAttribute: () => "file-tree-content" }
+    })
+    app.fileTreeTarget.innerHTML = "tree after delete"
+    app.onFileDeleted({ detail: { path: "other.md", type: "file" } })
+    pending[0](response({ text: "stale tree before delete" }))
+    await refresh
+
+    expect(app.fileTreeTarget.innerHTML).toBe("tree after delete")
   })
 
   it("keeps the current editor and URL when the outgoing draft cannot be stored", async () => {

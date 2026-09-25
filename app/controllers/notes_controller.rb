@@ -76,7 +76,7 @@ class NotesController < ApplicationController
       return
     end
 
-    if @note.save
+    if @note.save(create_only: true)
       respond_to do |format|
         format.turbo_stream {
           load_tree_for_turbo_stream(selected: @note.path)
@@ -155,6 +155,11 @@ class NotesController < ApplicationController
 
     if full_path.nil?
       head :forbidden
+      return
+    end
+
+    if full_path == notes_path.join(NotesService::FILESYSTEM_LOCK_FILENAME).cleanpath
+      head :not_found
       return
     end
 

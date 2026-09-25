@@ -1,11 +1,15 @@
 # frozen_string_literal: true
 
+require "digest"
+
 class NotesService
   class NotFoundError < StandardError; end
   class InvalidPathError < StandardError; end
+  class AlreadyExistsError < InvalidPathError; end
 
   MAX_SEARCH_FILE_BYTES = 5 * 1024 * 1024
   SEARCH_REGEX_TIMEOUT = 0.5
+  FILESYSTEM_LOCK_FILENAME = ".frankmd-filesystem.lock"
 
   def initialize(base_path: nil)
     @base_path = Pathname.new(base_path || ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
@@ -13,7 +17,7 @@ class NotesService
   end
 
   def list_tree
-    build_tree(@base_path)
+    with_filesystem_lock(File::LOCK_SH) { build_tree(@base_path) }
   end
 
   def read(path)
@@ -24,57 +28,98 @@ class NotesService
   end
 
   def write(path, content)
-    full_path = safe_path(path, must_exist: false)
-    FileUtils.mkdir_p(full_path.dirname)
-    atomic_write(full_path, content)
+    with_filesystem_lock do
+      full_path = safe_path(path, must_exist: false)
+      FileUtils.mkdir_p(full_path.dirname)
+      atomic_write(full_path, content)
+    end
+    true
+  end
+
+  # Create a note without replacing a file another request created first.
+  # The temporary file and final path share a filesystem, and hard-linking the
+  # completed temporary file makes the destination appear atomically only when
+  # it does not already exist.
+  def create(path, content)
+    with_filesystem_lock do
+      full_path = safe_path(path, must_exist: false)
+      FileUtils.mkdir_p(full_path.dirname)
+      raise AlreadyExistsError, "Destination already exists: #{path}" if path_exists?(full_path)
+
+      atomic_create(full_path, content)
+    end
     true
   end
 
   # Update an existing note without creating missing parent directories. This
   # keeps stale autosave requests from recreating a moved or deleted note.
   def update(path, content)
-    full_path = safe_path(path)
-    raise NotFoundError, "Note not found: #{path}" unless full_path.file?
+    with_filesystem_lock do
+      full_path = safe_path(path)
+      raise NotFoundError, "Note not found: #{path}" unless full_path.file?
 
-    atomic_write(full_path, content)
+      atomic_write(full_path, content)
+    end
     true
   end
 
   def delete(path)
-    full_path = safe_path(path)
-    raise NotFoundError, "Note not found: #{path}" unless full_path.file?
+    with_filesystem_lock do
+      full_path = safe_path(path)
+      raise NotFoundError, "Note not found: #{path}" unless full_path.file?
 
-    full_path.delete
+      full_path.delete
+    end
     true
   end
 
   def rename(old_path, new_path)
-    old_full = safe_path(old_path)
-    new_full = safe_path(new_path, must_exist: false)
+    with_filesystem_lock do
+      old_full = safe_path(old_path)
+      new_full = safe_path(new_path, must_exist: false)
 
-    raise NotFoundError, "Note not found: #{old_path}" unless old_full.exist?
-    raise InvalidPathError, "Destination already exists: #{new_path}" if new_full.exist? || new_full.symlink?
+      raise NotFoundError, "Note not found: #{old_path}" unless old_full.exist?
+      raise AlreadyExistsError, "Destination already exists: #{new_path}" if path_exists?(new_full)
 
-    FileUtils.mkdir_p(new_full.dirname)
-    FileUtils.mv(old_full, new_full)
+      FileUtils.mkdir_p(new_full.dirname)
+      begin
+        # The destination check and move run under a lock shared by every
+        # FrankMD instance using this NOTES_PATH. FileUtils.mv preserves the
+        # atomic same-filesystem rename and its copy/remove fallback for EXDEV.
+        FileUtils.mv(old_full, new_full)
+      rescue Errno::EEXIST, Errno::ENOTEMPTY, Errno::EISDIR
+        raise AlreadyExistsError, "Destination already exists: #{new_path}"
+      end
+    end
     true
   end
 
   def create_folder(path)
-    full_path = safe_path(path, must_exist: false)
-    FileUtils.mkdir_p(full_path)
+    with_filesystem_lock do
+      full_path = safe_path(path, must_exist: false)
+      raise AlreadyExistsError, "Destination already exists: #{path}" if path_exists?(full_path)
+
+      FileUtils.mkdir_p(full_path.dirname)
+      begin
+        Dir.mkdir(full_path)
+      rescue Errno::EEXIST
+        raise AlreadyExistsError, "Destination already exists: #{path}"
+      end
+    end
     true
   end
 
   def delete_folder(path)
-    full_path = safe_path(path)
-    raise NotFoundError, "Folder not found: #{path}" unless full_path.directory?
+    with_filesystem_lock do
+      full_path = safe_path(path)
+      raise NotFoundError, "Folder not found: #{path}" unless full_path.directory?
 
-    if full_path.children.any?
-      raise InvalidPathError, "Folder not empty: #{path}"
+      if full_path.children.any?
+        raise InvalidPathError, "Folder not empty: #{path}"
+      end
+
+      full_path.rmdir
     end
-
-    full_path.rmdir
     true
   end
 
@@ -150,6 +195,117 @@ class NotesService
     rescue StandardError
       tmp.delete if tmp.exist?
       raise
+    end
+  end
+
+  def atomic_create(full_path, content)
+    tmp = full_path.dirname.join(".#{full_path.basename}.#{SecureRandom.hex(6)}.tmp")
+    begin
+      File.open(tmp.to_s, File::WRONLY | File::CREAT | File::EXCL, 0o666) do |file|
+        file.write(content)
+      end
+      begin
+        link_without_replacing(tmp, full_path)
+      rescue Errno::EPERM, Errno::EOPNOTSUPP, Errno::ENOTSUP, Errno::EXDEV
+        # Some filesystems prohibit hard links. The shared NOTES_PATH lock
+        # keeps cooperating FrankMD instances from racing this atomic rename.
+        rename_without_replacing(tmp, full_path)
+      end
+    ensure
+      tmp.delete if tmp.exist?
+    end
+  end
+
+  def link_without_replacing(source, destination)
+    File.link(source.to_s, destination.to_s)
+  rescue Errno::EEXIST
+    raise AlreadyExistsError, "Destination already exists: #{destination.relative_path_from(@base_path)}"
+  end
+
+  def rename_without_replacing(source, destination)
+    if path_exists?(destination)
+      raise AlreadyExistsError, "Destination already exists: #{destination.relative_path_from(@base_path)}"
+    end
+
+    File.rename(source.to_s, destination.to_s)
+  rescue Errno::EEXIST, Errno::ENOTEMPTY, Errno::EISDIR
+    raise AlreadyExistsError, "Destination already exists: #{destination.relative_path_from(@base_path)}"
+  end
+
+  def path_exists?(path)
+    path.exist? || path.symlink?
+  end
+
+  # Serialize filesystem mutations and tree reads across cooperating FrankMD
+  # instances that share NOTES_PATH. The hidden lock file lives there so
+  # instances with different Rails tmp directories still coordinate. If the
+  # notes directory is read-only, tree reads fall back to a per-app tmp lock;
+  # mutations against that directory will fail at their filesystem operation.
+  # External sync tools and writers that ignore advisory locks do not coordinate.
+  def with_filesystem_lock(mode = File::LOCK_EX)
+    notes_root = @base_path.realpath.to_s
+    lock = shared_filesystem_lock(notes_root, mode)
+    lock ||= open_local_filesystem_lock(notes_root)
+    with_locked_file(lock, mode) { yield }
+  end
+
+  # Open the shared NOTES_PATH lock, degrading to nil (so the caller falls back
+  # to the local lock) when it cannot be opened at all — a read-only mount, a
+  # symlinked/ELOOP lock path, ENOSPC, etc. A lock-file problem must not crash
+  # tree reads or mutations; the underlying filesystem op still enforces its own
+  # errors.
+  def shared_filesystem_lock(notes_root, mode)
+    open_filesystem_lock(shared_filesystem_lock_path(notes_root), mode)
+  rescue SystemCallError
+    nil
+  end
+
+  def shared_filesystem_lock_path(notes_root)
+    Pathname.new(notes_root).join(FILESYSTEM_LOCK_FILENAME)
+  end
+
+  def open_filesystem_lock(path, mode = File::LOCK_EX)
+    flags = File::RDWR | File::CREAT
+    flags |= File::NOFOLLOW if File.const_defined?(:NOFOLLOW)
+    File.open(path, flags, 0o600)
+  rescue Errno::EACCES, Errno::EROFS
+    return nil unless mode == File::LOCK_SH
+
+    flags = File::RDONLY
+    flags |= File::NOFOLLOW if File.const_defined?(:NOFOLLOW)
+    begin
+      File.open(path, flags)
+    rescue Errno::EACCES, Errno::EROFS, Errno::ENOENT
+      nil
+    end
+  end
+
+  def open_local_filesystem_lock(notes_root)
+    lock_id = Digest::SHA256.hexdigest(notes_root)
+    lock_dir = local_lock_root.join("frankmd_filesystem_locks", lock_id)
+    FileUtils.mkdir_p(lock_dir, mode: 0o700)
+
+    flags = File::RDWR | File::CREAT
+    flags |= File::NOFOLLOW if File.const_defined?(:NOFOLLOW)
+    File.open(lock_dir.join("notes.lock"), flags, 0o600)
+  end
+
+  def local_lock_root
+    Rails.root.join("tmp")
+  end
+
+  def with_locked_file(lock, mode)
+    locked = false
+    begin
+      lock.flock(mode)
+      locked = true
+      yield
+    ensure
+      begin
+        lock.flock(File::LOCK_UN) if locked
+      ensure
+        lock.close
+      end
     end
   end
 

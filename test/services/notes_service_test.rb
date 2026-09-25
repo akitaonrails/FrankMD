@@ -149,6 +149,84 @@ class NotesServiceTest < ActiveSupport::TestCase
     assert_equal "New content", File.read(@test_notes_dir.join("new.md"))
   end
 
+  test "create refuses to replace an existing note" do
+    create_test_note("existing.md", "Original content")
+
+    assert_raises(NotesService::AlreadyExistsError) do
+      @service.create("existing.md", "replacement")
+    end
+
+    assert_equal "Original content", @test_notes_dir.join("existing.md").read
+  end
+
+  test "create falls back to an atomic rename when hard links are unsupported" do
+    File.stubs(:link).raises(Errno::EOPNOTSUPP)
+
+    @service.create("fallback.md", "Created without hard links")
+
+    assert_equal "Created without hard links", @test_notes_dir.join("fallback.md").read
+    refute Dir.children(@test_notes_dir).any? { |name| name.end_with?(".tmp") }
+  end
+
+  test "concurrent creates for the same destination preserve one winner" do
+    services = [ @service, NotesService.new(base_path: @test_notes_dir) ]
+    ready = Queue.new
+    start = Queue.new
+    writers = services.each_with_index.map do |service, index|
+      Thread.new do
+        ready << true
+        start.pop
+        service.create("shared.md", "writer #{index}")
+        :created
+      rescue NotesService::AlreadyExistsError
+        :conflict
+      end
+    end
+
+    2.times { ready.pop }
+    2.times { start << true }
+    results = writers.map(&:value)
+
+    assert_equal 1, results.count(:created)
+    assert_equal 1, results.count(:conflict)
+    assert_includes [ "writer 0", "writer 1" ], @test_notes_dir.join("shared.md").read
+    assert_equal [ ".frankmd-filesystem.lock", "shared.md" ], Dir.children(@test_notes_dir).sort
+  end
+
+  test "service instances share a NOTES_PATH lock despite independent app tmp directories" do
+    first = NotesService.new(base_path: @test_notes_dir)
+    second = NotesService.new(base_path: @test_notes_dir)
+    notes_dir = @test_notes_dir
+    first.define_singleton_method(:local_lock_root) { notes_dir.join("app-one", "tmp") }
+    second.define_singleton_method(:local_lock_root) { notes_dir.join("app-two", "tmp") }
+
+    lock_path = first.send(:shared_filesystem_lock_path, notes_dir.realpath.to_s)
+    assert_equal lock_path, second.send(:shared_filesystem_lock_path, notes_dir.realpath.to_s)
+    first_lock = first.send(:open_filesystem_lock, lock_path)
+    second_lock = second.send(:open_filesystem_lock, lock_path)
+
+    assert first_lock.flock(File::LOCK_EX | File::LOCK_NB)
+    refute second_lock.flock(File::LOCK_EX | File::LOCK_NB),
+      "service instances sharing NOTES_PATH must contend on the same lock file"
+  ensure
+    first_lock&.flock(File::LOCK_UN)
+    first_lock&.close
+    second_lock&.close
+  end
+
+  test "list_tree falls back to the app tmp lock when NOTES_PATH is read-only" do
+    create_test_note("visible.md", "Content")
+    lock_path = @test_notes_dir.join(".frankmd-filesystem.lock")
+    open_lock = @service.method(:open_filesystem_lock)
+    @service.define_singleton_method(:open_filesystem_lock) do |path, mode = File::LOCK_EX|
+      raise Errno::EROFS if path.to_s == lock_path.to_s
+
+      open_lock.call(path, mode)
+    end
+
+    assert_equal [ "visible" ], @service.list_tree.map { |entry| entry[:name] }
+  end
+
   test "write overwrites existing file" do
     create_test_note("existing.md", "Old content")
 
@@ -286,6 +364,49 @@ class NotesServiceTest < ActiveSupport::TestCase
 
     refute @test_notes_dir.join("root.md").exist?
     assert @test_notes_dir.join("subfolder/moved.md").exist?
+  end
+
+  test "rename uses FileUtils cross-device fallback when rename raises EXDEV" do
+    source = create_test_note("source.md", "Cross-device content")
+    File.stubs(:rename).with { |from, _to| from.to_s == source.to_s }.raises(Errno::EXDEV)
+
+    @service.rename("source.md", "nested/destination.md")
+
+    refute source.exist?
+    assert_equal "Cross-device content", @test_notes_dir.join("nested/destination.md").read
+  end
+
+  test "concurrent renames to the same destination preserve the losing source" do
+    create_test_note("first.md", "first content")
+    create_test_note("second.md", "second content")
+    services = [ @service, NotesService.new(base_path: @test_notes_dir) ]
+    sources = %w[first.md second.md]
+    ready = Queue.new
+    start = Queue.new
+    renames = services.each_with_index.map do |service, index|
+      Thread.new do
+        ready << true
+        start.pop
+        service.rename(sources[index], "shared.md")
+        [ :renamed, sources[index] ]
+      rescue NotesService::AlreadyExistsError
+        [ :conflict, sources[index] ]
+      end
+    end
+
+    2.times { ready.pop }
+    2.times { start << true }
+    results = renames.map(&:value)
+
+    winner = results.find { |result| result.first == :renamed }.last
+    loser = results.find { |result| result.first == :conflict }.last
+    assert_equal 1, results.count { |result| result.first == :renamed }
+    assert_equal 1, results.count { |result| result.first == :conflict }
+    winner_content = "#{winner.delete_suffix('.md')} content"
+    loser_content = "#{loser.delete_suffix('.md')} content"
+    assert_equal winner_content, @test_notes_dir.join("shared.md").read
+    assert_equal loser_content, @test_notes_dir.join(loser).read
+    refute @test_notes_dir.join(winner).exist?
   end
 
   test "rename moves folder with contents" do

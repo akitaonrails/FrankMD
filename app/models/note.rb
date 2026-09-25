@@ -76,14 +76,19 @@ class Note
     Digest::SHA256.hexdigest(content.to_s)
   end
 
-  def save(existing_only: false)
+  def save(existing_only: false, create_only: false)
     return false unless valid?
     if existing_only
       service.update(normalized_path, content || "")
+    elsif create_only
+      service.create(normalized_path, content || "")
     else
       service.write(normalized_path, content || "")
     end
     true
+  rescue NotesService::AlreadyExistsError
+    errors.add(:base, I18n.t("errors.note_already_exists"))
+    false
   rescue NotesService::InvalidPathError => e
     errors.add(:path, e.message)
     false
@@ -120,6 +125,9 @@ class Note
     service.rename(normalized_path, new_path)
     self.path = new_path
     true
+  rescue NotesService::AlreadyExistsError
+    errors.add(:path, I18n.t("errors.note_already_exists"))
+    false
   rescue NotesService::NotFoundError
     errors.add(:base, I18n.t("errors.note_not_found"))
     false

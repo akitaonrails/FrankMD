@@ -131,6 +131,15 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "show returns 404 for the internal filesystem lock file" do
+    @test_notes_dir.join(NotesService::FILESYSTEM_LOCK_FILENAME).write("internal lock")
+
+    get note_url(path: NotesService::FILESYSTEM_LOCK_FILENAME)
+
+    assert_response :not_found
+    refute_includes response.body, "internal lock"
+  end
+
   test "show blocks path traversal for assets" do
     get note_url(path: "../../etc/passwd")
     assert_response :forbidden
@@ -196,6 +205,16 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
 
     post create_note_url(path: "existing.md"), params: { content: "Content" }, as: :json
     assert_response :unprocessable_entity
+  end
+
+  test "create preserves a note created after the availability check" do
+    create_test_note("raced.md", "Original content")
+    Note.any_instance.stubs(:exists?).returns(false)
+
+    post create_note_url(path: "raced.md"), params: { content: "replacement" }, as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal "Original content", @test_notes_dir.join("raced.md").read
   end
 
   # === create with Hugo template ===
@@ -369,6 +388,17 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
 
     refute @test_notes_dir.join("root.md").exist?
     assert @test_notes_dir.join("subfolder/moved.md").exist?
+  end
+
+  test "rename conflict preserves both source and destination contents" do
+    create_test_note("source.md", "Source content")
+    create_test_note("destination.md", "Destination content")
+
+    post rename_note_url(path: "source.md"), params: { new_path: "destination.md" }, as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal "Source content", @test_notes_dir.join("source.md").read
+    assert_equal "Destination content", @test_notes_dir.join("destination.md").read
   end
 
   test "rename returns 404 for missing note" do

@@ -65,6 +65,8 @@ export default class extends Controller {
     this.currentFileType = null  // "markdown", "config", or null
     this.expandedFolders = new Set()
     this._navigationGeneration = 0
+    this._treeRevision = 0
+    this._treeRefreshGeneration = 0
     this._fileNotFoundTimeout = null
 
     // Sidebar/Explorer visibility - always start visible
@@ -79,6 +81,8 @@ export default class extends Controller {
 
     this.setupKeyboardShortcuts()
     this.setupDialogClickOutside()
+    this.boundTreeStreamRenderHandler = this.invalidateTreeRefreshesForStream.bind(this)
+    document.addEventListener("turbo:before-stream-render", this.boundTreeStreamRenderHandler)
     this.applySidebarVisibility()
     this.initializeTypewriterMode()
     this.setupConfigFileListener()
@@ -167,6 +171,9 @@ export default class extends Controller {
     }
     if (this.boundKeydownHandler) {
       document.removeEventListener("keydown", this.boundKeydownHandler)
+    }
+    if (this.boundTreeStreamRenderHandler) {
+      document.removeEventListener("turbo:before-stream-render", this.boundTreeStreamRenderHandler)
     }
 
     // Clean up object URLs to prevent memory leaks
@@ -417,12 +424,15 @@ export default class extends Controller {
       children.classList.remove("hidden")
       chevron.classList.add("expanded")
     }
+
+    this.invalidateTreeRefreshes()
   }
 
   // === Drag and Drop Event Handler ===
   // Handle item moved event from drag-drop controller
   onItemMoved(event) {
     const { oldPath, newPath, type } = event.detail
+    this.invalidateTreeRefreshes()
 
     if (type === "folder") {
       // Preserve expand/collapse state for moved folder and its descendants
@@ -1412,6 +1422,7 @@ export default class extends Controller {
 
   async onFileCreated(event) {
     const { path } = event.detail
+    this.invalidateTreeRefreshes()
 
     // Expand parent folders
     const pathParts = path.split("/")
@@ -1427,12 +1438,14 @@ export default class extends Controller {
 
   onFolderCreated(event) {
     const { path } = event.detail
+    this.invalidateTreeRefreshes()
     this.expandedFolders.add(path)
     // Tree is already updated by Turbo Stream
   }
 
   onFileRenamed(event) {
     const { oldPath, newPath, type } = event.detail
+    this.invalidateTreeRefreshes()
 
     if (type === "folder") {
       // Preserve expand/collapse state for renamed folder and its descendants.
@@ -1467,6 +1480,7 @@ export default class extends Controller {
 
   onFileDeleted(event) {
     const { path, type } = event.detail
+    this.invalidateTreeRefreshes()
     const activeFileWasDeleted = this.currentFile === path || (
       type === "folder" && this.currentFile?.startsWith(`${path}/`)
     )
@@ -1523,7 +1537,21 @@ export default class extends Controller {
     }
   }
 
+  invalidateTreeRefreshes() {
+    this._treeRevision = (this._treeRevision || 0) + 1
+  }
+
+  invalidateTreeRefreshesForStream(event) {
+    if (event.target?.getAttribute?.("target") === "file-tree-content") {
+      this.invalidateTreeRefreshes()
+    }
+  }
+
   async refreshTree(generation = this._navigationGeneration) {
+    const treeRevision = this._treeRevision || 0
+    const refreshGeneration = (this._treeRefreshGeneration || 0) + 1
+    this._treeRefreshGeneration = refreshGeneration
+
     try {
       const expanded = [...this.expandedFolders].join(",")
       const selected = this.currentFile || ""
@@ -1531,6 +1559,7 @@ export default class extends Controller {
       if (response.ok) {
         const html = await response.text
         if (!this.isCurrentNavigation(generation) || this.currentFile !== (selected || null)) return
+        if (treeRevision !== this._treeRevision || refreshGeneration !== this._treeRefreshGeneration) return
         this.fileTreeTarget.innerHTML = html
       }
     } catch (error) {
