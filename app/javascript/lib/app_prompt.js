@@ -1,5 +1,6 @@
 let activePrompt = null
 const promptQueue = []
+let promptFocusOrigin
 
 function translation(key) {
   return typeof window.t === "function" ? window.t(key) : key
@@ -26,8 +27,22 @@ function finishPrompt(prompt, result) {
   queueMicrotask(showNextPrompt)
 }
 
+function restorePromptFocus() {
+  const target = promptFocusOrigin
+  promptFocusOrigin = undefined
+
+  if (target?.isConnected && typeof target.focus === "function") {
+    target.focus()
+  }
+}
+
 function showNextPrompt() {
-  if (activePrompt || promptQueue.length === 0) return
+  if (activePrompt) return
+
+  if (promptQueue.length === 0) {
+    if (promptFocusOrigin !== undefined) restorePromptFocus()
+    return
+  }
 
   const prompt = promptQueue.shift()
   if (!document.body) {
@@ -84,6 +99,10 @@ function showNextPrompt() {
 
 function enqueuePrompt(message, { confirm = false, acceptLabel, cancelLabel, destructive = false } = {}) {
   return new Promise((resolve) => {
+    if (promptFocusOrigin === undefined) {
+      promptFocusOrigin = document.activeElement
+    }
+
     promptQueue.push({
       message: String(message ?? ""),
       confirm,

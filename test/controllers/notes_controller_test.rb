@@ -19,6 +19,13 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select "div[data-controller~='app']"
   end
 
+  test "image picker has an inline alert target for folder browsing errors" do
+    get root_url
+    assert_response :success
+
+    assert_select "dialog[data-controller='image-picker'] p[data-folder-images-target='error'][role='alert']"
+  end
+
   test "index has empty initial-path-value and empty initial-note-value" do
     get root_url
     assert_response :success

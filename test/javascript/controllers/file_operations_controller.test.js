@@ -764,6 +764,28 @@ describe("FileOperationsController", () => {
       expect(global.fetch).not.toHaveBeenCalled()
     })
 
+    it("deletes the item selected before confirmation even if context changes while waiting", async () => {
+      let resolveConfirmation
+      appConfirm.mockReturnValueOnce(new Promise((resolve) => {
+        resolveConfirmation = resolve
+      }))
+      controller.contextItem = { path: "selected.md", type: "file" }
+
+      const deletion = controller.deleteItem()
+      controller.contextItem = { path: "different-folder", type: "folder" }
+      resolveConfirmation(true)
+      await deletion
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/notes/selected.md"),
+        expect.objectContaining({ method: "DELETE" })
+      )
+      expect(global.fetch).not.toHaveBeenCalledWith(
+        expect.stringContaining("different-folder"),
+        expect.anything()
+      )
+    })
+
     it("calls delete API", async () => {
       controller.contextItem = { path: "test.md", type: "file" }
 

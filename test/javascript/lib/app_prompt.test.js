@@ -68,6 +68,11 @@ describe("app prompts", () => {
   })
 
   it("queues prompts so only one is modal at a time", async () => {
+    const opener = document.createElement("button")
+    opener.textContent = "Open prompt"
+    document.body.append(opener)
+    opener.focus()
+
     const firstResult = appAlert("First")
     const secondResult = appAlert("Second")
 
@@ -80,5 +85,41 @@ describe("app prompts", () => {
     expect(document.querySelector("dialog").textContent).toContain("Second")
     document.querySelector("dialog button").click()
     await expect(secondResult).resolves.toBeUndefined()
+    await Promise.resolve()
+    expect(document.activeElement).toBe(opener)
+  })
+
+  it("restores focus to the element active before the prompt", async () => {
+    const opener = document.createElement("button")
+    opener.textContent = "Open prompt"
+    document.body.append(opener)
+    opener.focus()
+
+    const result = appAlert("Something went wrong")
+    document.querySelector("dialog button").click()
+
+    await expect(result).resolves.toBeUndefined()
+    await Promise.resolve()
+
+    expect(document.activeElement).toBe(opener)
+  })
+
+  it("restores focus into the dialog underneath a nested app prompt", async () => {
+    const parentDialog = document.createElement("dialog")
+    const opener = document.createElement("button")
+    opener.textContent = "Open prompt"
+    parentDialog.append(opener)
+    document.body.append(parentDialog)
+    parentDialog.showModal()
+    opener.focus()
+
+    const result = appConfirm("Continue?")
+    document.querySelectorAll("dialog")[1].querySelector("button").click()
+
+    await expect(result).resolves.toBe(false)
+    await Promise.resolve()
+
+    expect(document.activeElement).toBe(opener)
+    expect(parentDialog.open).toBe(true)
   })
 })

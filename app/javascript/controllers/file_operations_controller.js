@@ -514,11 +514,13 @@ export default class extends Controller {
 
   // Delete
   async deleteItem() {
-    this.hideContextMenu()
     if (!this.contextItem) return
 
-    const itemName = this.contextItem.path.split("/").pop()
-    const confirmKey = this.contextItem.type === "folder"
+    const item = { ...this.contextItem }
+    this.hideContextMenu()
+
+    const itemName = item.path.split("/").pop()
+    const confirmKey = item.type === "folder"
       ? "dialogs.confirm.delete_folder"
       : "dialogs.confirm.delete_file"
 
@@ -529,7 +531,6 @@ export default class extends Controller {
       return
     }
 
-    const item = { ...this.contextItem }
     const prepared = this.preparePathOperation(item.path, item.type)
     if (!prepared.ok) {
       if (prepared.needsAlert) appAlert(window.t("status.draft_storage_error"))

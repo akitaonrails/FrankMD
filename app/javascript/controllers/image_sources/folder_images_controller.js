@@ -6,7 +6,7 @@ import { defaultS3Key } from "lib/s3_key"
 // Handles browsing and selecting images from local filesystem via File System Access API
 
 export default class extends Controller {
-  static targets = ["apiNotice", "browsePrompt", "container", "status", "grid", "search", "perPage", "prevPage", "nextPage", "pageStatus"]
+  static targets = ["apiNotice", "browsePrompt", "container", "error", "status", "grid", "search", "perPage", "prevPage", "nextPage", "pageStatus"]
 
   static values = {
     s3Enabled: Boolean
@@ -59,12 +59,33 @@ export default class extends Controller {
   }
 
   async browse() {
+    this.clearBrowseError()
     const result = await this.source.browse(this.allowedExtensions)
-    if (!result.error && !result.cancelled) {
+
+    if (result.error) {
+      this.showBrowseError(result.error)
+      return
+    }
+
+    if (!result.cancelled) {
       this.offset = 0
       this.setupUI()
       await this.renderPage()
     }
+  }
+
+  clearBrowseError() {
+    if (!this.hasErrorTarget) return
+
+    this.errorTarget.textContent = ""
+    this.errorTarget.classList.add("hidden")
+  }
+
+  showBrowseError(message) {
+    if (!this.hasErrorTarget) return
+
+    this.errorTarget.textContent = message
+    this.errorTarget.classList.remove("hidden")
   }
 
   onSearch() {
@@ -163,6 +184,7 @@ export default class extends Controller {
     this.source.reset()
     this.selectedImage = null
     this.offset = 0
+    this.clearBrowseError()
     if (this.hasSearchTarget) this.searchTarget.value = ""
     this.s3Option?.hide()
     this.setupUI()
