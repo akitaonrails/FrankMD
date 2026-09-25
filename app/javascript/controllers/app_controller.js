@@ -57,6 +57,9 @@ export default class extends Controller {
   }
 
   connect() {
+    // Stimulus starts outlet observers before calling connect(), so an already
+    // connected CodeMirror outlet can notify us before this controller is ready.
+    this._initializationReady = false
     this.installUnauthorizedRedirect()
     this.currentFile = null
     this.currentFileType = null  // "markdown", "config", or null
@@ -101,6 +104,7 @@ export default class extends Controller {
     // Defer full initialization until codemirror outlet connects.
     // Fallback timeout ensures it runs even if outlet callback doesn't fire.
     this._initialFileHandled = false
+    this._initializationReady = true
     this._initialFileTimeout = setTimeout(() => this._completeInitialLoad(), 50)
   }
 
@@ -122,7 +126,7 @@ export default class extends Controller {
   }
 
   _completeInitialLoad() {
-    if (this._initialFileHandled) return
+    if (!this._initializationReady || this._initialFileHandled) return
     this._initialFileHandled = true
     if (this._initialFileTimeout) {
       clearTimeout(this._initialFileTimeout)
@@ -142,6 +146,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this._initializationReady = false
     if (window.fetch === this.unauthorizedFetch) window.fetch = this.originalFetch
 
     // Clear all timeouts

@@ -300,6 +300,21 @@ docker compose up -d
 
 **Note:** The host directory in `NOTES_PATH` must exist and be writable by the UID/GID in `.env`. Avoid `sudo docker`, which creates root-owned bind mounts; if that happens, fix ownership with `chown -R UID:GID <path>`.
 
+#### Local Compose overrides
+
+To customize Docker Compose for this checkout without editing the tracked `docker-compose.yml`, create a `docker-compose.override.yml` file. Compose loads it automatically alongside `docker-compose.yml`; the local file is ignored by Git and excluded from Docker build contexts.
+
+For example, to build and run the local source with a separate image tag:
+
+```yaml
+services:
+  frankmd:
+    image: frankmd-local:latest
+    build: .
+```
+
+Save this as `docker-compose.override.yml`, then run `docker compose up -d --build`.
+
 ## Configuration
 
 FrankMD uses a `.fed` configuration file in your notes directory. This file is automatically created on first run with all options commented out as documentation.

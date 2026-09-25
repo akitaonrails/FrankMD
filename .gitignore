@@ -51,3 +51,6 @@ coverage/
 
 # Local agent tooling artifacts
 .lobster/
+
+# Local Docker Compose overrides
+/docker-compose.override.yml

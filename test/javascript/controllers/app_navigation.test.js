@@ -140,4 +140,43 @@ describe("AppController navigation", () => {
     expect(app.showEditor).toHaveBeenCalledWith("initial content", "markdown", "initial-revision")
     expect(app.refreshTree).toHaveBeenCalledWith(1)
   })
+
+  it("waits for app setup before handling an already-connected CodeMirror outlet", () => {
+    const autosave = { prepareForTransition: vi.fn(() => ({ ok: true })) }
+    const app = makeApp({ currentFile: null, autosave })
+    app.hasInitialNoteValue = true
+    app.initialNoteValue = {
+      path: "studies/design-systems-stack.md",
+      content: "# Design Systems Stack",
+      revision: "initial-revision",
+      exists: true
+    }
+    app.expandParentFolders = AppController.prototype.expandParentFolders
+    app.expandedFolders = undefined
+    app._removeSplashScreen = vi.fn()
+
+    expect(() => AppController.prototype.codemirrorOutletConnected.call(app)).not.toThrow()
+    expect(app.currentFile).toBeNull()
+
+    app.installUnauthorizedRedirect = vi.fn()
+    app.setupKeyboardShortcuts = vi.fn()
+    app.setupDialogClickOutside = vi.fn()
+    app.applySidebarVisibility = vi.fn()
+    app.initializeTypewriterMode = vi.fn()
+    app.setupConfigFileListener = vi.fn()
+    app.setupTableEditorListener = vi.fn()
+    app.setupHistoryHandling = vi.fn()
+    app._preloadInitialContent = vi.fn()
+
+    AppController.prototype.connect.call(app)
+    expect(app._initializationReady).toBe(true)
+    expect(app.expandedFolders).toEqual(new Set())
+
+    AppController.prototype.codemirrorOutletConnected.call(app)
+
+    expect(app.currentFile).toBe("studies/design-systems-stack.md")
+    expect(app.expandedFolders).toEqual(new Set(["studies"]))
+    expect(app.showEditor).toHaveBeenCalledWith("# Design Systems Stack", "markdown", "initial-revision")
+    expect(app._removeSplashScreen).toHaveBeenCalledOnce()
+  })
 })

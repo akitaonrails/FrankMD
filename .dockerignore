@@ -51,3 +51,4 @@
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+/docker-compose.override.yml

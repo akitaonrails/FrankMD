@@ -1,5 +1,7 @@
 // Mock for marked library used in preview_controller
 export const marked = {
+  use: () => {},
+
   parse: (content) => {
     if (!content) return ""
 
