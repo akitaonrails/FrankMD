@@ -62,6 +62,10 @@ ko:
     select_note_hint: "또는 Ctrl+N을 눌러 새로 만드세요"
     start_writing: "여기에 입력하세요..."
     cursor_in_table: "테이블 내 - 클릭하여 편집"
+    slash_commands:
+      heading_1: "제목 1"
+      heading_2: "제목 2"
+      heading_3: "제목 3"
     # 에디터 툴바
     toolbar:
       help: "도움말"

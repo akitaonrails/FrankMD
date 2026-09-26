@@ -62,6 +62,10 @@ ja:
     select_note_hint: "または Ctrl+N で新規作成"
     start_writing: "ここに入力..."
     cursor_in_table: "テーブル内 - クリックで編集"
+    slash_commands:
+      heading_1: "見出し 1"
+      heading_2: "見出し 2"
+      heading_3: "見出し 3"
     # Editor toolbar
     toolbar:
       help: "ヘルプ"

@@ -62,6 +62,10 @@ es:
     select_note_hint: "o presiona Ctrl+N para crear una nueva"
     start_writing: "Comienza a escribir..."
     cursor_in_table: "Cursor en tabla - haz clic para editar"
+    slash_commands:
+      heading_1: "Encabezado 1"
+      heading_2: "Encabezado 2"
+      heading_3: "Encabezado 3"
     # Editor toolbar
     toolbar:
       help: "Ayuda"

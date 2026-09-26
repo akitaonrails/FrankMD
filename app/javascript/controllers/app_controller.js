@@ -20,6 +20,7 @@ import {
   insertVideoEmbed
 } from "lib/codemirror_content_insertion"
 import { setWikilinkFileProvider } from "lib/codemirror_wikilink"
+import { setSlashCommandsEnabledProvider } from "lib/codemirror_slash_commands"
 export default class extends Controller {
   static targets = [
     "fileTree",
@@ -90,6 +91,9 @@ export default class extends Controller {
 
     // Provide file list to wikilink autocomplete
     setWikilinkFileProvider(() => this.getFilesFromTree())
+    // The editor is reused for Markdown notes and .fed, so gate commands on
+    // the currently active file type instead of its initial editor setup.
+    setSlashCommandsEnabledProvider(() => this.isMarkdownFile())
 
     // Configure marked with custom extensions for superscript, subscript, highlight, emoji
     marked.use({

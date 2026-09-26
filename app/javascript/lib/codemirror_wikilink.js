@@ -94,9 +94,9 @@ function wikilinkCompletions(context) {
  * Call setWikilinkFileProvider() to supply the file list.
  * @returns {Extension}
  */
-export function createWikilinkAutocomplete() {
+export function createWikilinkAutocomplete({ additionalSources = [] } = {}) {
   return autocompletion({
-    override: [wikilinkCompletions],
+    override: [wikilinkCompletions, ...additionalSources],
     activateOnTyping: true,
     maxRenderedOptions: 20
   })

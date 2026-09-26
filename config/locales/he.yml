@@ -61,6 +61,10 @@ he:
     select_note_hint: "או לחץ Ctrl+N ליצירת הערה חדשה"
     start_writing: "התחל לכתוב..."
     cursor_in_table: "סמן בטבלה - לחץ לעריכה"
+    slash_commands:
+      heading_1: "כותרת 1"
+      heading_2: "כותרת 2"
+      heading_3: "כותרת 3"
     # סרגל כלים העורך
     toolbar:
       help: "עזרה"
