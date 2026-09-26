@@ -157,6 +157,12 @@ export function createEditorTheme(options = {}) {
       backgroundColor: "var(--theme-bg-secondary)"
     },
 
+    ".cm-tooltip.cm-tooltip-autocomplete > ul": {
+      height: "auto",
+      maxHeight: "16em",
+      overflowY: "auto"
+    },
+
     ".cm-tooltip-autocomplete .frankmd-completion-icon": {
       width: "1em",
       height: "1em",
