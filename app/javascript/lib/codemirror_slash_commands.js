@@ -50,7 +50,7 @@ function localizedLabel(key, fallback) {
 }
 
 function getEditableBlock(state, position) {
-  for (let node = syntaxTree(state).resolveInner(position, -1); node; node = node.parent) {
+  for (let node = syntaxTree(state).resolveInner(position, 1); node; node = node.parent) {
     if (CODE_NODE_NAMES.has(node.name)) return null
     if (EDITABLE_BLOCK_NAMES.has(node.name)) return node
   }

@@ -70,6 +70,10 @@ describe("CodeMirror slash commands", () => {
     ])
   })
 
+  it.each(["/", "Text\n\n/"])("offers commands when the slash starts a new line in %j", (text) => {
+    expect(complete(text).result?.options.length).toBeGreaterThan(0)
+  })
+
   it("dispatches insert actions with the original slash range and leaves the query in place", () => {
     const text = "Before /table after"
     const cursor = text.indexOf(" after")
