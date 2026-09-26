@@ -16,6 +16,8 @@ ja:
     search: "検索"
     insert: "挿入"
     edit: "編集"
+    alert: "お知らせ"
+    confirm: "確認"
     ok: "OK"
 
   # Languages
@@ -128,6 +130,10 @@ ja:
 
   # Dialog titles and content
   dialogs:
+    confirm:
+      delete_file: '「%{name}」を削除しますか？この操作は取り消せません。'
+      delete_folder: '「%{name}」とそのすべての内容を削除しますか？この操作は取り消せません。'
+
     # Rename dialog
     rename:
       title: "名前変更"
@@ -193,8 +199,8 @@ ja:
       tab_search: "YouTube検索"
       url_label: "動画URLまたはパス"
       url_placeholder: "YouTube URLまたは動画ファイルパス..."
-      url_hint_youtube: "YouTube: https://youtube.com/watch?v=... または https://youtu.be/..."
-      url_hint_file: "動画ファイル: /path/to/video.mp4, .webm, .mkv, .mov, .avi"
+      url_hint_youtube: "https://youtube.com/watch?v=... または https://youtu.be/..."
+      url_hint_file: "/path/to/video.mp4, .webm, .mkv, .mov, .avi"
       preview_hint: "URLを入力するとプレビューが表示されます"
       unknown_format: "不明なフォーマット。YouTubeのURLまたは動画ファイルのパスを入力してください。"
       insert_video: "動画を挿入"
@@ -218,6 +224,7 @@ ja:
       drop_hint: "ここに画像をドラッグ＆ドロップ"
       drop_rejected: "%{name}: %{ext} は受け付けられない画像形式です。受付可能: %{list}"
       processing_image_paste: "画像を処理中..."
+      processing_image: "画像を処理中..."
       tab_local: "ローカル"
       tab_folder: "フォルダ"
       tab_web: "Web検索"
@@ -245,6 +252,7 @@ ja:
       delete_image: "画像を削除"
       delete_confirm: "「%{name}」を削除しますか？この操作は元に戻せません。"
       delete_failed: "画像を削除できませんでした。"
+      insert_failed: "画像を挿入できませんでした: %{error}"
       # Folder images
       filesystem_api_required: "File System Access APIが必要です"
       filesystem_api_description: "この機能にはFile System Access APIが必要ですが、ブラウザで無効になっている可能性があります。"
@@ -263,6 +271,27 @@ ja:
       # Web search
       search_web_placeholder: "Web画像を検索..."
       search_status: "キーワードを入力して検索またはEnterを押してください"
+      search_keywords_required: "検索キーワードを入力してください"
+      search_failed: "検索に失敗しました。もう一度お試しください。"
+      search_result_one: "画像が1件見つかりました - クリックして選択"
+      search_result_many: "%{count}件の画像が見つかりました - クリックして選択"
+      no_images_found: "画像が見つかりません"
+      no_images_in_folder: "フォルダに画像が見つかりません"
+      folder_showing_recent: "全%{total}件のうち新しい%{shown}件を表示"
+      folder_images_found_one: "画像が1件見つかりました"
+      folder_images_found_many: "%{count}件の画像が見つかりました"
+      folder_api_not_supported: "File System Access APIに対応していません"
+      folder_access_failed: "フォルダにアクセスできませんでした"
+      folder_read_failed: "フォルダを読み込めませんでした"
+      image_load_failed: "画像を読み込めませんでした"
+      image_delete_failed: "画像を削除できませんでした"
+      image_upload_failed: "画像をアップロードできませんでした"
+      ai_prompt_required: "生成する画像の説明を入力してください"
+      ai_not_configured: "AI画像生成が設定されていません。.fedにGemini APIキーを追加してください"
+      ai_generation_failed: "画像を生成できませんでした。もう一度お試しください。"
+      ai_no_generated_data: "生成された画像データがありません"
+      ai_save_failed: "画像を保存できませんでした"
+      no_file_extension: "拡張子なし"
       # Google images
       google_api_required: "Google API設定が必要です"
       google_api_description: "Google画像検索を使用するには、Google APIキーとカスタム検索エンジンIDを設定する必要があります。"
@@ -407,6 +436,7 @@ ja:
       openai_description: "GPTモデルを使用："
       provider_selection: "プロバイダー選択"
       provider_override: "自動検出を上書き："
+      get_key_from: "キーの取得先："
       original: "オリジナル"
       deletions_hint: "（削除は赤）"
       corrected: "修正後"
@@ -442,6 +472,39 @@ ja:
     file_finder:
       placeholder: "ファイルを検索..."
       esc_to_close: "escで閉じる"
+      preview_error: "プレビューを読み込めませんでした"
+
+    # ログビューアーダイアログ
+    log_viewer:
+      title_logs: "Railsログ"
+      title_config: "設定"
+      refresh: "更新"
+      close: "閉じる (Esc)"
+      logs: "ログ"
+      config: "設定"
+      loading: "読み込み中..."
+      empty_logs: "（ログは空です）"
+      line_count_one: "%{count}行"
+      line_count: "%{count}行"
+      error_loading_logs: "ログを読み込めませんでした：%{error}"
+      no_config_file: "（.fedファイルなし）"
+      key_count: "%{count}件のキー"
+      key_count_one: "%{count}件のキー"
+      error_loading_config: "設定を読み込めませんでした：%{error}"
+      config_file_label: "設定ファイル"
+      file_exists_label: "ファイルの有無"
+      ai_configured_label: ".fedのAI設定"
+      yes: "あり"
+      no: "なし"
+      ai_configured_yes: "あり（ENVのAI変数は無視）"
+      ai_configured_no: "なし（ENVの変数を使用）"
+      key: "キー"
+      value: "値"
+      source: "ソース"
+      env_var: "ENV変数"
+      source_default: "既定値"
+      null_value: "なし"
+      empty_config: "設定値がありません"
 
     # Content search dialog
     content_search:

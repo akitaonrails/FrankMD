@@ -197,6 +197,89 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "all supported locales have translations for issue 187 dialog copy" do
+    required_paths = %w[
+      dialogs.log_viewer.title_logs
+      dialogs.log_viewer.title_config
+      dialogs.log_viewer.refresh
+      dialogs.log_viewer.close
+      dialogs.log_viewer.logs
+      dialogs.log_viewer.config
+      dialogs.log_viewer.loading
+      dialogs.log_viewer.empty_logs
+      dialogs.log_viewer.line_count_one
+      dialogs.log_viewer.line_count
+      dialogs.log_viewer.error_loading_logs
+      dialogs.log_viewer.no_config_file
+      dialogs.log_viewer.key_count_one
+      dialogs.log_viewer.key_count
+      dialogs.log_viewer.error_loading_config
+      dialogs.log_viewer.config_file_label
+      dialogs.log_viewer.file_exists_label
+      dialogs.log_viewer.ai_configured_label
+      dialogs.log_viewer.yes
+      dialogs.log_viewer.no
+      dialogs.log_viewer.ai_configured_yes
+      dialogs.log_viewer.ai_configured_no
+      dialogs.log_viewer.key
+      dialogs.log_viewer.value
+      dialogs.log_viewer.source
+      dialogs.log_viewer.env_var
+      dialogs.log_viewer.source_default
+      dialogs.log_viewer.null_value
+      dialogs.log_viewer.empty_config
+      dialogs.file_finder.preview_error
+      dialogs.image_picker.processing_image
+      dialogs.image_picker.search_keywords_required
+      dialogs.image_picker.search_failed
+      dialogs.image_picker.search_result_one
+      dialogs.image_picker.search_result_many
+      dialogs.image_picker.no_images_found
+      dialogs.image_picker.no_images_in_folder
+      dialogs.image_picker.folder_showing_recent
+      dialogs.image_picker.folder_images_found_one
+      dialogs.image_picker.folder_images_found_many
+      dialogs.image_picker.folder_api_not_supported
+      dialogs.image_picker.folder_access_failed
+      dialogs.image_picker.folder_read_failed
+      dialogs.image_picker.image_load_failed
+      dialogs.image_picker.image_delete_failed
+      dialogs.image_picker.image_upload_failed
+      dialogs.image_picker.ai_prompt_required
+      dialogs.image_picker.ai_not_configured
+      dialogs.image_picker.ai_generation_failed
+      dialogs.image_picker.ai_no_generated_data
+      dialogs.image_picker.ai_save_failed
+      dialogs.image_picker.no_file_extension
+      dialogs.ai_diff.get_key_from
+      dialogs.text_format.bold
+      dialogs.text_format.italic
+      dialogs.text_format.strikethrough
+      dialogs.text_format.highlight
+      dialogs.text_format.subscript
+      dialogs.text_format.superscript
+      dialogs.text_format.link
+      dialogs.video.url_hint_youtube
+      dialogs.video.url_hint_file
+    ]
+
+    %w[en pt-BR pt-PT es he ja ko].each do |locale|
+      ENV["FRANKMD_LOCALE"] = locale
+      get translations_url, as: :json
+      translations = JSON.parse(response.body)["translations"]
+
+      required_paths.each do |path|
+        value = translations.dig(*path.split("."))
+        assert value.is_a?(String) && !value.empty?, "Locale #{locale} is missing #{path}"
+      end
+
+      youtube_hint = translations.dig("dialogs", "video", "url_hint_youtube")
+      file_hint = translations.dig("dialogs", "video", "url_hint_file")
+      assert_match(/\Ahttps?:\/\//, youtube_hint, "Locale #{locale} should start the YouTube hint with its URL example")
+      assert_match(/\A\//, file_hint, "Locale #{locale} should start the video file hint with its path example")
+    end
+  end
+
   # === Invalid Locale Handling ===
 
   test "invalid locale falls back to default" do

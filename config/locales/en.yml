@@ -16,6 +16,8 @@ en:
     search: "Search"
     insert: "Insert"
     edit: "Edit"
+    alert: "Notice"
+    confirm: "Confirm"
     ok: "OK"
 
   # Languages
@@ -135,6 +137,10 @@ en:
 
   # Dialog titles and content
   dialogs:
+    confirm:
+      delete_file: 'Are you sure you want to delete "%{name}"? This action cannot be undone.'
+      delete_folder: 'Are you sure you want to delete "%{name}" and all its contents? This action cannot be undone.'
+
     # Rename dialog
     rename:
       title: "Rename"
@@ -200,8 +206,8 @@ en:
       uploading: "Uploading..."
       url_label: "Video URL or Path"
       url_placeholder: "YouTube URL or video file path..."
-      url_hint_youtube: "YouTube: https://youtube.com/watch?v=... or https://youtu.be/..."
-      url_hint_file: "Video file: /path/to/video.mp4, .webm, .mkv, .mov, .avi"
+      url_hint_youtube: "https://youtube.com/watch?v=... or https://youtu.be/..."
+      url_hint_file: "/path/to/video.mp4, .webm, .mkv, .mov, .avi"
       preview_hint: "Enter a URL to see preview"
       unknown_format: "Unknown format. Enter a YouTube URL or video file path."
       insert_video: "Insert Video"
@@ -239,6 +245,7 @@ en:
       drop_hint: "Drag & drop an image here"
       drop_rejected: "%{name}: %{ext} is not an accepted image type. Accepted: %{list}"
       processing_image_paste: "Processing image..."
+      processing_image: "Processing image..."
       # Local images
       local_path_required: "Local Images Path Required"
       local_path_description: "To browse local images, configure an images directory path."
@@ -253,6 +260,7 @@ en:
       delete_image: "Delete image"
       delete_confirm: "Delete \"%{name}\"? This cannot be undone."
       delete_failed: "Could not delete the image."
+      insert_failed: "Failed to insert image: %{error}"
       # Folder images
       filesystem_api_required: "File System Access API Required"
       filesystem_api_description: "This feature requires the File System Access API, which may be disabled in your browser."
@@ -271,6 +279,27 @@ en:
       # Web search
       search_web_placeholder: "Search web images..."
       search_status: "Enter keywords and click Search or press Enter"
+      search_keywords_required: "Please enter search keywords"
+      search_failed: "Search failed. Please try again."
+      search_result_one: "Found 1 image - click to select"
+      search_result_many: "Found %{count} images - click to select"
+      no_images_found: "No images found"
+      no_images_in_folder: "No images found in folder"
+      folder_showing_recent: "Showing %{shown} most recent of %{total} images"
+      folder_images_found_one: "1 image found"
+      folder_images_found_many: "%{count} images found"
+      folder_api_not_supported: "File System Access API not supported"
+      folder_access_failed: "Error accessing folder"
+      folder_read_failed: "Error reading folder"
+      image_load_failed: "Error loading images"
+      image_delete_failed: "Failed to delete image"
+      image_upload_failed: "Failed to upload image"
+      ai_prompt_required: "Please enter a prompt describing the image you want to generate"
+      ai_not_configured: "AI image generation is not configured. Please add your Gemini API key to .fed"
+      ai_generation_failed: "Failed to generate image. Please try again."
+      ai_no_generated_data: "No generated image data available"
+      ai_save_failed: "Failed to save image"
+      no_file_extension: "no extension"
       # Google images
       google_api_required: "Google API Configuration Required"
       google_api_description: "To search Google Images, you need to configure a Google API key and Custom Search Engine ID."
@@ -418,6 +447,7 @@ en:
       openai_description: "Use GPT models:"
       provider_selection: "Provider Selection"
       provider_override: "Override auto-detection:"
+      get_key_from: "Get key from"
       original: "Original"
       deletions_hint: "(deletions in red)"
       corrected: "Corrected"
@@ -453,6 +483,39 @@ en:
     file_finder:
       placeholder: "Type to search files..."
       esc_to_close: "esc to close"
+      preview_error: "Unable to load preview"
+
+    # Log viewer dialog
+    log_viewer:
+      title_logs: "Rails Log"
+      title_config: "Configuration"
+      refresh: "Refresh"
+      close: "Close (Esc)"
+      logs: "Logs"
+      config: "Config"
+      loading: "Loading..."
+      empty_logs: "(log is empty)"
+      line_count_one: "%{count} line"
+      line_count: "%{count} lines"
+      error_loading_logs: "Error loading logs: %{error}"
+      no_config_file: "(no .fed file)"
+      key_count: "%{count} keys"
+      key_count_one: "%{count} key"
+      error_loading_config: "Error loading config: %{error}"
+      config_file_label: "Config file"
+      file_exists_label: "File exists"
+      ai_configured_label: "AI configured in .fed"
+      yes: "yes"
+      no: "no"
+      ai_configured_yes: "yes (ENV AI vars ignored)"
+      ai_configured_no: "no (using ENV vars)"
+      key: "Key"
+      value: "Value"
+      source: "Source"
+      env_var: "ENV var"
+      source_default: "default"
+      null_value: "nil"
+      empty_config: "No configuration values"
 
     # Content search dialog
     content_search:

@@ -16,6 +16,8 @@ pt-PT:
     search: "Pesquisar"
     insert: "Inserir"
     edit: "Editar"
+    alert: "Aviso"
+    confirm: "Confirmar"
     ok: "OK"
 
   # Idiomas
@@ -128,6 +130,10 @@ pt-PT:
 
   # Títulos e conteúdo dos diálogos
   dialogs:
+    confirm:
+      delete_file: 'Tem a certeza que deseja eliminar "%{name}"? Esta ação não pode ser anulada.'
+      delete_folder: 'Tem a certeza que deseja eliminar "%{name}" e todo o seu conteúdo? Esta ação não pode ser anulada.'
+
     # Diálogo de renomear
     rename:
       title: "Renomear"
@@ -193,8 +199,8 @@ pt-PT:
       tab_search: "Pesquisa YouTube"
       url_label: "URL ou Caminho do Vídeo"
       url_placeholder: "URL do YouTube ou caminho do ficheiro de vídeo..."
-      url_hint_youtube: "YouTube: https://youtube.com/watch?v=... ou https://youtu.be/..."
-      url_hint_file: "Ficheiro de vídeo: /caminho/para/video.mp4, .webm, .mkv, .mov, .avi"
+      url_hint_youtube: "https://youtube.com/watch?v=... ou https://youtu.be/..."
+      url_hint_file: "/caminho/para/video.mp4, .webm, .mkv, .mov, .avi"
       preview_hint: "Introduza um URL para ver a pré-visualização"
       unknown_format: "Formato desconhecido. Introduza um URL do YouTube ou caminho de ficheiro de vídeo."
       insert_video: "Inserir Vídeo"
@@ -218,6 +224,7 @@ pt-PT:
       drop_hint: "Arraste e largue uma imagem aqui"
       drop_rejected: "%{name}: %{ext} não é um tipo de imagem aceite. Aceites: %{list}"
       processing_image_paste: "A processar imagem..."
+      processing_image: "A processar imagem..."
       tab_local: "Local"
       tab_folder: "Pasta"
       tab_web: "Pesquisa Web"
@@ -245,6 +252,7 @@ pt-PT:
       delete_image: "Eliminar imagem"
       delete_confirm: "Eliminar \"%{name}\"? Esta ação não pode ser anulada."
       delete_failed: "Não foi possível eliminar a imagem."
+      insert_failed: "Falha ao inserir a imagem: %{error}"
       # Imagens de pasta
       filesystem_api_required: "API de Acesso ao Sistema de Ficheiros Necessária"
       filesystem_api_description: "Esta funcionalidade requer a API de Acesso ao Sistema de Ficheiros, que pode estar desativada no seu navegador."
@@ -263,6 +271,27 @@ pt-PT:
       # Pesquisa web
       search_web_placeholder: "Pesquisar imagens na web..."
       search_status: "Introduza palavras-chave e clique em Pesquisar ou prima Enter"
+      search_keywords_required: "Introduza palavras-chave para pesquisar"
+      search_failed: "A pesquisa falhou. Tente novamente."
+      search_result_one: "Foi encontrada 1 imagem - clique para selecionar"
+      search_result_many: "Foram encontradas %{count} imagens - clique para selecionar"
+      no_images_found: "Não foram encontradas imagens"
+      no_images_in_folder: "Não foram encontradas imagens na pasta"
+      folder_showing_recent: "A mostrar as %{shown} imagens mais recentes de %{total}"
+      folder_images_found_one: "Foi encontrada 1 imagem"
+      folder_images_found_many: "Foram encontradas %{count} imagens"
+      folder_api_not_supported: "A File System Access API não é suportada"
+      folder_access_failed: "Não foi possível aceder à pasta"
+      folder_read_failed: "Não foi possível ler a pasta"
+      image_load_failed: "Não foi possível carregar as imagens"
+      image_delete_failed: "Não foi possível eliminar a imagem"
+      image_upload_failed: "Não foi possível enviar a imagem"
+      ai_prompt_required: "Descreva a imagem que pretende gerar"
+      ai_not_configured: "A geração de imagens por IA não está configurada. Adicione a sua chave da API Gemini ao ficheiro .fed"
+      ai_generation_failed: "Não foi possível gerar a imagem. Tente novamente."
+      ai_no_generated_data: "Não existem dados da imagem gerada disponíveis"
+      ai_save_failed: "Não foi possível guardar a imagem"
+      no_file_extension: "sem extensão"
       # Imagens Google
       google_api_required: "Configuração da API Google Necessária"
       google_api_description: "Para pesquisar no Google Imagens, precisa de configurar uma chave API do Google e um ID do Custom Search Engine."
@@ -407,6 +436,7 @@ pt-PT:
       openai_description: "Use modelos GPT:"
       provider_selection: "Seleção de Fornecedor"
       provider_override: "Sobrepor auto-deteção:"
+      get_key_from: "Obtenha a chave em"
       original: "Original"
       deletions_hint: "(eliminações a vermelho)"
       corrected: "Corrigido"
@@ -442,6 +472,39 @@ pt-PT:
     file_finder:
       placeholder: "Escreva para procurar ficheiros..."
       esc_to_close: "esc para fechar"
+      preview_error: "Não foi possível carregar a pré-visualização"
+
+    # Diálogo do visualizador de registos
+    log_viewer:
+      title_logs: "Registo do Rails"
+      title_config: "Configuração"
+      refresh: "Atualizar"
+      close: "Fechar (Esc)"
+      logs: "Registos"
+      config: "Configuração"
+      loading: "A carregar..."
+      empty_logs: "(o registo está vazio)"
+      line_count_one: "%{count} linha"
+      line_count: "%{count} linhas"
+      error_loading_logs: "Erro ao carregar os registos: %{error}"
+      no_config_file: "(nenhum ficheiro .fed)"
+      key_count: "%{count} chaves"
+      key_count_one: "%{count} chave"
+      error_loading_config: "Erro ao carregar a configuração: %{error}"
+      config_file_label: "Ficheiro de configuração"
+      file_exists_label: "Ficheiro existente"
+      ai_configured_label: "IA configurada no .fed"
+      yes: "sim"
+      no: "não"
+      ai_configured_yes: "sim (variáveis de IA do ENV ignoradas)"
+      ai_configured_no: "não (a usar variáveis do ENV)"
+      key: "Chave"
+      value: "Valor"
+      source: "Origem"
+      env_var: "Variável ENV"
+      source_default: "predefinição"
+      null_value: "nulo"
+      empty_config: "Não existem valores de configuração"
 
     # Diálogo de pesquisa de conteúdo
     content_search:

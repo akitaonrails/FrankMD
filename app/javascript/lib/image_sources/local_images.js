@@ -4,6 +4,7 @@
 import { get, post, destroy } from "@rails/request.js"
 import { escapeHtml } from "lib/text_utils"
 import { encodePath } from "lib/url_utils"
+import { imagePickerText } from "lib/image_sources/image_picker_text"
 
 export class LocalImageSource {
   constructor() {
@@ -24,19 +25,20 @@ export class LocalImageSource {
       const response = await get(`/images?${params.join("&")}`, { responseKind: "json" })
 
       if (!response.ok) {
-        throw new Error("Failed to load images")
+        const data = await response.json
+        return { error: data.error || imagePickerText("image_load_failed", {}, "Error loading images") }
       }
 
       return await response.json
     } catch (error) {
       console.error("Error loading images:", error)
-      return { error: "Error loading images" }
+      return { error: imagePickerText("image_load_failed", {}, "Error loading images") }
     }
   }
 
   renderGrid(images, container, onSelectAction) {
     if (!images || images.length === 0) {
-      container.innerHTML = '<div class="image-grid-empty">No images found</div>'
+      container.innerHTML = `<div class="image-grid-empty">${escapeHtml(imagePickerText("no_images_found", {}, "No images found"))}</div>`
       return
     }
 
@@ -89,7 +91,7 @@ export class LocalImageSource {
 
     if (!response.ok) {
       const data = await response.json
-      throw new Error(data.error || "Failed to delete image")
+      throw new Error(data.error || imagePickerText("image_delete_failed", {}, "Failed to delete image"))
     }
 
     return await response.json
@@ -105,7 +107,7 @@ export class LocalImageSource {
 
     if (!response.ok) {
       const data = await response.json
-      throw new Error(data.error || "Failed to upload to S3")
+      throw new Error(data.error || imagePickerText("image_upload_failed", {}, "Failed to upload to S3"))
     }
 
     return await response.json

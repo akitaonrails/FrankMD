@@ -277,8 +277,12 @@ describe("ThemeController", () => {
         vi.advanceTimersByTime(500)
         await vi.runAllTimersAsync()
 
-        expect(fetch).toHaveBeenCalledTimes(1)
-        expect(fetch).toHaveBeenCalledWith("/config", expect.objectContaining({
+        const themeConfigRequests = fetch.mock.calls.filter(([url, options]) =>
+          url === "/config" && options?.method === "PATCH"
+        )
+
+        expect(themeConfigRequests).toHaveLength(1)
+        expect(themeConfigRequests[0][1]).toEqual(expect.objectContaining({
           body: JSON.stringify({ theme: "tokyo-night" })
         }))
       } finally {

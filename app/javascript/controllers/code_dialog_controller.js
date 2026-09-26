@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { appConfirm } from "lib/app_prompt"
 import { levenshteinDistance } from "lib/text_utils"
 
 // Code Dialog Controller
@@ -217,7 +218,7 @@ export default class extends Controller {
     this.contentTarget.focus()
   }
 
-  insert() {
+  async insert() {
     const language = this.languageTarget.value.trim()
     const content = this.contentTarget.value
 
@@ -228,7 +229,7 @@ export default class extends Controller {
         levenshteinDistance(lang, language.toLowerCase()) <= 2
       )
       if (!isClose) {
-        const proceed = confirm(window.t("dialogs.code.unrecognized_language", { language }))
+        const proceed = await appConfirm(window.t("dialogs.code.unrecognized_language", { language }))
         if (!proceed) return
       }
     }

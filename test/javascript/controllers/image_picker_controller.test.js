@@ -23,6 +23,8 @@ describe("ImagePickerController#openWithFile", () => {
         <div data-image-picker-target="loading" class="hidden">
           <span data-image-picker-target="loadingText"></span>
         </div>
+        <p data-image-picker-target="error" class="hidden"></p>
+        <button data-image-picker-target="insertBtn"></button>
       </div>
     `
 
@@ -79,5 +81,21 @@ describe("ImagePickerController#openWithFile", () => {
     await expect(controller.openWithFile({ name: "pasted.png" })).rejects.toThrow("boom")
 
     expect(hideLoading).toHaveBeenCalled()
+  })
+
+  it("keeps insert failures inline in the open image picker", async () => {
+    global.alert = vi.fn()
+    controller.selectedSource = "local-images"
+    controller.selectedImageData = { name: "photo.png" }
+    controller.getSourceController = vi.fn(() => ({
+      getImageUrl: vi.fn().mockRejectedValue(new Error("upload failed"))
+    }))
+
+    await controller.insertImage()
+
+    expect(window.t).toHaveBeenCalledWith("dialogs.image_picker.processing_image")
+    expect(controller.errorTarget.textContent).toBe("dialogs.image_picker.insert_failed")
+    expect(controller.errorTarget.classList.contains("hidden")).toBe(false)
+    expect(global.alert).not.toHaveBeenCalled()
   })
 })

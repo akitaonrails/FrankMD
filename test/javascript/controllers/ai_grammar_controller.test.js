@@ -2,14 +2,18 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
+vi.mock("lib/app_prompt", () => ({ appAlert: vi.fn().mockResolvedValue(undefined) }))
 import { Application } from "@hotwired/stimulus"
 import AiGrammarController from "../../../app/javascript/controllers/ai_grammar_controller.js"
+import { appAlert } from "lib/app_prompt"
 
 describe("AiGrammarController", () => {
   let application, controller, element
 
   // Mock window.t for translations
   beforeEach(() => {
+    vi.clearAllMocks()
+    appAlert.mockResolvedValue(undefined)
     window.t = vi.fn((key) => key)
 
     document.body.innerHTML = `
@@ -121,13 +125,12 @@ describe("AiGrammarController", () => {
       expect(controller.dialogTarget.showModal).toHaveBeenCalled()
     })
 
-    it("shows alert when no file path provided", async () => {
+    it("uses the shared app alert when no file path is provided", async () => {
       controller.aiEnabled = true
-      window.alert = vi.fn()
 
       await controller.open(null)
 
-      expect(window.alert).toHaveBeenCalledWith("errors.no_file_open")
+      expect(appAlert).toHaveBeenCalledWith("errors.no_file_open")
     })
 
     it("dispatches processing-started event", async () => {
@@ -172,7 +175,6 @@ describe("AiGrammarController", () => {
 
     it("handles API errors", async () => {
       controller.aiEnabled = true
-      window.alert = vi.fn()
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -183,7 +185,7 @@ describe("AiGrammarController", () => {
 
       await controller.open("/path/to/file.md")
 
-      expect(window.alert).toHaveBeenCalled()
+      expect(appAlert).toHaveBeenCalledWith("errors.failed_to_process_ai: AI service unavailable")
     })
 
     it("populates diff content on success", async () => {

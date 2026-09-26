@@ -16,6 +16,8 @@ he:
     search: "חפש"
     insert: "הוסף"
     edit: "ערוך"
+    alert: "התראה"
+    confirm: "אישור"
     ok: "אישור"
 
   # שפות
@@ -125,6 +127,10 @@ he:
 
   # כותרות ותוכן דיאלוגים
   dialogs:
+    confirm:
+      delete_file: 'למחוק את "%{name}"? אי אפשר לבטל פעולה זו.'
+      delete_folder: 'למחוק את "%{name}" ואת כל התוכן שבה? אי אפשר לבטל פעולה זו.'
+
     # דיאלוג שינוי שם
     rename:
       title: "שנה שם"
@@ -190,8 +196,8 @@ he:
       tab_search: "חיפוש YouTube"
       url_label: "URL או נתיב סרטון"
       url_placeholder: "URL של YouTube או נתיב לקובץ סרטון..."
-      url_hint_youtube: "YouTube: https://youtube.com/watch?v=... או https://youtu.be/..."
-      url_hint_file: "קובץ סרטון: /path/to/video.mp4, .webm, .mkv, .mov, .avi"
+      url_hint_youtube: "https://youtube.com/watch?v=... או https://youtu.be/..."
+      url_hint_file: "/path/to/video.mp4, .webm, .mkv, .mov, .avi"
       preview_hint: "הזן URL לתצוגה מקדימה"
       unknown_format: "פורמט לא ידוע. הזן URL של YouTube או נתיב לקובץ סרטון."
       insert_video: "הוסף סרטון"
@@ -215,6 +221,7 @@ he:
       drop_hint: "גררו ושחררו תמונה כאן"
       drop_rejected: "%{name}: %{ext} אינו סוג תמונה מקובל. מקובלים: %{list}"
       processing_image_paste: "מעבד תמונה..."
+      processing_image: "מעבד תמונה..."
       tab_local: "מקומי"
       tab_folder: "תיקייה"
       tab_web: "חיפוש באינטרנט"
@@ -242,6 +249,7 @@ he:
       delete_image: "מחק תמונה"
       delete_confirm: "למחוק את \"%{name}\"? לא ניתן לבטל פעולה זו."
       delete_failed: "לא ניתן היה למחוק את התמונה."
+      insert_failed: "לא ניתן להוסיף את התמונה: %{error}"
       # תמונות מתיקייה
       filesystem_api_required: "נדרש API לגישה למערכת קבצים"
       filesystem_api_description: "תכונה זו דורשת את ה-File System Access API, שעשוי להיות מושבת בדפדפן שלך."
@@ -260,6 +268,27 @@ he:
       # חיפוש באינטרנט
       search_web_placeholder: "חפש תמונות באינטרנט..."
       search_status: "הזן מילות מפתח ולחץ חפש או Enter"
+      search_keywords_required: "הזן מילות מפתח לחיפוש"
+      search_failed: "החיפוש נכשל. נסה שוב."
+      search_result_one: "נמצאה תמונה אחת - לחץ כדי לבחור"
+      search_result_many: "נמצאו %{count} תמונות - לחץ כדי לבחור"
+      no_images_found: "לא נמצאו תמונות"
+      no_images_in_folder: "לא נמצאו תמונות בתיקייה"
+      folder_showing_recent: "מוצגות %{shown} התמונות העדכניות ביותר מתוך %{total}"
+      folder_images_found_one: "נמצאה תמונה אחת"
+      folder_images_found_many: "נמצאו %{count} תמונות"
+      folder_api_not_supported: "File System Access API אינו נתמך"
+      folder_access_failed: "שגיאה בגישה לתיקייה"
+      folder_read_failed: "שגיאה בקריאת התיקייה"
+      image_load_failed: "שגיאה בטעינת התמונות"
+      image_delete_failed: "לא ניתן למחוק את התמונה"
+      image_upload_failed: "העלאת התמונה נכשלה"
+      ai_prompt_required: "תאר את התמונה שברצונך ליצור"
+      ai_not_configured: "יצירת תמונות AI אינה מוגדרת. הוסף את מפתח ה-API של Gemini לקובץ .fed"
+      ai_generation_failed: "יצירת התמונה נכשלה. נסה שוב."
+      ai_no_generated_data: "אין נתונים זמינים של תמונה שנוצרה"
+      ai_save_failed: "שמירת התמונה נכשלה"
+      no_file_extension: "ללא סיומת"
       # תמונות Google
       google_api_required: "נדרשת הגדרת API של Google"
       google_api_description: "לחיפוש ב-Google Images, עליך להגדיר מפתח API של Google ו-Custom Search Engine ID."
@@ -404,6 +433,7 @@ he:
       openai_description: "השתמש במודלי GPT:"
       provider_selection: "בחירת ספק"
       provider_override: "עקוף זיהוי אוטומטי:"
+      get_key_from: "קבל מפתח מ־"
       original: "מקורי"
       deletions_hint: "(מחיקות באדום)"
       corrected: "מתוקן"
@@ -414,6 +444,39 @@ he:
     file_finder:
       placeholder: "הקלד לחיפוש קבצים..."
       esc_to_close: "esc לסגירה"
+      preview_error: "לא ניתן לטעון תצוגה מקדימה"
+
+    # דיאלוג מציג היומן
+    log_viewer:
+      title_logs: "יומן Rails"
+      title_config: "הגדרות"
+      refresh: "רענן"
+      close: "סגור (Esc)"
+      logs: "יומנים"
+      config: "הגדרות"
+      loading: "טוען..."
+      empty_logs: "(היומן ריק)"
+      line_count_one: "%{count} שורה"
+      line_count: "%{count} שורות"
+      error_loading_logs: "שגיאה בטעינת היומנים: %{error}"
+      no_config_file: "(אין קובץ .fed)"
+      key_count: "%{count} מפתחות"
+      key_count_one: "%{count} מפתח"
+      error_loading_config: "שגיאה בטעינת ההגדרות: %{error}"
+      config_file_label: "קובץ הגדרות"
+      file_exists_label: "הקובץ קיים"
+      ai_configured_label: "AI מוגדר ב־.fed"
+      yes: "כן"
+      no: "לא"
+      ai_configured_yes: "כן (משתני AI של ENV מתעלמים)"
+      ai_configured_no: "לא (נעשה שימוש במשתני ENV)"
+      key: "מפתח"
+      value: "ערך"
+      source: "מקור"
+      env_var: "משתנה ENV"
+      source_default: "ברירת מחדל"
+      null_value: "ריק"
+      empty_config: "אין ערכי הגדרות"
 
     # דיאלוג חיפוש תוכן
     content_search:

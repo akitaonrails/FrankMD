@@ -16,6 +16,8 @@ ko:
     search: "검색"
     insert: "삽입"
     edit: "편집"
+    alert: "알림"
+    confirm: "확인"
     ok: "확인"
 
   # 언어
@@ -128,6 +130,10 @@ ko:
 
   # 다이얼로그 제목 및 내용
   dialogs:
+    confirm:
+      delete_file: '"%{name}" 파일을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.'
+      delete_folder: '"%{name}" 폴더와 모든 내용을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.'
+
     # 이름 변경 다이얼로그
     rename:
       title: "이름 변경"
@@ -193,8 +199,8 @@ ko:
       tab_search: "YouTube 검색"
       url_label: "동영상 URL 또는 경로"
       url_placeholder: "YouTube URL 또는 동영상 파일 경로..."
-      url_hint_youtube: "YouTube: https://youtube.com/watch?v=... 또는 https://youtu.be/..."
-      url_hint_file: "동영상 파일: /path/to/video.mp4, .webm, .mkv, .mov, .avi"
+      url_hint_youtube: "https://youtube.com/watch?v=... 또는 https://youtu.be/..."
+      url_hint_file: "/path/to/video.mp4, .webm, .mkv, .mov, .avi"
       preview_hint: "URL을 입력하면 미리보기가 표시됩니다"
       unknown_format: "알 수 없는 형식입니다. YouTube URL 또는 동영상 파일 경로를 입력하세요."
       insert_video: "동영상 삽입"
@@ -218,6 +224,7 @@ ko:
       drop_hint: "여기에 이미지를 끌어다 놓으세요"
       drop_rejected: "%{name}: %{ext}은(는) 허용되지 않는 이미지 형식입니다. 허용: %{list}"
       processing_image_paste: "이미지 처리 중..."
+      processing_image: "이미지 처리 중..."
       tab_local: "로컬"
       tab_folder: "폴더"
       tab_web: "웹 검색"
@@ -245,6 +252,7 @@ ko:
       delete_image: "이미지 삭제"
       delete_confirm: "\"%{name}\"을(를) 삭제할까요? 이 작업은 되돌릴 수 없습니다."
       delete_failed: "이미지를 삭제할 수 없습니다."
+      insert_failed: "이미지를 삽입하지 못했습니다: %{error}"
       # 폴더 이미지
       filesystem_api_required: "File System Access API가 필요합니다"
       filesystem_api_description: "이 기능은 File System Access API가 필요하며, 브라우저에서 비활성화되어 있을 수 있습니다."
@@ -263,6 +271,27 @@ ko:
       # 웹 검색
       search_web_placeholder: "웹 이미지 검색..."
       search_status: "검색어를 입력하고 검색을 클릭하거나 Enter를 누르세요"
+      search_keywords_required: "검색어를 입력하세요"
+      search_failed: "검색에 실패했습니다. 다시 시도하세요."
+      search_result_one: "이미지 1개를 찾았습니다 - 클릭하여 선택하세요"
+      search_result_many: "이미지 %{count}개를 찾았습니다 - 클릭하여 선택하세요"
+      no_images_found: "이미지를 찾을 수 없습니다"
+      no_images_in_folder: "폴더에서 이미지를 찾을 수 없습니다"
+      folder_showing_recent: "전체 %{total}개 중 최근 이미지 %{shown}개 표시"
+      folder_images_found_one: "이미지 1개를 찾았습니다"
+      folder_images_found_many: "이미지 %{count}개를 찾았습니다"
+      folder_api_not_supported: "File System Access API를 지원하지 않습니다"
+      folder_access_failed: "폴더에 접근할 수 없습니다"
+      folder_read_failed: "폴더를 읽을 수 없습니다"
+      image_load_failed: "이미지를 불러올 수 없습니다"
+      image_delete_failed: "이미지를 삭제할 수 없습니다"
+      image_upload_failed: "이미지를 업로드할 수 없습니다"
+      ai_prompt_required: "생성할 이미지에 대한 설명을 입력하세요"
+      ai_not_configured: "AI 이미지 생성이 설정되지 않았습니다. .fed에 Gemini API 키를 추가하세요"
+      ai_generation_failed: "이미지를 생성할 수 없습니다. 다시 시도하세요."
+      ai_no_generated_data: "생성된 이미지 데이터가 없습니다"
+      ai_save_failed: "이미지를 저장할 수 없습니다"
+      no_file_extension: "확장자 없음"
       # Google 이미지
       google_api_required: "Google API 설정이 필요합니다"
       google_api_description: "Google 이미지를 검색하려면 Google API 키와 Custom Search Engine ID를 설정해야 합니다."
@@ -407,6 +436,7 @@ ko:
       openai_description: "GPT 모델 사용:"
       provider_selection: "제공자 선택"
       provider_override: "자동 감지 재정의:"
+      get_key_from: "키 가져오기:"
       original: "원본"
       deletions_hint: "(삭제는 빨간색)"
       corrected: "수정됨"
@@ -442,6 +472,39 @@ ko:
     file_finder:
       placeholder: "파일 검색..."
       esc_to_close: "esc로 닫기"
+      preview_error: "미리보기를 불러올 수 없습니다"
+
+    # 로그 뷰어 다이얼로그
+    log_viewer:
+      title_logs: "Rails 로그"
+      title_config: "설정"
+      refresh: "새로 고침"
+      close: "닫기 (Esc)"
+      logs: "로그"
+      config: "설정"
+      loading: "불러오는 중..."
+      empty_logs: "(로그가 비어 있습니다)"
+      line_count_one: "%{count}줄"
+      line_count: "%{count}줄"
+      error_loading_logs: "로그를 불러오지 못했습니다: %{error}"
+      no_config_file: "(.fed 파일 없음)"
+      key_count: "%{count}개 키"
+      key_count_one: "%{count}개 키"
+      error_loading_config: "설정을 불러오지 못했습니다: %{error}"
+      config_file_label: "설정 파일"
+      file_exists_label: "파일 존재 여부"
+      ai_configured_label: ".fed의 AI 설정"
+      yes: "예"
+      no: "아니요"
+      ai_configured_yes: "예 (ENV AI 변수 무시됨)"
+      ai_configured_no: "아니요 (ENV 변수 사용 중)"
+      key: "키"
+      value: "값"
+      source: "출처"
+      env_var: "ENV 변수"
+      source_default: "기본값"
+      null_value: "없음"
+      empty_config: "설정 값이 없습니다"
 
     # 콘텐츠 검색 다이얼로그
     content_search:

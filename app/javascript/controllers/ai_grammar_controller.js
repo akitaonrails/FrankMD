@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { get, post } from "@rails/request.js"
 import { computeWordDiff } from "lib/diff_utils"
+import { appAlert } from "lib/app_prompt"
 
 // AI Grammar Controller
 // Handles AI-powered grammar checking with diff view
@@ -63,7 +64,7 @@ export default class extends Controller {
     }
 
     if (!filePath) {
-      alert(window.t("errors.no_file_open"))
+      appAlert(window.t("errors.no_file_open"))
       return
     }
 
@@ -101,7 +102,7 @@ export default class extends Controller {
       const data = await response.json
 
       if (data.error) {
-        alert(`${window.t("errors.failed_to_process_ai")}: ${data.error}`)
+        appAlert(`${window.t("errors.failed_to_process_ai")}: ${data.error}`)
         return
       }
 
@@ -135,7 +136,7 @@ export default class extends Controller {
         console.log("AI request cancelled by user")
       } else {
         console.error("AI request failed:", e)
-        alert(window.t("errors.failed_to_process_ai"))
+        appAlert(window.t("errors.failed_to_process_ai"))
       }
     } finally {
       this.cleanup()
