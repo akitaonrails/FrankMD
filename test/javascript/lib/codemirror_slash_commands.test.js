@@ -332,6 +332,20 @@ describe("CodeMirror slash commands", () => {
     expect(state.selection.main.head).toBe(3)
   })
 
+  it("starts an equation on its own line without wrapping the preceding paragraph", () => {
+    const { state } = applyCommand("Hello World\n/equation", "Equation")
+
+    expect(state.doc.toString()).toBe("Hello World\n\n$$\n\n$$")
+    expect(state.selection.main.head).toBe("Hello World\n\n$$\n".length)
+  })
+
+  it("separates following soft lines from an equation started below paragraph text", () => {
+    const text = "Hello World\n/equation\ncontinued text"
+    const { state } = applyCommand(text, "Equation", text.indexOf("\ncontinued text"))
+
+    expect(state.doc.toString()).toBe("Hello World\n\n$$\n\n$$\n\ncontinued text")
+  })
+
   it("keeps wikilinks intact when creating a to-do item", () => {
     const { state } = applyCommand("[[linked note]] /todo", "To-do list")
 

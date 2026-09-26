@@ -221,11 +221,35 @@ function replaceWithBlockCommand(view, kind, queryFrom, queryTo) {
   const block = getEditableBlock(state, slashFrom)
   if (!block) return
 
+  const context = getBlockContext(block)
+  const line = state.doc.lineAt(slashFrom)
+  if (kind === "equation" && !context.listItem && !context.blockquote && line.from > block.from) {
+    const from = Math.max(line.from, block.from)
+    const to = Math.min(line.to, block.to)
+    const originalLine = state.sliceDoc(from, to)
+    const cleanedLine = removeSlashQuery(originalLine, slashFrom - from, queryTo - from)
+    if (!cleanedLine) return
+
+    const normalizedLine = stripHeadingMarker(cleanedLine.text, cleanedLine.cursorOffset)
+    const content = normalizedLine.leadingWhitespace + normalizedLine.text
+    const contentCursorOffset = normalizedLine.leadingWhitespace.length + normalizedLine.cursorOffset
+    const separatorBefore = "\n"
+    const separatorAfter = line.to < block.to ? "\n" : ""
+    const replacement = `${separatorBefore}$$\n${content}\n$$${separatorAfter}`
+    const cursor = from + separatorBefore.length + "$$\n".length + contentCursorOffset
+
+    view.dispatch({
+      changes: { from, to, insert: replacement },
+      selection: { anchor: cursor },
+      userEvent: "input.complete"
+    })
+    return
+  }
+
   const original = state.sliceDoc(block.from, block.to)
   const cleaned = removeSlashQuery(original, slashFrom - block.from, queryTo - block.from)
   if (!cleaned) return
 
-  const context = getBlockContext(block)
   const normalized = stripHeadingMarker(cleaned.text, cleaned.cursorOffset)
   const leadingWhitespace = normalized.leadingWhitespace
   const body = normalized.text
