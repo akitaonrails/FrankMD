@@ -57,6 +57,10 @@ function getEditableBlock(state, position) {
   return null
 }
 
+function isLinkDestination(state, position) {
+  return syntaxTree(state).resolveInner(position, 1).name === "URL"
+}
+
 function getBlockContext(block) {
   const context = { listItem: null, listMark: null, listKind: null, blockquote: null }
   for (let node = block?.parent; node; node = node.parent) {
@@ -288,10 +292,11 @@ export function createSlashCommandCompletionSource() {
     const textBefore = line.text.slice(0, context.pos - line.from)
     // Start at the beginning of the line or after a boundary. Requiring a
     // boundary avoids opening the menu for paths such as "docs/a.md".
-    const match = textBefore.match(/(?:^|[\s([{])\/([\w -]*)$/)
+    const match = textBefore.match(/(?:^|[\s([{])\/([\p{L}\p{N}\p{M} -]*)$/u)
     if (!match) return null
 
     const slashFrom = line.from + match.index + match[0].length - match[1].length - 1
+    if (isLinkDestination(context.state, slashFrom)) return null
     if (!getEditableBlock(context.state, slashFrom)) return null
 
     const queryFrom = slashFrom + 1
@@ -327,7 +332,7 @@ export function createSlashCommandCompletionSource() {
     return {
       from: queryFrom,
       options: [...headingOptions, ...blockOptions, ...insertOptions],
-      validFor: /^[\w -]*$/
+      validFor: /^[\p{L}\p{N}\p{M} -]*$/u
     }
   }
 }

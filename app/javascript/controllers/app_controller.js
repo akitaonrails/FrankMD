@@ -830,6 +830,11 @@ export default class extends Controller {
 
   // Handle table insertion from table_editor_controller
   handleTableInsert(event) {
+    if (!this.isMarkdownFile()) {
+      this.clearPendingSlashInsertion()
+      return
+    }
+
     const { markdown, editMode, startPos, endPos } = event.detail
 
     if (!markdown) return
@@ -851,6 +856,11 @@ export default class extends Controller {
 
   // === Image Picker Event Handler ===
   onImageSelected(event) {
+    if (!this.isMarkdownFile()) {
+      this.clearPendingSlashInsertion()
+      return
+    }
+
     const { markdown } = event.detail
     if (!markdown) return
 
@@ -1411,6 +1421,11 @@ export default class extends Controller {
 
   // Video Embed Event Handler - receives events from video_dialog_controller
   insertVideoEmbed(event) {
+    if (!this.isMarkdownFile()) {
+      this.clearPendingSlashInsertion()
+      return
+    }
+
     const { embedCode } = event.detail
     if (!embedCode) return
 
@@ -1587,6 +1602,7 @@ export default class extends Controller {
 
     // Clear editor if deleted file was currently open
     if (activeFileWasDeleted) {
+      this.clearPendingSlashInsertion()
       this.currentFile = null
       this.currentFileType = null
       this.updatePathDisplay(null)
@@ -1868,6 +1884,11 @@ export default class extends Controller {
 
   // Handle emoji/emoticon selected event
   onEmojiSelected(event) {
+    if (!this.isMarkdownFile()) {
+      this.clearPendingSlashInsertion()
+      return
+    }
+
     const codemirrorController = this.getCodemirrorController()
     if (!codemirrorController) return
 

@@ -148,6 +148,27 @@ describe("AppController slash command actions", () => {
     expect(codemirror.replaceRange).toHaveBeenCalledWith("\n![toolbar](toolbar.png)\n", 1, 1)
   })
 
+  it.each(["table", "image", "video", "emoji"])("does not insert %s when the active file is not Markdown", (action) => {
+    const { app, codemirror } = makeApp("config value")
+    app.currentFileType = "config"
+    app.pendingSlashInsertionRange = { action, from: 0, to: 1, query: "/" }
+
+    if (action === "table") {
+      app.handleTableInsert({ detail: { markdown: "| A |", editMode: false } })
+    } else if (action === "image") {
+      app.onImageSelected({ detail: { markdown: "![photo](photo.png)" } })
+    } else if (action === "video") {
+      app.insertVideoEmbed({ detail: { embedCode: "<video></video>" } })
+    } else {
+      app.onEmojiSelected({ detail: { text: ":smile:" } })
+    }
+
+    expect(codemirror.replaceRange).not.toHaveBeenCalled()
+    expect(codemirror.insertAt).not.toHaveBeenCalled()
+    expect(app.onEditorChange).not.toHaveBeenCalled()
+    expect(app.pendingSlashInsertionRange).toBeNull()
+  })
+
   it("drops a stale query range if the document changed while the dialog was open", () => {
     const { app, codemirror } = makeApp("changed /query text")
     app.pendingSlashInsertionRange = { action: "image", from: 7, to: 13, query: "/image" }

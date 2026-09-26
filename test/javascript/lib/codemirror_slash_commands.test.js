@@ -240,4 +240,25 @@ describe("CodeMirror slash commands", () => {
   it("does not treat a slash inside a path as a command", () => {
     expect(complete("docs/heading").result).toBeNull()
   })
+
+  it.each([
+    ["link", "[docs](/images/logo)"],
+    ["image", "![logo](/images/logo)"]
+  ])("does not trigger in a Markdown %s destination", (_kind, text) => {
+    const cursor = text.indexOf("/images") + "/images".length
+
+    expect(complete(text, cursor).result).toBeNull()
+  })
+
+  it("still triggers after an opening parenthesis in paragraph text", () => {
+    expect(complete("Text (/heading").result).not.toBeNull()
+  })
+
+  it("matches Unicode letters, numbers, and combining marks in a command query", () => {
+    const { result } = complete("Text /日本語 2-e\u0301")
+
+    expect(result).not.toBeNull()
+    expect(result.validFor.test("日本語 2-e\u0301 -")).toBe(true)
+    expect(result.validFor.test("日本/語")).toBe(false)
+  })
 })
