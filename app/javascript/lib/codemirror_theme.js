@@ -160,6 +160,7 @@ export function createEditorTheme(options = {}) {
     ".cm-tooltip-autocomplete .frankmd-completion-icon": {
       width: "1em",
       height: "1em",
+      display: "inline-block",
       marginRight: "0.5em",
       verticalAlign: "middle",
       opacity: "0.75"
