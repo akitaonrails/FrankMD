@@ -3,11 +3,10 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
-  acceptCompletion,
   autocompletion,
   CompletionContext,
   currentCompletions,
-  setSelectedCompletion,
+  selectedCompletionIndex,
   startCompletion
 } from "@codemirror/autocomplete"
 import { EditorState } from "@codemirror/state"
@@ -49,6 +48,12 @@ function applyCommand(text, label, cursor = text.length) {
   return { state: view.state, dispatchCount }
 }
 
+function pressKey(view, key) {
+  const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true })
+  view.contentDOM.dispatchEvent(event)
+  return event
+}
+
 describe("CodeMirror slash commands", () => {
   beforeEach(() => {
     setSlashCommandsEnabledProvider(() => true)
@@ -80,7 +85,7 @@ describe("CodeMirror slash commands", () => {
 
       expect(result.options.map(option => option.label)).toEqual([
         "Heading 1", "Heading 2", "Heading 3", "Bulleted list", "Numbered list",
-        "To-do list", "Quote", "Code block", "Divider", "Table", "Image", "Video", "Emoji"
+        "To-do list", "Quote", "Code block", "Equation", "Divider", "Table", "Image", "Video", "Emoji"
       ])
     } finally {
       if (originalTranslator === undefined) delete window.t
@@ -93,7 +98,7 @@ describe("CodeMirror slash commands", () => {
 
     expect(result?.options.map(option => option.label)).toEqual([
       "Heading 1", "Heading 2", "Heading 3", "Bulleted list", "Numbered list",
-      "To-do list", "Quote", "Code block", "Divider", "Table", "Image", "Video", "Emoji"
+      "To-do list", "Quote", "Code block", "Equation", "Divider", "Table", "Image", "Video", "Emoji"
     ])
   })
 
@@ -110,6 +115,7 @@ describe("CodeMirror slash commands", () => {
       "To-do list": "list-checks",
       Quote: "quotes",
       "Code block": "code",
+      Equation: "sigma",
       Divider: "minus",
       Table: "table",
       Image: "image",
@@ -146,12 +152,82 @@ describe("CodeMirror slash commands", () => {
     try {
       expect(startCompletion(view)).toBe(true)
       await vi.waitFor(() => {
-        expect(parent.querySelectorAll(".cm-tooltip-autocomplete li")).toHaveLength(13)
+        expect(parent.querySelectorAll(".cm-tooltip-autocomplete li")).toHaveLength(14)
       })
 
       const options = [...parent.querySelectorAll(".cm-tooltip-autocomplete li")]
       expect(options.every(option => option.querySelector("svg.frankmd-completion-icon"))).toBe(true)
       expect(options.some(option => option.textContent.includes("Heading 1"))).toBe(true)
+    } finally {
+      view.destroy()
+      parent.remove()
+    }
+  })
+
+  it("moves through slash options with arrow keys and accepts the selected command with Enter", async () => {
+    const parent = document.createElement("div")
+    document.body.appendChild(parent)
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: "/",
+        selection: { anchor: 1 },
+        extensions: [markdown(), autocompletion({ override: [source], interactionDelay: 0 })]
+      })
+    })
+
+    try {
+      view.focus()
+      expect(startCompletion(view)).toBe(true)
+      await vi.waitFor(() => {
+        expect(parent.querySelectorAll(".cm-tooltip-autocomplete li")).toHaveLength(14)
+      })
+      const targetIndex = currentCompletions(view.state).findIndex(option => option.label === "Heading 2")
+      expect(targetIndex).toBeGreaterThan(0)
+      for (let index = selectedCompletionIndex(view.state); index < targetIndex; index += 1) {
+        pressKey(view, "ArrowDown")
+      }
+      expect(selectedCompletionIndex(view.state)).toBe(targetIndex)
+      pressKey(view, "ArrowUp")
+      expect(selectedCompletionIndex(view.state)).toBe(targetIndex - 1)
+      pressKey(view, "ArrowDown")
+      expect(selectedCompletionIndex(view.state)).toBe(targetIndex)
+
+      pressKey(view, "Enter")
+
+      expect(view.state.doc.toString()).toBe("## ")
+      expect(currentCompletions(view.state)).toHaveLength(0)
+      expect(parent.querySelector(".cm-tooltip-autocomplete")).toBeNull()
+    } finally {
+      view.destroy()
+      parent.remove()
+    }
+  })
+
+  it("dismisses slash options with Escape and keeps the query unchanged", async () => {
+    const parent = document.createElement("div")
+    document.body.appendChild(parent)
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: "/table",
+        selection: { anchor: 6 },
+        extensions: [markdown(), autocompletion({ override: [source], interactionDelay: 0 })]
+      })
+    })
+
+    try {
+      view.focus()
+      expect(startCompletion(view)).toBe(true)
+      await vi.waitFor(() => {
+        expect(parent.querySelectorAll(".cm-tooltip-autocomplete li").length).toBeGreaterThan(0)
+      })
+
+      pressKey(view, "Escape")
+
+      expect(view.state.doc.toString()).toBe("/table")
+      expect(currentCompletions(view.state)).toHaveLength(0)
+      expect(parent.querySelector(".cm-tooltip-autocomplete")).toBeNull()
     } finally {
       view.destroy()
       parent.remove()
@@ -199,13 +275,14 @@ describe("CodeMirror slash commands", () => {
       view.focus()
       expect(startCompletion(view)).toBe(true)
       await vi.waitFor(() => {
-        expect(parent.querySelectorAll(".cm-tooltip-autocomplete li")).toHaveLength(13)
+        expect(parent.querySelectorAll(".cm-tooltip-autocomplete li")).toHaveLength(14)
       })
 
       const tableIndex = currentCompletions(view.state).findIndex(option => option.label === "Table")
       expect(tableIndex).toBeGreaterThanOrEqual(0)
-      view.dispatch({ effects: setSelectedCompletion(tableIndex) })
-      expect(acceptCompletion(view)).toBe(true)
+      for (let index = selectedCompletionIndex(view.state); index < tableIndex; index += 1) pressKey(view, "ArrowDown")
+      expect(selectedCompletionIndex(view.state)).toBe(tableIndex)
+      pressKey(view, "Enter")
 
       expect(dialogInput).toBe(document.activeElement)
       expect(parent.querySelector(".cm-tooltip-autocomplete")).toBeNull()
@@ -223,6 +300,7 @@ describe("CodeMirror slash commands", () => {
     ["To-do list", "- [ ] Before after"],
     ["Quote", "> Before after"],
     ["Code block", "```\nBefore after\n```"],
+    ["Equation", "$$\nBefore after\n$$"],
     ["Divider", "Before after\n\n---"]
   ])("applies %s to the paragraph and commits one editor transaction", (label, expected) => {
     const text = "Before /command after"
@@ -238,12 +316,20 @@ describe("CodeMirror slash commands", () => {
     ["Numbered list", "first /list\nsecond", "1. first\n   second"],
     ["To-do list", "first /list\nsecond", "- [ ] first\n      second"],
     ["Quote", "first /quote\nsecond", "> first\n> second"],
-    ["Code block", "first /code\nsecond", "```\nfirst\nsecond\n```"]
+    ["Code block", "first /code\nsecond", "```\nfirst\nsecond\n```"],
+    ["Equation", "first /equation\nsecond", "$$\nfirst\nsecond\n$$"]
   ])("preserves soft line breaks when applying %s", (label, text, expected) => {
     const cursor = text.indexOf("\n")
     const { state } = applyCommand(text, label, cursor)
 
     expect(state.doc.toString()).toBe(expected)
+  })
+
+  it("places the cursor inside an empty display equation block", () => {
+    const { state } = applyCommand("/equation", "Equation")
+
+    expect(state.doc.toString()).toBe("$$\n\n$$")
+    expect(state.selection.main.head).toBe(3)
   })
 
   it("keeps wikilinks intact when creating a to-do item", () => {

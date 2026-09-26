@@ -20,6 +20,7 @@ const BLOCK_COMMANDS = [
   { name: "to-do-list", kind: "todoList", icon: "list-checks", labelKey: "editor.slash_commands.to_do_list", fallbackLabel: "To-do list", filterText: "to-do todo task checklist" },
   { name: "quote", kind: "quote", icon: "quotes", labelKey: "editor.slash_commands.quote", fallbackLabel: "Quote", filterText: "quote blockquote" },
   { name: "code-block", kind: "codeBlock", icon: "code", labelKey: "editor.slash_commands.code_block", fallbackLabel: "Code block", filterText: "code block fenced" },
+  { name: "equation", kind: "equation", icon: "sigma", labelKey: "editor.slash_commands.equation", fallbackLabel: "Equation", filterText: "equation math formula latex tex" },
   { name: "divider", kind: "divider", icon: "minus", labelKey: "editor.slash_commands.divider", fallbackLabel: "Divider", filterText: "divider horizontal rule hr" }
 ]
 const INSERT_COMMANDS = [
@@ -273,6 +274,16 @@ function replaceWithBlockCommand(view, kind, queryFrom, queryTo) {
     }
     replacement = prefixLines(fencedText, "", continuationPrefix)
     replacementCursor = `${fence}\n`.length + contentCursorOffset
+    replacementCursor += (content.slice(0, contentCursorOffset).match(/\n/g) || []).length * continuationPrefix.length
+  } else if (kind === "equation") {
+    let continuationPrefix = ""
+    if (context.blockquote) {
+      continuationPrefix = "> "
+    } else if (context.listItem && context.listMark) {
+      continuationPrefix = " ".repeat(Math.max(1, block.from - context.listMark.from))
+    }
+    replacement = prefixLines(`$$\n${content}\n$$`, "", continuationPrefix)
+    replacementCursor = `$$\n`.length + contentCursorOffset
     replacementCursor += (content.slice(0, contentCursorOffset).match(/\n/g) || []).length * continuationPrefix.length
   } else if (kind === "divider") {
     replacement = cleaned.text
