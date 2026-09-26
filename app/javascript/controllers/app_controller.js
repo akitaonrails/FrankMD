@@ -69,6 +69,7 @@ export default class extends Controller {
     this._treeRevision = 0
     this._treeRefreshGeneration = 0
     this._fileNotFoundTimeout = null
+    this.pendingSlashInsertionRange = null
 
     // Sidebar/Explorer visibility - always start visible
     // (don't persist closed state across sessions)
@@ -88,6 +89,7 @@ export default class extends Controller {
     this.initializeTypewriterMode()
     this.setupConfigFileListener()
     this.setupTableEditorListener()
+    this.setupSlashCommandListener()
 
     // Provide file list to wikilink autocomplete
     setWikilinkFileProvider(() => this.getFilesFromTree())
@@ -169,6 +171,9 @@ export default class extends Controller {
     }
     if (this.boundTableInsertHandler) {
       window.removeEventListener("frankmd:insert-table", this.boundTableInsertHandler)
+    }
+    if (this.boundSlashCommandOpenHandler) {
+      window.removeEventListener("frankmd:open-slash-command", this.boundSlashCommandOpenHandler)
     }
     if (this.boundConfigFileHandler) {
       window.removeEventListener("frankmd:config-file-modified", this.boundConfigFileHandler)
@@ -330,6 +335,7 @@ export default class extends Controller {
     if (!this.prepareEditorTransition(generation)) return false
     if (!this.isCurrentNavigation(generation)) return false
 
+    this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
     this.getAutosaveController()?.clearFile?.()
@@ -345,6 +351,7 @@ export default class extends Controller {
     if (!this.prepareEditorTransition(generation)) return false
     if (!this.isCurrentNavigation(generation)) return false
 
+    this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
     this.getAutosaveController()?.clearFile?.()
@@ -512,6 +519,7 @@ export default class extends Controller {
   }
 
   showEditor(content, fileType = "markdown", revision = null) {
+    this.clearPendingSlashInsertion()
     if (this._fileNotFoundTimeout) {
       clearTimeout(this._fileNotFoundTimeout)
       this._fileNotFoundTimeout = null
@@ -728,7 +736,7 @@ export default class extends Controller {
   }
 
   // === Table Editor ===
-  openTableEditor() {
+  openTableEditor({ slashInsertion = false } = {}) {
     let existingTable = null
     let startPos = 0
     let endPos = 0
@@ -744,6 +752,22 @@ export default class extends Controller {
         existingTable = tableInfo.lines.join("\n")
         startPos = tableInfo.startPos
         endPos = tableInfo.endPos
+
+        const pending = this.pendingSlashInsertionRange
+        if (slashInsertion && pending?.action === "table" && pending.from >= startPos && pending.to <= endPos && text.slice(pending.from, pending.to) === pending.query) {
+          const queryFrom = pending.from - startPos
+          const queryTo = pending.to - startPos
+          let beforeQuery = existingTable.slice(0, queryFrom)
+          let afterQuery = existingTable.slice(queryTo)
+          if (/[ \t]$/.test(beforeQuery) && /^[ \t]/.test(afterQuery)) {
+            afterQuery = afterQuery.slice(1)
+          } else if (beforeQuery.length === 0 && /^[ \t]/.test(afterQuery)) {
+            afterQuery = afterQuery.slice(1)
+          } else if (!afterQuery.trim() && /[ \t]+$/.test(beforeQuery)) {
+            beforeQuery = beforeQuery.replace(/[ \t]+$/, "")
+          }
+          existingTable = beforeQuery + afterQuery
+        }
       }
     }
 
@@ -751,12 +775,57 @@ export default class extends Controller {
     window.dispatchEvent(new CustomEvent("frankmd:open-table-editor", {
       detail: { existingTable, startPos, endPos }
     }))
+    return Boolean(document.querySelector('[data-controller~="table-editor"]'))
   }
 
   // Setup listener for table insertion from table_editor_controller
   setupTableEditorListener() {
     this.boundTableInsertHandler = this.handleTableInsert.bind(this)
     window.addEventListener("frankmd:insert-table", this.boundTableInsertHandler)
+  }
+
+  setupSlashCommandListener() {
+    this.boundSlashCommandOpenHandler = this.openSlashCommandAction.bind(this)
+    window.addEventListener("frankmd:open-slash-command", this.boundSlashCommandOpenHandler)
+  }
+
+  openSlashCommandAction(event) {
+    const { action, from, to, query } = event.detail || {}
+    if (!this.isMarkdownFile() || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < from || typeof query !== "string" || !query.startsWith("/")) return
+
+    this.pendingSlashInsertionRange = { action, from, to, query }
+
+    let opened = false
+    if (action === "table") opened = this.openTableEditor({ slashInsertion: true })
+    if (action === "image") opened = this.openImagePicker()
+    if (action === "video") opened = this.openVideoDialog()
+    if (action === "emoji") opened = this.openEmojiPicker()
+
+    if (!opened) this.clearPendingSlashInsertion(action)
+  }
+
+  getPendingSlashInsertionRange(action) {
+    const pending = this.pendingSlashInsertionRange
+    if (!pending || pending.action !== action) return null
+
+    const codemirrorController = this.getCodemirrorController()
+    const currentQuery = codemirrorController?.getValue().slice(pending.from, pending.to)
+    if (!codemirrorController || currentQuery !== pending.query) {
+      this.clearPendingSlashInsertion(action)
+      return false
+    }
+
+    return { from: pending.from, to: pending.to }
+  }
+
+  clearPendingSlashInsertion(action = null) {
+    if (!action || this.pendingSlashInsertionRange?.action === action) {
+      this.pendingSlashInsertionRange = null
+    }
+  }
+
+  onSlashCommandDialogClose(event) {
+    this.clearPendingSlashInsertion(event.currentTarget?.dataset?.slashCommandAction)
   }
 
   // Handle table insertion from table_editor_controller
@@ -768,7 +837,14 @@ export default class extends Controller {
     const codemirrorController = this.getCodemirrorController()
     if (!codemirrorController) return
 
-    insertBlockContent(codemirrorController, markdown, { editMode, startPos, endPos })
+    let slashRange = null
+    if (!editMode) {
+      slashRange = this.getPendingSlashInsertionRange("table")
+      if (slashRange === false) return
+    }
+    const options = editMode ? { editMode, startPos, endPos } : (slashRange || { editMode, startPos, endPos })
+    insertBlockContent(codemirrorController, markdown, options)
+    if (slashRange || editMode) this.clearPendingSlashInsertion("table")
     codemirrorController.focus()
     this.onEditorChange({ detail: { docChanged: true } })
   }
@@ -781,14 +857,21 @@ export default class extends Controller {
     const codemirrorController = this.getCodemirrorController()
     if (!codemirrorController) return
 
-    insertImage(codemirrorController, markdown)
+    const slashRange = this.getPendingSlashInsertionRange("image")
+    if (slashRange === false) return
+    insertImage(codemirrorController, markdown, slashRange || {})
+    if (slashRange) this.clearPendingSlashInsertion("image")
     codemirrorController.focus()
     this.onEditorChange({ detail: { docChanged: true } })
   }
 
   // Open image picker dialog (delegates to image-picker controller)
   openImagePicker() {
-    if (this.hasImagePickerOutlet) this.imagePickerOutlet.open()
+    if (this.hasImagePickerOutlet) {
+      this.imagePickerOutlet.open()
+      return true
+    }
+    return false
   }
 
   // Route pasted images through the picker (pre-selected) so the normal Insert flow still applies
@@ -1319,7 +1402,11 @@ export default class extends Controller {
 
   // Video Dialog - delegates to video-dialog controller
   openVideoDialog() {
-    if (this.hasVideoDialogOutlet) this.videoDialogOutlet.open()
+    if (this.hasVideoDialogOutlet) {
+      this.videoDialogOutlet.open()
+      return true
+    }
+    return false
   }
 
   // Video Embed Event Handler - receives events from video_dialog_controller
@@ -1330,7 +1417,10 @@ export default class extends Controller {
     const codemirrorController = this.getCodemirrorController()
     if (!codemirrorController) return
 
-    insertVideoEmbed(codemirrorController, embedCode)
+    const slashRange = this.getPendingSlashInsertionRange("video")
+    if (slashRange === false) return
+    insertVideoEmbed(codemirrorController, embedCode, slashRange || {})
+    if (slashRange) this.clearPendingSlashInsertion("video")
     codemirrorController.focus()
     this.onEditorChange({ detail: { docChanged: true } })
   }
@@ -1765,13 +1855,15 @@ export default class extends Controller {
 
   // Open emoji picker dialog
   openEmojiPicker() {
-    if (!this.hasTextareaTarget) return
-    if (!this.isMarkdownFile()) return
+    if (!this.hasTextareaTarget) return false
+    if (!this.isMarkdownFile()) return false
 
     const emojiPickerController = this.getEmojiPickerController()
     if (emojiPickerController) {
       emojiPickerController.open()
+      return true
     }
+    return false
   }
 
   // Handle emoji/emoticon selected event
@@ -1782,7 +1874,10 @@ export default class extends Controller {
     const { text: insertText } = event.detail
     if (!insertText) return
 
-    insertInlineContent(codemirrorController, insertText)
+    const slashRange = this.getPendingSlashInsertionRange("emoji")
+    if (slashRange === false) return
+    insertInlineContent(codemirrorController, insertText, slashRange || {})
+    if (slashRange) this.clearPendingSlashInsertion("emoji")
     codemirrorController.focus()
     this.getAutosaveController()?.scheduleAutoSave()
     this.updatePreview()

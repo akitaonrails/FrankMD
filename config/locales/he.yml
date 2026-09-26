@@ -71,6 +71,10 @@ he:
       quote: "ציטוט"
       code_block: "בלוק קוד"
       divider: "מפריד"
+      table: "טבלה"
+      image: "תמונה"
+      video: "וידאו"
+      emoji: "אימוג'י"
     # סרגל כלים העורך
     toolbar:
       help: "עזרה"
@@ -365,6 +369,7 @@ he:
         unindent: "הסר הזחה"
         insert: "הוסף"
         emoji_picker: "בוחר אימוג'י"
+        slash_commands: "הקלד / בפסקה כדי להוסיף בלוק, טבלה, תמונה, סרטון או אימוג'י."
         format_menu: "תפריט עיצוב טקסט"
         context_menu: "תפריט הקשר (עם בחירה)"
         text_format: "תפריט עיצוב טקסט"

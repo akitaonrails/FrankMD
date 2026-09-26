@@ -72,6 +72,10 @@ es:
       quote: "Cita"
       code_block: "Bloque de código"
       divider: "Separador"
+      table: "Tabla"
+      image: "Imagen"
+      video: "Video"
+      emoji: "Emoji"
     # Editor toolbar
     toolbar:
       help: "Ayuda"
@@ -368,6 +372,7 @@ es:
         unindent: "Quitar indentación"
         insert: "Insertar"
         emoji_picker: "Selector de emoji"
+        slash_commands: "Escribe / en un párrafo para añadir un bloque, una tabla, una imagen, un video o un emoji."
         format_menu: "Menú de formato"
         context_menu: "Menú contextual (con selección)"
         text_format: "Menú de Formato"

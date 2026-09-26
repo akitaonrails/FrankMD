@@ -72,6 +72,10 @@ ja:
       quote: "引用"
       code_block: "コードブロック"
       divider: "区切り線"
+      table: "テーブル"
+      image: "画像"
+      video: "動画"
+      emoji: "絵文字"
     # Editor toolbar
     toolbar:
       help: "ヘルプ"
@@ -368,6 +372,7 @@ ja:
         unindent: "インデント解除"
         insert: "挿入"
         emoji_picker: "絵文字ピッカー"
+        slash_commands: "段落内で / を入力すると、ブロック、テーブル、画像、動画、絵文字を追加できます。"
         format_menu: "書式メニュー"
         context_menu: "コンテキストメニュー（選択時）"
         text_format: "書式メニュー"

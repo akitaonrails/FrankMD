@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { CompletionContext } from "@codemirror/autocomplete"
 import { EditorState } from "@codemirror/state"
 import { markdown } from "@codemirror/lang-markdown"
@@ -66,8 +66,26 @@ describe("CodeMirror slash commands", () => {
 
     expect(result?.options.map(option => option.label)).toEqual([
       "Heading 1", "Heading 2", "Heading 3", "Bulleted list", "Numbered list",
-      "To-do list", "Quote", "Code block", "Divider"
+      "To-do list", "Quote", "Code block", "Divider", "Table", "Image", "Video", "Emoji"
     ])
+  })
+
+  it("dispatches insert actions with the original slash range and leaves the query in place", () => {
+    const text = "Before /table after"
+    const cursor = text.indexOf(" after")
+    const { state, result } = complete(text, cursor)
+    const dispatch = vi.spyOn(window, "dispatchEvent")
+    const view = { state }
+    const table = result.options.find(option => option.label === "Table")
+
+    table.apply(view, table, result.from, cursor)
+
+    const slashEvent = dispatch.mock.calls
+      .map(([event]) => event)
+      .find(event => event.type === "frankmd:open-slash-command")
+    expect(slashEvent.detail).toEqual({ action: "table", from: 7, to: 13, query: "/table" })
+    expect(state.doc.toString()).toBe(text)
+    dispatch.mockRestore()
   })
 
   it.each([

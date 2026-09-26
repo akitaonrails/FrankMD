@@ -73,6 +73,10 @@ en:
       quote: "Quote"
       code_block: "Code block"
       divider: "Divider"
+      table: "Table"
+      image: "Image"
+      video: "Video"
+      emoji: "Emoji"
     # Editor toolbar
     toolbar:
       help: "Help"
@@ -379,6 +383,7 @@ en:
         unindent: "Unindent block"
         insert: "Insert"
         emoji_picker: "Emoji picker"
+        slash_commands: "Type / in a paragraph to add a block, table, image, video, or emoji."
         format_menu: "Text format menu"
         context_menu: "Context menu (with selection)"
         text_format: "Text Format Menu"

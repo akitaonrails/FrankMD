@@ -19,6 +19,12 @@ const BLOCK_COMMANDS = [
   { name: "code-block", kind: "codeBlock", labelKey: "editor.slash_commands.code_block", fallbackLabel: "Code block", filterText: "code block fenced" },
   { name: "divider", kind: "divider", labelKey: "editor.slash_commands.divider", fallbackLabel: "Divider", filterText: "divider horizontal rule hr" }
 ]
+const INSERT_COMMANDS = [
+  { name: "table", labelKey: "editor.slash_commands.table", fallbackLabel: "Table", filterText: "insert table grid" },
+  { name: "image", labelKey: "editor.slash_commands.image", fallbackLabel: "Image", filterText: "insert image picture photo" },
+  { name: "video", labelKey: "editor.slash_commands.video", fallbackLabel: "Video", filterText: "insert video embed youtube" },
+  { name: "emoji", labelKey: "editor.slash_commands.emoji", fallbackLabel: "Emoji", filterText: "insert emoji emoticon icon" }
+]
 
 const CODE_NODE_NAMES = new Set(["FencedCode", "CodeText", "InlineCode"])
 const EDITABLE_BLOCK_NAMES = new Set([
@@ -67,6 +73,17 @@ function getBlockContext(block) {
 function isVimNormalMode(context) {
   const vimState = context.view?.cm?.state?.vim
   return Boolean(vimState && vimState.insertMode === false)
+}
+
+function dispatchInsertCommand(view, action, queryFrom, queryTo) {
+  const from = queryFrom - 1
+  const to = queryTo
+  const query = view.state.sliceDoc(from, to)
+  if (typeof window === "undefined") return
+
+  window.dispatchEvent(new CustomEvent("frankmd:open-slash-command", {
+    detail: { action, from, to, query }
+  }))
 }
 
 function replaceWithHeading(view, level, queryFrom, queryTo) {
@@ -297,9 +314,19 @@ export function createSlashCommandCompletionSource() {
       }
     })
 
+    const insertOptions = INSERT_COMMANDS.map((command) => {
+      const label = localizedLabel(command.labelKey, command.fallbackLabel)
+      return {
+        label,
+        type: "keyword",
+        filterText: `${label} ${command.filterText}`,
+        apply: (view, _completion, from, to) => dispatchInsertCommand(view, command.name, from, to)
+      }
+    })
+
     return {
       from: queryFrom,
-      options: [...headingOptions, ...blockOptions],
+      options: [...headingOptions, ...blockOptions, ...insertOptions],
       validFor: /^[\w -]*$/
     }
   }
