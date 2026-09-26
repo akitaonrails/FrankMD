@@ -2,7 +2,14 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { CompletionContext, startCompletion } from "@codemirror/autocomplete"
+import {
+  acceptCompletion,
+  autocompletion,
+  CompletionContext,
+  currentCompletions,
+  setSelectedCompletion,
+  startCompletion
+} from "@codemirror/autocomplete"
 import { EditorState } from "@codemirror/state"
 import { EditorView } from "@codemirror/view"
 import { markdown } from "@codemirror/lang-markdown"
@@ -62,6 +69,23 @@ describe("CodeMirror slash commands", () => {
     expect(result?.from).toBe("An existing paragraph /".length)
     expect(result?.options[0].filterText).toContain("h1")
     expect(result?.validFor.test("heading 1")).toBe(true)
+  })
+
+  it("uses fallback labels while translations are still unavailable", () => {
+    const originalTranslator = window.t
+    window.t = key => key
+
+    try {
+      const { result } = complete("/")
+
+      expect(result.options.map(option => option.label)).toEqual([
+        "Heading 1", "Heading 2", "Heading 3", "Bulleted list", "Numbered list",
+        "To-do list", "Quote", "Code block", "Divider", "Table", "Image", "Video", "Emoji"
+      ])
+    } finally {
+      if (originalTranslator === undefined) delete window.t
+      else window.t = originalTranslator
+    }
   })
 
   it("offers the native Markdown block commands", () => {
@@ -154,6 +178,43 @@ describe("CodeMirror slash commands", () => {
     expect(slashEvent.detail).toEqual({ action: "table", from: 7, to: 13, query: "/table" })
     expect(state.doc.toString()).toBe(text)
     dispatch.mockRestore()
+  })
+
+  it("closes the completion synchronously before a dialog takes focus", async () => {
+    const parent = document.createElement("div")
+    const dialogInput = document.createElement("input")
+    document.body.append(parent, dialogInput)
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: "/",
+        selection: { anchor: 1 },
+        extensions: [markdown(), autocompletion({ override: [source], interactionDelay: 0 })]
+      })
+    })
+    const insertListener = () => dialogInput.focus()
+    window.addEventListener("frankmd:open-slash-command", insertListener)
+
+    try {
+      view.focus()
+      expect(startCompletion(view)).toBe(true)
+      await vi.waitFor(() => {
+        expect(parent.querySelectorAll(".cm-tooltip-autocomplete li")).toHaveLength(13)
+      })
+
+      const tableIndex = currentCompletions(view.state).findIndex(option => option.label === "Table")
+      expect(tableIndex).toBeGreaterThanOrEqual(0)
+      view.dispatch({ effects: setSelectedCompletion(tableIndex) })
+      expect(acceptCompletion(view)).toBe(true)
+
+      expect(dialogInput).toBe(document.activeElement)
+      expect(parent.querySelector(".cm-tooltip-autocomplete")).toBeNull()
+    } finally {
+      window.removeEventListener("frankmd:open-slash-command", insertListener)
+      view.destroy()
+      parent.remove()
+      dialogInput.remove()
+    }
   })
 
   it.each([

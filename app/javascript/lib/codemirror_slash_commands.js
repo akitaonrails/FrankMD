@@ -1,6 +1,7 @@
 // Slash-command completion for CodeMirror's Markdown editor.
 
 import { syntaxTree } from "@codemirror/language"
+import { closeCompletion } from "@codemirror/autocomplete"
 import { getIconMap } from "lib/icon_data"
 
 let isEnabledProvider = () => false
@@ -65,7 +66,8 @@ export function setSlashCommandsEnabledProvider(provider) {
 
 function localizedLabel(key, fallback) {
   if (typeof window !== "undefined" && typeof window.t === "function") {
-    return window.t(key)
+    const label = window.t(key)
+    return typeof label === "string" && label !== key ? label : fallback
   }
   return fallback
 }
@@ -349,7 +351,12 @@ export function createSlashCommandCompletionSource() {
         type: "keyword",
         slashCommandIcon: command.icon,
         filterText: `${label} ${command.filterText}`,
-        apply: (view, _completion, from, to) => dispatchInsertCommand(view, command.name, from, to)
+        apply: (view, _completion, from, to) => {
+          // Dialog focus closes autocomplete asynchronously. Close it before
+          // opening the dialog so the menu cannot linger over the new UI.
+          closeCompletion(view)
+          dispatchInsertCommand(view, command.name, from, to)
+        }
       }
     })
 
