@@ -1,30 +1,51 @@
 // Slash-command completion for CodeMirror's Markdown editor.
 
 import { syntaxTree } from "@codemirror/language"
+import { getIconMap } from "lib/icon_data"
 
 let isEnabledProvider = () => false
 
 const HEADING_COMMANDS = [1, 2, 3].map((level) => ({
   name: `heading-${level}`,
   level,
+  icon: "hash",
   labelKey: `editor.slash_commands.heading_${level}`,
   fallbackLabel: `Heading ${level}`
 }))
 
 const BLOCK_COMMANDS = [
-  { name: "bulleted-list", kind: "bulletedList", labelKey: "editor.slash_commands.bulleted_list", fallbackLabel: "Bulleted list", filterText: "bullet bulleted unordered list" },
-  { name: "numbered-list", kind: "numberedList", labelKey: "editor.slash_commands.numbered_list", fallbackLabel: "Numbered list", filterText: "numbered ordered list" },
-  { name: "to-do-list", kind: "todoList", labelKey: "editor.slash_commands.to_do_list", fallbackLabel: "To-do list", filterText: "to-do todo task checklist" },
-  { name: "quote", kind: "quote", labelKey: "editor.slash_commands.quote", fallbackLabel: "Quote", filterText: "quote blockquote" },
-  { name: "code-block", kind: "codeBlock", labelKey: "editor.slash_commands.code_block", fallbackLabel: "Code block", filterText: "code block fenced" },
-  { name: "divider", kind: "divider", labelKey: "editor.slash_commands.divider", fallbackLabel: "Divider", filterText: "divider horizontal rule hr" }
+  { name: "bulleted-list", kind: "bulletedList", icon: "list-bullets", labelKey: "editor.slash_commands.bulleted_list", fallbackLabel: "Bulleted list", filterText: "bullet bulleted unordered list" },
+  { name: "numbered-list", kind: "numberedList", icon: "list-numbers", labelKey: "editor.slash_commands.numbered_list", fallbackLabel: "Numbered list", filterText: "numbered ordered list" },
+  { name: "to-do-list", kind: "todoList", icon: "list-checks", labelKey: "editor.slash_commands.to_do_list", fallbackLabel: "To-do list", filterText: "to-do todo task checklist" },
+  { name: "quote", kind: "quote", icon: "quotes", labelKey: "editor.slash_commands.quote", fallbackLabel: "Quote", filterText: "quote blockquote" },
+  { name: "code-block", kind: "codeBlock", icon: "code", labelKey: "editor.slash_commands.code_block", fallbackLabel: "Code block", filterText: "code block fenced" },
+  { name: "divider", kind: "divider", icon: "minus", labelKey: "editor.slash_commands.divider", fallbackLabel: "Divider", filterText: "divider horizontal rule hr" }
 ]
 const INSERT_COMMANDS = [
-  { name: "table", labelKey: "editor.slash_commands.table", fallbackLabel: "Table", filterText: "insert table grid" },
-  { name: "image", labelKey: "editor.slash_commands.image", fallbackLabel: "Image", filterText: "insert image picture photo" },
-  { name: "video", labelKey: "editor.slash_commands.video", fallbackLabel: "Video", filterText: "insert video embed youtube" },
-  { name: "emoji", labelKey: "editor.slash_commands.emoji", fallbackLabel: "Emoji", filterText: "insert emoji emoticon icon" }
+  { name: "table", icon: "table", labelKey: "editor.slash_commands.table", fallbackLabel: "Table", filterText: "insert table grid" },
+  { name: "image", icon: "image", labelKey: "editor.slash_commands.image", fallbackLabel: "Image", filterText: "insert image picture photo" },
+  { name: "video", icon: "video-camera", labelKey: "editor.slash_commands.video", fallbackLabel: "Video", filterText: "insert video embed youtube" },
+  { name: "emoji", icon: "smiley", labelKey: "editor.slash_commands.emoji", fallbackLabel: "Emoji", filterText: "insert emoji emoticon icon" }
 ]
+
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg"
+
+export function renderSlashCommandIcon(completion) {
+  const iconData = getIconMap()[completion.slashCommandIcon]
+  if (!iconData) return null
+
+  const svg = document.createElementNS(SVG_NAMESPACE, "svg")
+  svg.classList.add("frankmd-completion-icon")
+  svg.setAttribute("viewBox", iconData.viewBox)
+  svg.setAttribute("fill", "currentColor")
+  svg.setAttribute("aria-hidden", "true")
+  svg.setAttribute("focusable", "false")
+
+  const path = document.createElementNS(SVG_NAMESPACE, "path")
+  path.setAttribute("d", iconData.path)
+  svg.appendChild(path)
+  return svg
+}
 
 const CODE_NODE_NAMES = new Set(["FencedCode", "CodeText", "InlineCode"])
 const EDITABLE_BLOCK_NAMES = new Set([
@@ -305,6 +326,7 @@ export function createSlashCommandCompletionSource() {
       return {
         label,
         type: "keyword",
+        slashCommandIcon: command.icon,
         filterText: `${label} heading ${command.level} heading${command.level} h${command.level}`,
         apply: (view, _completion, from, to) => replaceWithHeading(view, command.level, from, to)
       }
@@ -314,6 +336,7 @@ export function createSlashCommandCompletionSource() {
       return {
         label,
         type: "keyword",
+        slashCommandIcon: command.icon,
         filterText: `${label} ${command.filterText}`,
         apply: (view, _completion, from, to) => replaceWithBlockCommand(view, command.kind, from, to)
       }
@@ -324,6 +347,7 @@ export function createSlashCommandCompletionSource() {
       return {
         label,
         type: "keyword",
+        slashCommandIcon: command.icon,
         filterText: `${label} ${command.filterText}`,
         apply: (view, _completion, from, to) => dispatchInsertCommand(view, command.name, from, to)
       }

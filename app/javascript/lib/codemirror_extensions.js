@@ -10,7 +10,7 @@ import { searchKeymap, highlightSelectionMatches } from "@codemirror/search"
 import { createTheme } from "lib/codemirror_theme"
 import { LINE_NUMBER_MODES } from "lib/line_numbers"
 import { createWikilinkAutocomplete } from "lib/codemirror_wikilink"
-import { createSlashCommandCompletionSource } from "lib/codemirror_slash_commands"
+import { createSlashCommandCompletionSource, renderSlashCommandIcon } from "lib/codemirror_slash_commands"
 import { imageFileFromClipboard } from "lib/clipboard_image"
 import { vim } from "@replit/codemirror-vim"
 
@@ -248,7 +248,10 @@ export function createExtensions(options = {}) {
     // Wikilink autocomplete ([[note name]]) and Markdown slash commands.
     // Both share CodeMirror's completion UI, keyboard controls, pointer
     // selection, and Escape behavior.
-    createWikilinkAutocomplete({ additionalSources: [createSlashCommandCompletionSource()] })
+    createWikilinkAutocomplete({
+      additionalSources: [createSlashCommandCompletionSource()],
+      addToOptions: [{ render: renderSlashCommandIcon, position: 20 }]
+    })
   ]
 
   // Placeholder

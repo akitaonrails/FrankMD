@@ -2,11 +2,14 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { CompletionContext } from "@codemirror/autocomplete"
+import { CompletionContext, startCompletion } from "@codemirror/autocomplete"
 import { EditorState } from "@codemirror/state"
+import { EditorView } from "@codemirror/view"
 import { markdown } from "@codemirror/lang-markdown"
+import { createWikilinkAutocomplete } from "../../../app/javascript/lib/codemirror_wikilink.js"
 import {
   createSlashCommandCompletionSource,
+  renderSlashCommandIcon,
   setSlashCommandsEnabledProvider
 } from "../../../app/javascript/lib/codemirror_slash_commands.js"
 
@@ -68,6 +71,67 @@ describe("CodeMirror slash commands", () => {
       "Heading 1", "Heading 2", "Heading 3", "Bulleted list", "Numbered list",
       "To-do list", "Quote", "Code block", "Divider", "Table", "Image", "Video", "Emoji"
     ])
+  })
+
+  it("maps each menu label to a semantic Phosphor icon", () => {
+    const { result } = complete("/")
+    const iconByLabel = Object.fromEntries(result.options.map(option => [option.label, option.slashCommandIcon]))
+
+    expect(iconByLabel).toEqual({
+      "Heading 1": "hash",
+      "Heading 2": "hash",
+      "Heading 3": "hash",
+      "Bulleted list": "list-bullets",
+      "Numbered list": "list-numbers",
+      "To-do list": "list-checks",
+      Quote: "quotes",
+      "Code block": "code",
+      Divider: "minus",
+      Table: "table",
+      Image: "image",
+      Video: "video-camera",
+      Emoji: "smiley"
+    })
+  })
+
+  it("renders command icon metadata as accessible decorative SVG", () => {
+    const icon = renderSlashCommandIcon({ slashCommandIcon: "table" })
+
+    expect(icon.tagName.toLowerCase()).toBe("svg")
+    expect(icon.getAttribute("viewBox")).toBe("0 0 256 256")
+    expect(icon.getAttribute("aria-hidden")).toBe("true")
+    expect(icon.querySelector("path").getAttribute("d")).toBeTruthy()
+    expect(renderSlashCommandIcon({ label: "A note" })).toBeNull()
+  })
+
+  it("renders the semantic SVG icons inside the completion menu", async () => {
+    const parent = document.createElement("div")
+    document.body.appendChild(parent)
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc: "/",
+        selection: { anchor: 1 },
+        extensions: [markdown(), createWikilinkAutocomplete({
+          additionalSources: [source],
+          addToOptions: [{ render: renderSlashCommandIcon, position: 20 }]
+        })]
+      })
+    })
+
+    try {
+      expect(startCompletion(view)).toBe(true)
+      await vi.waitFor(() => {
+        expect(parent.querySelectorAll(".cm-tooltip-autocomplete li")).toHaveLength(13)
+      })
+
+      const options = [...parent.querySelectorAll(".cm-tooltip-autocomplete li")]
+      expect(options.every(option => option.querySelector("svg.frankmd-completion-icon"))).toBe(true)
+      expect(options.some(option => option.textContent.includes("Heading 1"))).toBe(true)
+    } finally {
+      view.destroy()
+      parent.remove()
+    }
   })
 
   it.each(["/", "Text\n\n/"])("offers commands when the slash starts a new line in %j", (text) => {
