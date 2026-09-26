@@ -66,6 +66,12 @@ es:
       heading_1: "Encabezado 1"
       heading_2: "Encabezado 2"
       heading_3: "Encabezado 3"
+      bulleted_list: "Lista con viñetas"
+      numbered_list: "Lista numerada"
+      to_do_list: "Lista de tareas"
+      quote: "Cita"
+      code_block: "Bloque de código"
+      divider: "Separador"
     # Editor toolbar
     toolbar:
       help: "Ayuda"

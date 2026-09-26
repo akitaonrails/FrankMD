@@ -21,6 +21,24 @@ function complete(text, cursor = text.length, view = undefined) {
   return { state, result }
 }
 
+function applyCommand(text, label, cursor = text.length) {
+  const { state, result } = complete(text, cursor)
+  const command = result?.options.find(option => option.label === label)
+  if (!command) throw new Error(`Command not found: ${label}`)
+
+  let currentState = state
+  let dispatchCount = 0
+  const view = {
+    get state() { return currentState },
+    dispatch(transaction) {
+      dispatchCount += 1
+      currentState = currentState.update(transaction).state
+    }
+  }
+  command.apply(view, command, result.from, cursor)
+  return { state: view.state, dispatchCount }
+}
+
 describe("CodeMirror slash commands", () => {
   beforeEach(() => {
     setSlashCommandsEnabledProvider(() => true)
@@ -33,7 +51,7 @@ describe("CodeMirror slash commands", () => {
   it("offers localized heading commands from a slash typed inside a paragraph", () => {
     const { result } = complete("An existing paragraph /he")
 
-    expect(result?.options.map(option => option.label)).toEqual([
+    expect(result?.options.slice(0, 3).map(option => option.label)).toEqual([
       "Heading 1",
       "Heading 2",
       "Heading 3"
@@ -41,6 +59,77 @@ describe("CodeMirror slash commands", () => {
     expect(result?.from).toBe("An existing paragraph /".length)
     expect(result?.options[0].filterText).toContain("h1")
     expect(result?.validFor.test("heading 1")).toBe(true)
+  })
+
+  it("offers the native Markdown block commands", () => {
+    const { result } = complete("Text /")
+
+    expect(result?.options.map(option => option.label)).toEqual([
+      "Heading 1", "Heading 2", "Heading 3", "Bulleted list", "Numbered list",
+      "To-do list", "Quote", "Code block", "Divider"
+    ])
+  })
+
+  it.each([
+    ["Bulleted list", "- Before after"],
+    ["Numbered list", "1. Before after"],
+    ["To-do list", "- [ ] Before after"],
+    ["Quote", "> Before after"],
+    ["Code block", "```\nBefore after\n```"],
+    ["Divider", "Before after\n\n---"]
+  ])("applies %s to the paragraph and commits one editor transaction", (label, expected) => {
+    const text = "Before /command after"
+    const cursor = text.indexOf(" after")
+    const { state, dispatchCount } = applyCommand(text, label, cursor)
+
+    expect(state.doc.toString()).toBe(expected)
+    expect(dispatchCount).toBe(1)
+  })
+
+  it.each([
+    ["Bulleted list", "first /list\nsecond", "- first\n  second"],
+    ["Numbered list", "first /list\nsecond", "1. first\n   second"],
+    ["To-do list", "first /list\nsecond", "- [ ] first\n      second"],
+    ["Quote", "first /quote\nsecond", "> first\n> second"],
+    ["Code block", "first /code\nsecond", "```\nfirst\nsecond\n```"]
+  ])("preserves soft line breaks when applying %s", (label, text, expected) => {
+    const cursor = text.indexOf("\n")
+    const { state } = applyCommand(text, label, cursor)
+
+    expect(state.doc.toString()).toBe(expected)
+  })
+
+  it("keeps wikilinks intact when creating a to-do item", () => {
+    const { state } = applyCommand("[[linked note]] /todo", "To-do list")
+
+    expect(state.doc.toString()).toBe("- [ ] [[linked note]]")
+  })
+
+  it("does not stack an existing list marker and can change its kind", () => {
+    const sameKind = applyCommand("- Existing /bullet", "Bulleted list")
+    const switchedKind = applyCommand("1. Existing /bullet", "Bulleted list")
+
+    expect(sameKind.state.doc.toString()).toBe("- Existing")
+    expect(switchedKind.state.doc.toString()).toBe("- Existing")
+  })
+
+  it("preserves an existing checked task marker", () => {
+    const { state } = applyCommand("- [x] Done /todo", "To-do list")
+
+    expect(state.doc.toString()).toBe("- [x] Done")
+  })
+
+  it("does not duplicate an existing blockquote marker", () => {
+    const { state } = applyCommand("> Existing /quote", "Quote")
+
+    expect(state.doc.toString()).toBe("> Existing")
+  })
+
+  it("chooses a longer fence when the paragraph contains a backtick run", () => {
+    const { state } = applyCommand("Example ```token``` /code", "Code block")
+
+    expect(state.doc.toString()).toBe("````\nExample ```token```\n````")
+    expect(state.selection.main.head).toBe("````\nExample ```token```".length)
   })
 
   it.each([

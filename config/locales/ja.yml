@@ -66,6 +66,12 @@ ja:
       heading_1: "見出し 1"
       heading_2: "見出し 2"
       heading_3: "見出し 3"
+      bulleted_list: "箇条書きリスト"
+      numbered_list: "番号付きリスト"
+      to_do_list: "ToDo リスト"
+      quote: "引用"
+      code_block: "コードブロック"
+      divider: "区切り線"
     # Editor toolbar
     toolbar:
       help: "ヘルプ"
