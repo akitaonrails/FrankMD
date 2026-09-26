@@ -52,7 +52,7 @@ export function parseWithLineNumbers(markdown, lineOffset = 0) {
 
   // Post-process: add data-source-line to block elements
   // This is a simple approach that adds line numbers sequentially to block elements
-  const blockTags = ["h1", "h2", "h3", "h4", "h5", "h6", "p", "ul", "ol", "blockquote", "pre", "hr", "table"]
+  const blockTags = ["h1", "h2", "h3", "h4", "h5", "h6", "p", "ul", "ol", "blockquote", "pre", "hr", "table", "div"]
   const blockRegex = new RegExp(`<(${blockTags.join("|")})(\\s|>)`, "gi")
 
   let tokenIndex = 0

@@ -155,6 +155,21 @@ export function createEditorTheme(options = {}) {
 
     ".cm-tooltip-autocomplete": {
       backgroundColor: "var(--theme-bg-secondary)"
+    },
+
+    ".cm-tooltip.cm-tooltip-autocomplete > ul": {
+      height: "auto",
+      maxHeight: "16em",
+      overflowY: "auto"
+    },
+
+    ".cm-tooltip-autocomplete .frankmd-completion-icon": {
+      width: "1em",
+      height: "1em",
+      display: "inline-block",
+      marginRight: "0.5em",
+      verticalAlign: "middle",
+      opacity: "0.75"
     }
     // NOTE: vim's .cm-fat-cursor is styled in codemirror_extensions.js instead —
     // the library sets its colours at Prec.highest, which outranks this theme.

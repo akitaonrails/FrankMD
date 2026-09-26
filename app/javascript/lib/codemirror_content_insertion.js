@@ -35,13 +35,15 @@ function calculateNewlineSuffix(textAfter) {
  * @param {boolean} options.editMode - If true, replace existing content at startPos/endPos
  * @param {number} options.startPos - Start position for edit mode
  * @param {number} options.endPos - End position for edit mode
+ * @param {number} options.from - Replace-range start for slash-command insertion
+ * @param {number} options.to - Replace-range end for slash-command insertion
  * @param {number} options.cursorOffset - Offset from start of inserted content for final cursor position
  * @returns {number} - New cursor position
  */
 export function insertBlockContent(controller, content, options = {}) {
   if (!controller || !content) return 0
 
-  const { editMode = false, startPos = 0, endPos = 0, cursorOffset = null } = options
+  const { editMode = false, startPos = 0, endPos = 0, from, to, cursorOffset = null } = options
   const text = controller.getValue()
 
   if (editMode) {
@@ -54,16 +56,31 @@ export function insertBlockContent(controller, content, options = {}) {
     return newCursorPos
   }
 
-  // Insert at cursor with proper newlines
-  const cursorPos = controller.getCursorPosition().offset
-  const before = text.substring(0, cursorPos)
-  const after = text.substring(cursorPos)
+  // Insert at the cursor or replace the pending slash query with proper newlines.
+  const hasReplaceRange = Number.isInteger(from) && Number.isInteger(to)
+  let cursorPos = hasReplaceRange ? from : controller.getCursorPosition().offset
+  let replaceTo = hasReplaceRange ? to : cursorPos
+  let before = text.substring(0, cursorPos)
+  let after = text.substring(replaceTo)
+
+  if (hasReplaceRange) {
+    const trailingWhitespace = before.match(/[ \t]*$/)?.[0] || ""
+    const leadingWhitespace = after.match(/^[ \t]*/)?.[0] || ""
+    cursorPos -= trailingWhitespace.length
+    replaceTo += leadingWhitespace.length
+    before = before.slice(0, before.length - trailingWhitespace.length)
+    after = after.slice(leadingWhitespace.length)
+  }
 
   const prefix = calculateNewlinePrefix(before)
   const suffix = calculateNewlineSuffix(after)
 
   const insert = prefix + content + suffix
-  controller.insertAt(cursorPos, insert)
+  if (hasReplaceRange) {
+    controller.replaceRange(insert, cursorPos, replaceTo)
+  } else {
+    controller.insertAt(cursorPos, insert)
+  }
 
   const newCursorPos = cursorOffset !== null
     ? cursorPos + prefix.length + cursorOffset
@@ -81,13 +98,18 @@ export function insertBlockContent(controller, content, options = {}) {
  * @param {string} content - Content to insert
  * @param {Object} options - Insertion options
  * @param {boolean} options.replaceSelection - If true, replace current selection
+ * @param {number} options.from - Replace-range start for slash-command insertion
+ * @param {number} options.to - Replace-range end for slash-command insertion
  * @returns {number} - New cursor position
  */
 export function insertInlineContent(controller, content, options = {}) {
   if (!controller || !content) return 0
 
-  const { replaceSelection = true } = options
-  const { from, to } = controller.getSelection()
+  const { replaceSelection = true, from: requestedFrom, to: requestedTo } = options
+  const hasReplaceRange = Number.isInteger(requestedFrom) && Number.isInteger(requestedTo)
+  const selection = controller.getSelection()
+  const from = hasReplaceRange ? requestedFrom : selection.from
+  const to = hasReplaceRange ? requestedTo : selection.to
 
   if (replaceSelection) {
     controller.replaceRange(content, from, to)
@@ -107,13 +129,25 @@ export function insertInlineContent(controller, content, options = {}) {
  * @param {string} markdown - Image markdown (e.g., "![alt](url)")
  * @returns {number} - New cursor position
  */
-export function insertImage(controller, markdown) {
+export function insertImage(controller, markdown, options = {}) {
   if (!controller || !markdown) return 0
 
-  const { from, to } = controller.getSelection()
+  const hasReplaceRange = Number.isInteger(options.from) && Number.isInteger(options.to)
+  const selection = controller.getSelection()
+  let from = hasReplaceRange ? options.from : selection.from
+  let to = hasReplaceRange ? options.to : selection.to
   const text = controller.getValue()
-  const before = text.substring(0, from)
-  const after = text.substring(to)
+  let before = text.substring(0, from)
+  let after = text.substring(to)
+
+  if (hasReplaceRange) {
+    const trailingWhitespace = before.match(/[ \t]*$/)?.[0] || ""
+    const leadingWhitespace = after.match(/^[ \t]*/)?.[0] || ""
+    from -= trailingWhitespace.length
+    to += leadingWhitespace.length
+    before = before.slice(0, before.length - trailingWhitespace.length)
+    after = after.slice(leadingWhitespace.length)
+  }
 
   // Images only need single newlines
   const needsNewlineBefore = before.length > 0 && !before.endsWith("\n")
@@ -159,6 +193,6 @@ export function insertCodeBlock(controller, codeBlock, language = "", options = 
  * @param {string} embedCode - Video embed markdown/HTML
  * @returns {number} - New cursor position
  */
-export function insertVideoEmbed(controller, embedCode) {
-  return insertBlockContent(controller, embedCode)
+export function insertVideoEmbed(controller, embedCode, options = {}) {
+  return insertBlockContent(controller, embedCode, options)
 }

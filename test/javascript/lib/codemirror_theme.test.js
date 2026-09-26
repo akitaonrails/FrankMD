@@ -2,6 +2,9 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect } from "vitest"
+import { EditorState } from "@codemirror/state"
+import { autocompletion } from "@codemirror/autocomplete"
+import { EditorView } from "@codemirror/view"
 import { createEditorTheme, createSyntaxHighlighting, createTheme } from "../../../app/javascript/lib/codemirror_theme.js"
 
 describe("codemirror_theme", () => {
@@ -23,6 +26,25 @@ describe("codemirror_theme", () => {
     it("uses default values when no options provided", () => {
       const theme = createEditorTheme({})
       expect(theme).toBeDefined()
+    })
+
+    it("lets autocomplete results grow to 16em before scrolling", () => {
+      const view = new EditorView({
+        state: EditorState.create({
+          extensions: [createEditorTheme(), autocompletion()]
+        }),
+        parent: document.body
+      })
+      const tooltip = document.createElement("div")
+      tooltip.className = "cm-tooltip cm-tooltip-autocomplete"
+      const options = document.createElement("ul")
+      tooltip.appendChild(options)
+      view.dom.appendChild(tooltip)
+
+      expect(getComputedStyle(options).height).toBe("auto")
+      expect(getComputedStyle(options).maxHeight).toBe("16em")
+
+      view.destroy()
     })
   })
 

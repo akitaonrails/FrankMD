@@ -95,6 +95,15 @@ describe("codemirror_content_insertion", () => {
       expect(mockController.insertAt).toHaveBeenCalledWith(6, "\n\ntable")
     })
 
+    it("replaces a slash query and preserves block spacing around it", () => {
+      mockController.getValue.mockReturnValue("before /table after")
+
+      insertBlockContent(mockController, "table", { from: 7, to: 13 })
+
+      expect(mockController.replaceRange).toHaveBeenCalledWith("\n\ntable\n\n", 6, 14)
+      expect(mockController.insertAt).not.toHaveBeenCalled()
+    })
+
     it("uses replaceRange in edit mode", () => {
       insertBlockContent(mockController, "new table", {
         editMode: true,
@@ -171,6 +180,13 @@ describe("codemirror_content_insertion", () => {
 
       expect(mockController.setSelection).toHaveBeenCalledWith(10, 10) // 5 + 5 = 10
     })
+
+    it("replaces a specific slash query range", () => {
+      insertInlineContent(mockController, ":smile:", { from: 5, to: 11 })
+
+      expect(mockController.replaceRange).toHaveBeenCalledWith(":smile:", 5, 11)
+      expect(mockController.setSelection).toHaveBeenCalledWith(12, 12)
+    })
   })
 
   describe("insertImage", () => {
@@ -217,6 +233,14 @@ describe("codemirror_content_insertion", () => {
 
       expect(mockController.replaceRange).toHaveBeenCalledWith("\n![alt](url)\n", 6, 16)
     })
+
+    it("replaces a specific slash query range", () => {
+      mockController.getValue.mockReturnValue("before /image after")
+
+      insertImage(mockController, "![alt](url)", { from: 7, to: 13 })
+
+      expect(mockController.replaceRange).toHaveBeenCalledWith("\n![alt](url)\n", 6, 14)
+    })
   })
 
   describe("insertTable", () => {
@@ -228,6 +252,14 @@ describe("codemirror_content_insertion", () => {
       insertTable(mockController, tableMarkdown)
 
       expect(mockController.insertAt).toHaveBeenCalledWith(0, tableMarkdown)
+    })
+
+    it("replaces a slash query with a video block at the saved range", () => {
+      mockController.getValue.mockReturnValue("before /video after")
+
+      insertVideoEmbed(mockController, "<video></video>", { from: 7, to: 13 })
+
+      expect(mockController.replaceRange).toHaveBeenCalledWith("\n\n<video></video>\n\n", 6, 14)
     })
 
     it("passes edit mode options through", () => {
