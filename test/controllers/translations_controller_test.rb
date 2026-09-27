@@ -34,6 +34,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert translations.key?("success")
     assert translations.key?("editor")
     assert translations.key?("sidebar")
+    assert translations.key?("library")
   end
 
   test "show returns correct English translations" do
@@ -47,6 +48,8 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Save", translations["common"]["save"]
     assert_equal "Saved", translations["status"]["saved"]
     assert_equal "Note not found", translations["errors"]["note_not_found"]
+    assert_equal "Media Library", translations["library"]["title"]
+    assert_equal "Images", translations["library"]["images"]
   end
 
   # === Locale Switching via ENV ===
@@ -64,6 +67,8 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Cancelar", translations["common"]["cancel"]
     assert_equal "Salvar", translations["common"]["save"]
     assert_equal "Salvo", translations["status"]["saved"]
+    assert_equal "Biblioteca de mídia", translations["library"]["title"]
+    assert_equal "Vídeos", translations["library"]["videos"]
   end
 
   test "show returns Spanish translations when ENV locale is es" do

@@ -1,0 +1,59 @@
+<section
+  class="flex-1 min-w-0 hidden overflow-y-auto bg-[var(--theme-bg-primary)]"
+  data-app-target="libraryPanel"
+  data-controller="library"
+  aria-labelledby="library-title"
+>
+  <div class="library-workspace mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+    <div>
+      <div>
+        <h1 id="library-title" class="text-xl font-semibold"><%= t('library.title') %></h1>
+        <p class="mt-1 text-sm text-[var(--theme-text-muted)]"><%= t('library.description') %></p>
+      </div>
+    </div>
+
+    <div class="mt-6 flex items-center gap-2 border-b border-[var(--theme-border)]" role="group" aria-label="<%= t('library.categories') %>">
+      <button
+        type="button"
+        data-library-target="imagesTab"
+        data-action="click->library#showImages"
+        aria-pressed="true"
+        class="library-tab px-3 py-2 text-sm font-medium text-[var(--theme-accent)]"
+      ><%= t('library.images') %></button>
+      <button
+        type="button"
+        data-library-target="videosTab"
+        data-action="click->library#showVideos"
+        aria-pressed="false"
+        class="library-tab px-3 py-2 text-sm font-medium text-[var(--theme-text-muted)]"
+      ><%= t('library.videos') %></button>
+      <span class="ml-auto pb-2 text-xs text-[var(--theme-text-faint)]" data-library-target="count"></span>
+    </div>
+
+    <p class="hidden mt-4 rounded-md border border-[var(--theme-error)] px-3 py-2 text-sm text-[var(--theme-error)]" data-library-target="error" role="alert"></p>
+    <p class="hidden mt-4 text-sm text-[var(--theme-text-muted)]" data-library-target="loading" role="status"><%= t('library.loading') %></p>
+    <div class="library-grid mt-5" data-library-target="grid" aria-live="polite"></div>
+
+    <div
+      class="hidden fixed inset-0 z-50 items-center justify-center bg-black/70 p-4"
+      data-library-target="previewDialog"
+      data-action="click->library#closePreviewOnBackdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="library-preview-name"
+    >
+      <div class="library-preview-dialog w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] shadow-2xl" data-library-preview-content>
+        <div class="flex items-start justify-between gap-4 border-b border-[var(--theme-border)] p-4 sm:p-5">
+          <div class="min-w-0">
+            <h2 id="library-preview-name" class="truncate text-base font-semibold" data-library-target="previewName"></h2>
+            <p class="mt-1 text-xs text-[var(--theme-text-muted)]" data-library-target="previewMetadata"></p>
+          </div>
+          <button type="button" data-action="click->library#closePreview" class="rounded p-1.5 text-[var(--theme-text-muted)] hover:bg-[var(--theme-bg-hover)]" aria-label="<%= t('common.close') %>">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" stroke-width="2" /></svg>
+          </button>
+        </div>
+        <div class="library-preview-media flex min-h-48 items-center justify-center p-4 sm:p-6" data-library-target="previewMedia"></div>
+      </div>
+    </div>
+  </div>
+</section>

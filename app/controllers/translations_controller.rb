@@ -4,7 +4,7 @@ class TranslationsController < ApplicationController
   # GET /translations
   # Returns translations for JavaScript use
   def show
-    js_keys = %w[common dialogs status errors success editor sidebar preview context_menu connection]
+    js_keys = %w[common dialogs status errors success editor sidebar preview context_menu connection library]
     translations = js_keys.each_with_object({}) do |key, hash|
       # Deep-merge the requested locale over the en tree: I18n fallbacks only
       # kick in when a whole section is missing, so keys absent from an

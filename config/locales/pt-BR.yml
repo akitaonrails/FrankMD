@@ -41,6 +41,8 @@ pt-BR:
     change_language: "Alterar Idioma"
     about_app: "Sobre FrankMD"
     click_to_copy_path: "Clique para copiar o caminho"
+    library: "Biblioteca"
+    open_library: "Abrir biblioteca de mídia"
 
   # Seção da barra lateral/explorador
   sidebar:
@@ -57,6 +59,19 @@ pt-BR:
     size: "Tamanho"
     read_time: "Leitura"
     line: "Linha"
+
+  # Biblioteca de mídia local
+  library:
+    title: "Biblioteca de mídia"
+    description: "Navegue e visualize imagens e vídeos salvos com suas notas."
+    categories: "Categorias de mídia"
+    images: "Imagens"
+    videos: "Vídeos"
+    loading: "Carregando mídia..."
+    empty: "Nenhuma mídia encontrada."
+    load_failed: "Falha ao carregar a biblioteca de mídia."
+    item_count: "%{count} itens"
+    preview_item: "Visualizar %{name}"
 
   # Seção do editor
   editor:

@@ -339,6 +339,7 @@ export default class extends Controller {
     if (!this.prepareEditorTransition(generation)) return false
     if (!this.isCurrentNavigation(generation)) return false
 
+    this.showEditorWorkspace()
     this.currentFile = path
     const fileType = this.getFileType(path)
     const displayPath = fileType === "markdown" ? path.replace(/\.md$/, "") : path
@@ -355,6 +356,7 @@ export default class extends Controller {
     if (!this.prepareEditorTransition(generation)) return false
     if (!this.isCurrentNavigation(generation)) return false
 
+    this.showEditorWorkspace()
     this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
@@ -371,6 +373,7 @@ export default class extends Controller {
     if (!this.prepareEditorTransition(generation)) return false
     if (!this.isCurrentNavigation(generation)) return false
 
+    this.showEditorWorkspace()
     this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
@@ -744,6 +747,8 @@ export default class extends Controller {
 
   // === Preview Panel - Delegates to preview_controller ===
   togglePreview() {
+    if (this.libraryVisible) return false
+
     // Only allow preview for markdown files
     if (!this.isMarkdownFile()) {
       this.showTemporaryMessage("Preview is only available for markdown files")
@@ -1115,6 +1120,55 @@ export default class extends Controller {
     if (this.hasSidebarToggleTarget) {
       this.sidebarToggleTarget.setAttribute("aria-expanded", this.sidebarVisible.toString())
     }
+  }
+
+  // === Library Workspace ===
+  toggleLibrary() {
+    if (this.libraryVisible) {
+      this.showEditorWorkspace()
+      return false
+    }
+
+    this.showLibraryWorkspace()
+    return true
+  }
+
+  showLibraryWorkspace() {
+    const root = this.context?.element
+    const editorPanel = root?.querySelector('[data-app-target~="editorPanel"]')
+    const previewPanel = root?.querySelector('[data-app-target~="previewPanel"]')
+    const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
+    const toggle = root?.querySelector('[data-app-target~="libraryToggle"]')
+    if (!libraryPanel) return false
+
+    if (!this.libraryVisible) {
+      this._libraryPreviewWasVisible = Boolean(previewPanel && !previewPanel.classList.contains("hidden"))
+    }
+    this.libraryVisible = true
+    editorPanel?.classList.add("hidden")
+    previewPanel?.classList.add("hidden")
+    libraryPanel.classList.remove("hidden")
+    toggle?.setAttribute("aria-pressed", "true")
+    return true
+  }
+
+  showEditorWorkspace() {
+    const wasInLibrary = Boolean(this.libraryVisible)
+    const root = this.context?.element
+    const editorPanel = root?.querySelector('[data-app-target~="editorPanel"]')
+    const previewPanel = root?.querySelector('[data-app-target~="previewPanel"]')
+    const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
+    const toggle = root?.querySelector('[data-app-target~="libraryToggle"]')
+
+    this.libraryVisible = false
+    libraryPanel?.classList.add("hidden")
+    editorPanel?.classList.remove("hidden")
+    if (wasInLibrary && previewPanel) {
+      previewPanel.classList.toggle("hidden", !this._libraryPreviewWasVisible)
+      this._libraryPreviewWasVisible = null
+    }
+    toggle?.setAttribute("aria-pressed", "false")
+    return true
   }
 
   // === Typewriter Mode - Delegates to typewriter_controller ===

@@ -46,6 +46,22 @@
   <div class="flex items-center gap-2 shrink-0">
     <button
       type="button"
+      data-action="click->app#toggleLibrary"
+      data-app-target="libraryToggle"
+      class="library-toggle flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
+      title="<%= t('header.open_library') %>"
+      aria-pressed="false"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.7">
+        <rect x="3" y="3" width="8" height="8" rx="1" />
+        <rect x="13" y="3" width="8" height="8" rx="1" />
+        <rect x="3" y="13" width="8" height="8" rx="1" />
+        <rect x="13" y="13" width="8" height="8" rx="1" />
+      </svg>
+      <span class="text-xs"><%= t('header.library') %></span>
+    </button>
+    <button
+      type="button"
       data-action="click->app#toggleVimMode"
       data-app-target="vimToggle"
       class="p-1.5 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] <%= 'text-[var(--theme-accent)]' if @config_obj&.get('vim_mode') %>"
