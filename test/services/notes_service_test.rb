@@ -42,6 +42,27 @@ class NotesServiceTest < ActiveSupport::TestCase
     assert_equal "nested", folder[:children].first[:name]
   end
 
+  test "list_tree hides only root managed media folders" do
+    create_test_folder("images")
+    create_test_folder("videos")
+    create_test_note("images/photo.png", "media")
+    create_test_note("videos/clip.mp4", "media")
+    create_test_folder("images-old")
+    create_test_note("images-old/note.md")
+    create_test_folder("archive/images")
+    create_test_note("archive/images/note.md")
+    create_test_folder("archive/videos")
+    create_test_note("archive/videos/note.md")
+
+    tree = @service.list_tree
+
+    refute tree.any? { |item| %w[images videos].include?(item[:name]) }
+    images_old = tree.find { |item| item[:name] == "images-old" }
+    assert_equal "note", images_old[:children].first[:name]
+    archive = tree.find { |item| item[:name] == "archive" }
+    assert_equal %w[images videos], archive[:children].map { |item| item[:name] }.sort
+  end
+
   test "list_tree sorts folders before files" do
     create_test_note("zebra.md")
     create_test_folder("alpha")
