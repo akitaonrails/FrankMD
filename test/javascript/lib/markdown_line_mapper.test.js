@@ -1,12 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import {
   parseWithLineNumbers,
   findElementByLine,
   findLineAtScroll
 } from "../../../app/javascript/lib/markdown_line_mapper"
+import { marked } from "marked"
 
 // Build a container with annotated elements at the given content-relative tops,
 // mocking getBoundingClientRect so rects bake in an arbitrary page offset.
@@ -53,6 +54,28 @@ describe("parseWithLineNumbers", () => {
     const html = parseWithLineNumbers("# First\n\n# Second\n\n", 4)
     expect(html).toContain('data-source-line="5"')
     expect(html).toContain('data-source-line="7"')
+  })
+
+  it("annotates display math blocks so following preview lines stay aligned", () => {
+    const markdown = "Before\n\n$$\nx + y\n$$\n\nAfter"
+    const lexer = vi.spyOn(marked, "lexer").mockReturnValue([
+      { type: "paragraph", raw: "Before\n\n" },
+      { type: "mathBlock", raw: "$$\nx + y\n$$\n\n" },
+      { type: "paragraph", raw: "After" }
+    ])
+    const parse = vi.spyOn(marked, "parse").mockReturnValue(
+      '<p>Before</p>\n<div class="math-block">x + y</div>\n<p>After</p>'
+    )
+
+    try {
+      const html = parseWithLineNumbers(markdown)
+
+      expect(html).toMatch(/<div[^>]*data-source-line="3"[^>]*class="math-block"/)
+      expect(html).toMatch(/<p[^>]*data-source-line="7">After<\/p>/)
+    } finally {
+      lexer.mockRestore()
+      parse.mockRestore()
+    }
   })
 
   it("returns empty string for empty input", () => {

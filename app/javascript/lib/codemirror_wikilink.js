@@ -94,10 +94,12 @@ function wikilinkCompletions(context) {
  * Call setWikilinkFileProvider() to supply the file list.
  * @returns {Extension}
  */
-export function createWikilinkAutocomplete() {
+export function createWikilinkAutocomplete({ additionalSources = [], addToOptions = [] } = {}) {
   return autocompletion({
-    override: [wikilinkCompletions],
+    override: [wikilinkCompletions, ...additionalSources],
     activateOnTyping: true,
-    maxRenderedOptions: 20
+    maxRenderedOptions: 20,
+    icons: addToOptions.length === 0,
+    addToOptions
   })
 }

@@ -144,11 +144,13 @@ describe("onFileRenamed: autosave synchronization", () => {
     }
     const app = {
       currentFile: "foo.md",
+      pendingSlashInsertionRange: { action: "image", from: 1, to: 7, query: "/image" },
       hasTextareaTarget: false,
       hasEditorToolbarTarget: false,
       getCodemirrorController: () => null,
       evictCreatedNoteBoundaries: vi.fn(),
       invalidateTreeRefreshes: AppController.prototype.invalidateTreeRefreshes,
+      clearPendingSlashInsertion: AppController.prototype.clearPendingSlashInsertion,
       getAutosaveController: () => autosave,
       updatePathDisplay: vi.fn(),
       updateUrl: vi.fn(),
@@ -162,6 +164,7 @@ describe("onFileRenamed: autosave synchronization", () => {
     })
 
     expect(app.currentFile).toBeNull()
+    expect(app.pendingSlashInsertionRange).toBeNull()
     expect(autosave.deleteFile).toHaveBeenCalledWith("foo.md", "file")
     expect(app.updateUrl).toHaveBeenCalledWith(null, { replace: true })
   })
@@ -173,9 +176,11 @@ describe("onFileRenamed: autosave synchronization", () => {
     }
     const app = {
       currentFile: "foo.md",
+      pendingSlashInsertionRange: { action: "image", from: 1, to: 7, query: "/image" },
       getCodemirrorController: () => null,
       evictCreatedNoteBoundaries: vi.fn(),
       invalidateTreeRefreshes: AppController.prototype.invalidateTreeRefreshes,
+      clearPendingSlashInsertion: AppController.prototype.clearPendingSlashInsertion,
       getAutosaveController: () => autosave,
       updatePathDisplay: vi.fn(),
       updateUrl: vi.fn(),
