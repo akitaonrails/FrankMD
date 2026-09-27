@@ -2,14 +2,18 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
+vi.mock("lib/app_prompt", () => ({ appConfirm: vi.fn().mockResolvedValue(true) }))
 import { Application } from "@hotwired/stimulus"
 import CodeDialogController from "../../../app/javascript/controllers/code_dialog_controller.js"
+import { appConfirm } from "lib/app_prompt"
 
 describe("CodeDialogController", () => {
   let application, controller, element
 
   beforeEach(() => {
     window.t = vi.fn((key) => key)
+    vi.clearAllMocks()
+    appConfirm.mockResolvedValue(true)
 
     document.body.innerHTML = `
       <div data-controller="code-dialog">
@@ -220,12 +224,12 @@ describe("CodeDialogController", () => {
   })
 
   describe("insert()", () => {
-    it("dispatches insert event with code block for new code", () => {
+    it("dispatches insert event with code block for new code", async () => {
       const dispatchSpy = vi.spyOn(controller, "dispatch")
       controller.languageTarget.value = "javascript"
       controller.contentTarget.value = "const x = 1;"
 
-      controller.insert()
+      await controller.insert()
 
       expect(dispatchSpy).toHaveBeenCalledWith("insert", {
         detail: {
@@ -238,7 +242,7 @@ describe("CodeDialogController", () => {
       })
     })
 
-    it("dispatches insert event with edit mode info", () => {
+    it("dispatches insert event with edit mode info", async () => {
       const dispatchSpy = vi.spyOn(controller, "dispatch")
       controller.codeEditMode = true
       controller.codeStartPos = 10
@@ -246,7 +250,7 @@ describe("CodeDialogController", () => {
       controller.languageTarget.value = "python"
       controller.contentTarget.value = "print('hello')"
 
-      controller.insert()
+      await controller.insert()
 
       expect(dispatchSpy).toHaveBeenCalledWith("insert", {
         detail: {
@@ -259,12 +263,12 @@ describe("CodeDialogController", () => {
       })
     })
 
-    it("creates empty code block with blank line inside", () => {
+    it("creates empty code block with blank line inside", async () => {
       const dispatchSpy = vi.spyOn(controller, "dispatch")
       controller.languageTarget.value = "ruby"
       controller.contentTarget.value = ""
 
-      controller.insert()
+      await controller.insert()
 
       expect(dispatchSpy).toHaveBeenCalledWith("insert", {
         detail: expect.objectContaining({
@@ -273,33 +277,32 @@ describe("CodeDialogController", () => {
       })
     })
 
-    it("shows confirmation for unrecognized language", () => {
-      window.confirm = vi.fn().mockReturnValue(true)
+    it("shows confirmation for unrecognized language", async () => {
       controller.languageTarget.value = "unknownlang"
       controller.contentTarget.value = "code"
 
-      controller.insert()
+      await controller.insert()
 
-      expect(window.confirm).toHaveBeenCalled()
+      expect(appConfirm).toHaveBeenCalledWith("dialogs.code.unrecognized_language")
     })
 
-    it("does not insert when confirmation is cancelled", () => {
+    it("does not insert when confirmation is cancelled", async () => {
       const dispatchSpy = vi.spyOn(controller, "dispatch")
-      window.confirm = vi.fn().mockReturnValue(false)
+      appConfirm.mockResolvedValue(false)
       controller.languageTarget.value = "unknownlang"
       controller.contentTarget.value = "code"
 
-      controller.insert()
+      await controller.insert()
 
       expect(dispatchSpy).not.toHaveBeenCalled()
     })
 
-    it("closes dialog after insert", () => {
+    it("closes dialog after insert", async () => {
       const closeSpy = vi.spyOn(controller, "close")
       controller.languageTarget.value = "javascript"
       controller.contentTarget.value = "code"
 
-      controller.insert()
+      await controller.insert()
 
       expect(closeSpy).toHaveBeenCalled()
     })

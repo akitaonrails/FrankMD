@@ -2,8 +2,10 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
+vi.mock("lib/app_prompt", () => ({ appAlert: vi.fn().mockResolvedValue(undefined) }))
 import { Application } from "@hotwired/stimulus"
 import DragDropController from "../../../app/javascript/controllers/drag_drop_controller.js"
+import { appAlert } from "lib/app_prompt"
 
 // Mock window.t translation function
 global.window = global.window || {}
@@ -13,6 +15,8 @@ describe("DragDropController", () => {
   let application, controller, element
 
   beforeEach(() => {
+    vi.clearAllMocks()
+    appAlert.mockResolvedValue(undefined)
     document.body.innerHTML = `
       <div data-controller="drag-drop">
         <div data-drag-drop-target="tree" class="file-tree">
@@ -379,7 +383,6 @@ describe("DragDropController", () => {
 
       // Mock fetch to reject (we'll test the API call separately)
       global.fetch = vi.fn().mockRejectedValue(new Error("test"))
-      global.alert = vi.fn()
 
       await controller.onDrop(event)
 
@@ -494,13 +497,12 @@ describe("DragDropController", () => {
       })
     })
 
-    it("alerts on error", async () => {
+    it("shows an app alert on error", async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error("Network error"))
-      global.alert = vi.fn()
 
       await controller.moveItem("folder1/file1.md", "folder2/file1.md", "file")
 
-      expect(global.alert).toHaveBeenCalledWith("Network error")
+      expect(appAlert).toHaveBeenCalledWith("Network error")
     })
 
     it("does not move an active file when its local draft cannot be persisted", async () => {
@@ -510,8 +512,6 @@ describe("DragDropController", () => {
         currentFile: "folder1/file1.md",
         getAutosaveController: () => autosave
       })
-      global.alert = vi.fn()
-
       await controller.moveItem("folder1/file1.md", "folder2/file1.md", "file")
 
       expect(global.fetch).not.toHaveBeenCalled()
@@ -529,7 +529,6 @@ describe("DragDropController", () => {
         getAutosaveController: () => autosave
       })
       global.fetch = vi.fn().mockRejectedValue(new Error("Network error"))
-      global.alert = vi.fn()
 
       await controller.moveItem("folder1/file1.md", "folder2/file1.md", "file")
 

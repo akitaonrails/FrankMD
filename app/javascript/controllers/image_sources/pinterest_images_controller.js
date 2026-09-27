@@ -40,7 +40,10 @@ export default class extends Controller {
   }
 
   async search() {
-    if (this.hasStatusTarget) this.statusTarget.textContent = window.t("status.searching")
+    if (this.hasStatusTarget) {
+      this.statusTarget.textContent = window.t("status.searching")
+      this.statusTarget.classList.remove("text-red-500")
+    }
     if (this.hasSearchBtnTarget) this.searchBtnTarget.disabled = true
     if (this.hasGridTarget) this.gridTarget.innerHTML = ""
 
@@ -48,10 +51,14 @@ export default class extends Controller {
 
     if (result.error) {
       if (this.hasStatusTarget) {
-        this.statusTarget.innerHTML = `<span class="text-red-500">${result.error}</span>`
+        this.statusTarget.textContent = result.error
+        this.statusTarget.classList.add("text-red-500")
       }
     } else {
-      if (this.hasStatusTarget) this.statusTarget.textContent = result.message
+      if (this.hasStatusTarget) {
+        this.statusTarget.textContent = result.message
+        this.statusTarget.classList.remove("text-red-500")
+      }
       if (this.hasGridTarget) {
         this.source.renderGrid(this.gridTarget, "click->pinterest-images#select")
       }
@@ -109,7 +116,10 @@ export default class extends Controller {
     this.selectedImage = null
     if (this.hasSearchTarget) this.searchTarget.value = ""
     if (this.hasGridTarget) this.gridTarget.innerHTML = ""
-    if (this.hasStatusTarget) this.statusTarget.textContent = window.t("status.enter_keywords_search")
+    if (this.hasStatusTarget) {
+      this.statusTarget.textContent = window.t("status.enter_keywords_search")
+      this.statusTarget.classList.remove("text-red-500")
+    }
     this.s3Option?.hide()
   }
 }

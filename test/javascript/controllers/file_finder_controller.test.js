@@ -9,7 +9,7 @@ describe("FileFinderController", () => {
   let application, controller, element
 
   beforeEach(() => {
-    window.t = vi.fn((key) => key)
+    window.t = vi.fn((key) => key === "dialogs.file_finder.preview_error" ? "Localized preview error" : key)
 
     document.body.innerHTML = `
       <div data-controller="file-finder">
@@ -424,7 +424,19 @@ describe("FileFinderController", () => {
 
       await controller.loadPreview()
 
-      expect(controller.previewTarget.innerHTML).toContain("Unable to load preview")
+      expect(controller.previewTarget.innerHTML).toContain("Localized preview error")
+      expect(window.t).toHaveBeenCalledWith("dialogs.file_finder.preview_error")
+    })
+
+    it("localizes the preview error when fetching throws", async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error("Network error"))
+      controller.filteredResults = [{ name: "test.md", path: "test.md" }]
+      controller.selectedIndex = 0
+
+      await controller.loadPreview()
+
+      expect(controller.previewTarget.innerHTML).toContain("Localized preview error")
+      expect(window.t).toHaveBeenCalledWith("dialogs.file_finder.preview_error")
     })
   })
 })

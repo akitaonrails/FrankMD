@@ -3,6 +3,7 @@
 
 import { get } from "@rails/request.js"
 import { escapeHtml, isSafeImageUrl } from "lib/text_utils"
+import { imagePickerSearchResultMessage, imagePickerText } from "lib/image_sources/image_picker_text"
 
 export class PinterestImageSource {
   constructor() {
@@ -15,7 +16,7 @@ export class PinterestImageSource {
 
   async search(query) {
     if (!query) {
-      return { error: "Please enter search keywords" }
+      return { error: imagePickerText("search_keywords_required", {}, "Please enter search keywords") }
     }
 
     try {
@@ -31,19 +32,20 @@ export class PinterestImageSource {
       return {
         images: this.results,
         message: this.results.length === 0
-          ? "No images found"
-          : `Found ${this.results.length} images - click to select`
+          ? imagePickerText("no_images_found", {}, "No images found")
+          : imagePickerSearchResultMessage(this.results.length)
       }
     } catch (error) {
       console.error("Pinterest search error:", error)
       this.results = []
-      return { error: "Search failed. Please try again." }
+      return { error: imagePickerText("search_failed", {}, "Search failed. Please try again.") }
     }
   }
 
   renderGrid(container, onSelectAction) {
     if (!this.results || this.results.length === 0) {
-      container.innerHTML = '<div class="col-span-4 text-center text-[var(--theme-text-muted)] py-8">No images found</div>'
+      const message = escapeHtml(imagePickerText("no_images_found", {}, "No images found"))
+      container.innerHTML = `<div class="col-span-4 text-center text-[var(--theme-text-muted)] py-8">${message}</div>`
       return
     }
 

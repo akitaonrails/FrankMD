@@ -3,6 +3,8 @@ import { post, destroy } from "@rails/request.js"
 import { encodePath } from "lib/url_utils"
 import { clampMenuToViewport } from "lib/menu_bounds"
 import { previewNotePath, canCreateNote } from "lib/new_note_utils"
+import { appAlert, appConfirm } from "lib/app_prompt"
+import { clearInlineError, showInlineError } from "lib/inline_messages"
 
 // File Operations Controller
 // Handles file/folder creation, renaming, deletion and context menu
@@ -21,7 +23,10 @@ export default class extends Controller {
     "newItemDialog",
     "newItemTitle",
     "newItemInput",
-    "newItemLocation"
+    "newItemLocation",
+    "renameError",
+    "newNoteError",
+    "newItemError"
   ]
 
   connect() {
@@ -176,6 +181,7 @@ export default class extends Controller {
     this.newItemType = "note"
     this.newItemParent = parent || ""
     this.setNewNoteTemplate("empty")
+    clearInlineError(this.hasNewNoteErrorTarget ? this.newNoteErrorTarget : null)
 
     if (this.hasNewNoteInputTarget) {
       this.newNoteInputTarget.value = ""
@@ -265,13 +271,14 @@ export default class extends Controller {
     if (!canCreateNote(name, template)) return
 
     const parent = this.newItemParent
+    clearInlineError(this.hasNewNoteErrorTarget ? this.newNoteErrorTarget : null)
 
     try {
       await this.createNote(name, parent, template)
       this.closeNewNoteDialog()
     } catch (error) {
       console.error("Failed to create note:", error)
-      alert(error.message || window.t("errors.failed_to_create"))
+      showInlineError(this.hasNewNoteErrorTarget ? this.newNoteErrorTarget : null, error.message || window.t("errors.failed_to_create"))
     }
   }
 
@@ -299,6 +306,7 @@ export default class extends Controller {
   openNewItemDialog(type, parent = "") {
     this.newItemType = type
     this.newItemParent = parent || ""
+    clearInlineError(this.hasNewItemErrorTarget ? this.newItemErrorTarget : null)
 
     if (this.hasNewItemTitleTarget) {
       this.newItemTitleTarget.textContent = window.t("dialogs.new_item.new_folder")
@@ -338,13 +346,14 @@ export default class extends Controller {
     if (!name) return
 
     const parent = this.newItemParent
+    clearInlineError(this.hasNewItemErrorTarget ? this.newItemErrorTarget : null)
 
     try {
       await this.createFolder(name, parent)
       this.closeNewItemDialog()
     } catch (error) {
       console.error("Failed to create item:", error)
-      alert(error.message || window.t("errors.failed_to_create"))
+      showInlineError(this.hasNewItemErrorTarget ? this.newItemErrorTarget : null, error.message || window.t("errors.failed_to_create"))
     }
   }
 
@@ -418,6 +427,7 @@ export default class extends Controller {
   renameItem() {
     this.hideContextMenu()
     if (!this.contextItem) return
+    clearInlineError(this.hasRenameErrorTarget ? this.renameErrorTarget : null)
 
     if (this.hasRenameInputTarget) {
       // Show just the name, not the full path
@@ -446,6 +456,7 @@ export default class extends Controller {
 
     let newName = this.renameInputTarget.value.trim()
     if (!newName) return
+    clearInlineError(this.hasRenameErrorTarget ? this.renameErrorTarget : null)
 
     // Add .md extension for files if not present
     if (this.contextItem.type === "file" && !newName.endsWith(".md")) {
@@ -466,7 +477,7 @@ export default class extends Controller {
     const item = { ...this.contextItem }
     const prepared = this.preparePathOperation(item.path, item.type)
     if (!prepared.ok) {
-      if (prepared.needsAlert) window.alert(window.t("status.draft_storage_error"))
+      if (prepared.needsAlert) showInlineError(this.hasRenameErrorTarget ? this.renameErrorTarget : null, window.t("status.draft_storage_error"))
       return
     }
 
@@ -497,28 +508,32 @@ export default class extends Controller {
     } catch (error) {
       this.resumePathOperation(prepared)
       console.error("Failed to rename:", error)
-      alert(error.message || window.t("errors.failed_to_rename"))
+      showInlineError(this.hasRenameErrorTarget ? this.renameErrorTarget : null, error.message || window.t("errors.failed_to_rename"))
     }
   }
 
   // Delete
   async deleteItem() {
-    this.hideContextMenu()
     if (!this.contextItem) return
 
-    const itemName = this.contextItem.path.split("/").pop()
-    const confirmKey = this.contextItem.type === "folder"
+    const item = { ...this.contextItem }
+    this.hideContextMenu()
+
+    const itemName = item.path.split("/").pop()
+    const confirmKey = item.type === "folder"
       ? "dialogs.confirm.delete_folder"
       : "dialogs.confirm.delete_file"
 
-    if (!confirm(window.t(confirmKey, { name: itemName }))) {
+    if (!await appConfirm(window.t(confirmKey, { name: itemName }), {
+      acceptLabel: window.t("common.delete"),
+      destructive: true
+    })) {
       return
     }
 
-    const item = { ...this.contextItem }
     const prepared = this.preparePathOperation(item.path, item.type)
     if (!prepared.ok) {
-      if (prepared.needsAlert) window.alert(window.t("status.draft_storage_error"))
+      if (prepared.needsAlert) appAlert(window.t("status.draft_storage_error"))
       return
     }
 
@@ -545,7 +560,7 @@ export default class extends Controller {
     } catch (error) {
       this.resumePathOperation(prepared)
       console.error("Failed to delete:", error)
-      alert(error.message || window.t("errors.failed_to_delete"))
+      appAlert(error.message || window.t("errors.failed_to_delete"))
     }
   }
 

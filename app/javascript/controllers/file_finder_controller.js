@@ -114,7 +114,7 @@ export default class extends Controller {
       })
 
       if (!response.ok) {
-        this.previewTarget.innerHTML = `<div class="text-[var(--theme-text-muted)] text-sm">Unable to load preview</div>`
+        this.previewTarget.innerHTML = `<div class="text-[var(--theme-text-muted)] text-sm">${escapeHtml(window.t("dialogs.file_finder.preview_error"))}</div>`
         return
       }
 
@@ -124,7 +124,7 @@ export default class extends Controller {
 
       this.previewTarget.innerHTML = `<pre class="text-xs font-mono whitespace-pre-wrap text-[var(--theme-text-secondary)] leading-relaxed">${escapeHtml(preview)}${lines.length >= 10 ? '\n...' : ''}</pre>`
     } catch (error) {
-      this.previewTarget.innerHTML = `<div class="text-[var(--theme-text-muted)] text-sm">Unable to load preview</div>`
+      this.previewTarget.innerHTML = `<div class="text-[var(--theme-text-muted)] text-sm">${escapeHtml(window.t("dialogs.file_finder.preview_error"))}</div>`
     }
   }
 

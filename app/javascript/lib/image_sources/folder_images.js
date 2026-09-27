@@ -3,6 +3,7 @@
 
 import { post } from "@rails/request.js"
 import { escapeHtml, isSafeImageUrl } from "lib/text_utils"
+import { imagePickerText } from "lib/image_sources/image_picker_text"
 
 // Fallback when no config-driven list is provided (e.g. direct API use).
 export const DEFAULT_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"]
@@ -10,7 +11,7 @@ export const DEFAULT_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp
 // Trailing extension of a filename (".png"), or a readable label when absent.
 export function extOf(filename) {
   const match = filename.toLowerCase().match(/\.[^.]+$/)
-  return match ? match[0] : "no extension"
+  return match ? match[0] : imagePickerText("no_file_extension", {}, "no extension")
 }
 
 export class FolderImageSource {
@@ -39,7 +40,7 @@ export class FolderImageSource {
 
   async browse(allowedExtensions = DEFAULT_IMAGE_EXTENSIONS) {
     if (!this.isSupported) {
-      return { error: "File System Access API not supported" }
+      return { error: imagePickerText("folder_api_not_supported", {}, "File System Access API not supported") }
     }
 
     try {
@@ -50,7 +51,7 @@ export class FolderImageSource {
         return { cancelled: true }
       }
       console.error("Error accessing folder:", err)
-      return { error: "Error accessing folder" }
+      return { error: imagePickerText("folder_access_failed", {}, "Error accessing folder") }
     }
   }
 
@@ -84,7 +85,7 @@ export class FolderImageSource {
       return { count: this.allImages.length }
     } catch (err) {
       console.error("Error reading folder:", err)
-      return { error: "Error reading folder" }
+      return { error: imagePickerText("folder_read_failed", {}, "Error reading folder") }
     }
   }
 
@@ -169,9 +170,10 @@ export class FolderImageSource {
     if (!container) return
 
     if (this.displayedImages.length === 0) {
-      container.innerHTML = '<div class="col-span-5 text-center text-[var(--theme-text-muted)] py-8">No images found in folder</div>'
+      const emptyMessage = escapeHtml(imagePickerText("no_images_in_folder", {}, "No images found in folder"))
+      container.innerHTML = `<div class="col-span-5 text-center text-[var(--theme-text-muted)] py-8">${emptyMessage}</div>`
       if (statusContainer) {
-        statusContainer.textContent = "No images found"
+        statusContainer.textContent = imagePickerText("no_images_found", {}, "No images found")
       }
       return
     }
@@ -179,9 +181,15 @@ export class FolderImageSource {
     if (statusContainer) {
       const shown = this.displayedImages.length
       if (totalCount && totalCount > shown) {
-        statusContainer.textContent = `Showing ${shown} most recent of ${totalCount} images`
+        statusContainer.textContent = imagePickerText(
+          "folder_showing_recent",
+          { shown, total: totalCount },
+          "Showing %{shown} most recent of %{total} images"
+        )
       } else {
-        statusContainer.textContent = `${shown} image${shown !== 1 ? "s" : ""} found`
+        const key = shown === 1 ? "folder_images_found_one" : "folder_images_found_many"
+        const fallback = shown === 1 ? "1 image found" : "%{count} images found"
+        statusContainer.textContent = imagePickerText(key, { count: shown }, fallback)
       }
     }
 
@@ -232,7 +240,7 @@ export class FolderImageSource {
 
     if (!response.ok) {
       const data = await response.json
-      throw new Error(data.error || "Upload failed")
+      throw new Error(data.error || imagePickerText("image_upload_failed", {}, "Upload failed"))
     }
 
     return await response.json

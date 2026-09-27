@@ -3,6 +3,7 @@
 
 import { get, post } from "@rails/request.js"
 import { escapeHtml, isSafeImageUrl } from "lib/text_utils"
+import { imagePickerSearchResultMessage, imagePickerText } from "lib/image_sources/image_picker_text"
 
 export class WebImageSource {
   constructor() {
@@ -15,7 +16,7 @@ export class WebImageSource {
 
   async search(query) {
     if (!query) {
-      return { error: "Please enter search keywords" }
+      return { error: imagePickerText("search_keywords_required", {}, "Please enter search keywords") }
     }
 
     try {
@@ -31,19 +32,20 @@ export class WebImageSource {
       return {
         images: this.results,
         message: this.results.length === 0
-          ? (data.note || "No images found")
-          : `Found ${this.results.length} images - click to select`
+          ? (data.note || imagePickerText("no_images_found", {}, "No images found"))
+          : imagePickerSearchResultMessage(this.results.length)
       }
     } catch (error) {
       console.error("Web search error:", error)
       this.results = []
-      return { error: "Search failed. Please try again." }
+      return { error: imagePickerText("search_failed", {}, "Search failed. Please try again.") }
     }
   }
 
   renderGrid(container, onSelectAction) {
     if (!this.results || this.results.length === 0) {
-      container.innerHTML = '<div class="col-span-4 text-center text-[var(--theme-text-muted)] py-8">No images found</div>'
+      const message = escapeHtml(imagePickerText("no_images_found", {}, "No images found"))
+      container.innerHTML = `<div class="col-span-4 text-center text-[var(--theme-text-muted)] py-8">${message}</div>`
       return
     }
 
@@ -101,7 +103,7 @@ export class WebImageSource {
 
     if (!response.ok) {
       const data = await response.json
-      throw new Error(data.error || "Failed to upload to S3")
+      throw new Error(data.error || imagePickerText("image_upload_failed", {}, "Failed to upload to S3"))
     }
 
     return await response.json

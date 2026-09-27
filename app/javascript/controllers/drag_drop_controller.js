@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { post } from "@rails/request.js"
 import { encodePath } from "lib/url_utils"
+import { appAlert } from "lib/app_prompt"
 
 // Drag and Drop Controller
 // Handles file and folder drag-and-drop in the file tree
@@ -242,7 +243,7 @@ export default class extends Controller {
   async moveItem(oldPath, newPath, type) {
     const prepared = this.preparePathOperation(oldPath, type)
     if (!prepared.ok) {
-      if (prepared.needsAlert) alert(window.t("status.draft_storage_error"))
+      if (prepared.needsAlert) appAlert(window.t("status.draft_storage_error"))
       return
     }
 
@@ -264,7 +265,7 @@ export default class extends Controller {
     } catch (error) {
       this.resumePathOperation(prepared)
       console.error("Error moving item:", error)
-      alert(error.message)
+      appAlert(error.message)
     }
   }
 }

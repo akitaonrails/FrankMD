@@ -1,12 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
 import { LocalImageSource } from "lib/image_sources/local_images"
 import { defaultS3Key } from "lib/s3_key"
+import { appConfirm } from "lib/app_prompt"
+import { clearInlineError, showInlineError } from "lib/inline_messages"
 
 // Local Images Tab Controller
 // Handles searching and selecting images from the server's images directory
 
 export default class extends Controller {
-  static targets = ["configNotice", "form", "search", "grid", "perPage", "prevPage", "nextPage", "pageStatus"]
+  static targets = ["configNotice", "form", "search", "grid", "perPage", "prevPage", "nextPage", "pageStatus", "error"]
 
   static values = {
     enabled: Boolean,
@@ -52,8 +54,14 @@ export default class extends Controller {
   }
 
   async loadImages(search = "") {
+    clearInlineError(this.hasErrorTarget ? this.errorTarget : null)
     const data = await this.source.load(search, { limit: this.perPage, offset: this.offset })
-    if (!data.error && this.hasGridTarget) {
+    if (data.error) {
+      showInlineError(this.hasErrorTarget ? this.errorTarget : null, data.error)
+      return
+    }
+
+    if (this.hasGridTarget) {
       this.total = data.total || 0
       // Stepped past the end (e.g. deleted the last item on the last page): go back a page.
       if (this.offset > 0 && this.offset >= this.total) {
@@ -110,7 +118,11 @@ export default class extends Controller {
     const path = btn.dataset.path
     const name = btn.dataset.name
 
-    if (!window.confirm(window.t("dialogs.image_picker.delete_confirm", { name }))) return
+    clearInlineError(this.hasErrorTarget ? this.errorTarget : null)
+    if (!await appConfirm(window.t("dialogs.image_picker.delete_confirm", { name }), {
+      acceptLabel: window.t("common.delete"),
+      destructive: true
+    })) return
 
     try {
       await this.source.deleteImage(path)
@@ -119,8 +131,9 @@ export default class extends Controller {
         this.s3Option?.hide()
       }
       await this.loadImages(this.currentSearch())
-    } catch (_e) {
-      window.alert(window.t("dialogs.image_picker.delete_failed"))
+    } catch (error) {
+      showInlineError(this.hasErrorTarget ? this.errorTarget : null,
+        error.message || window.t("dialogs.image_picker.delete_failed"))
     }
   }
 

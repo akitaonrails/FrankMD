@@ -11,13 +11,13 @@ export default class extends Controller {
   static targets = ["menu", "textarea"]
 
   static formats = [
-    { id: "bold", label: "Bold", hotkey: "B", prefix: "**", suffix: "**" },
-    { id: "italic", label: "Italic", hotkey: "I", prefix: "*", suffix: "*" },
-    { id: "strikethrough", label: "Strikethrough", hotkey: "S", prefix: "~~", suffix: "~~" },
-    { id: "highlight", label: "Highlight", hotkey: "H", prefix: "==", suffix: "==" },
-    { id: "subscript", label: "Subscript", hotkey: "U", prefix: "~", suffix: "~" },
-    { id: "superscript", label: "Superscript", hotkey: "P", prefix: "^", suffix: "^" },
-    { id: "link", label: "Link", hotkey: "L", prefix: "[", suffix: "](url)" }
+    { id: "bold", hotkey: "B", prefix: "**", suffix: "**" },
+    { id: "italic", hotkey: "I", prefix: "*", suffix: "*" },
+    { id: "strikethrough", hotkey: "S", prefix: "~~", suffix: "~~" },
+    { id: "highlight", hotkey: "H", prefix: "==", suffix: "==" },
+    { id: "subscript", hotkey: "U", prefix: "~", suffix: "~" },
+    { id: "superscript", hotkey: "P", prefix: "^", suffix: "^" },
+    { id: "link", hotkey: "L", prefix: "[", suffix: "](url)" }
   ]
 
   connect() {
@@ -112,7 +112,7 @@ export default class extends Controller {
 
     const items = this.constructor.formats.map((format, index) => {
       const isSelected = index === this.selectedIndex
-      const labelWithHotkey = this.formatLabelWithHotkey(format.label, format.hotkey)
+      const labelWithHotkey = this.formatLabelWithHotkey(window.t(`dialogs.text_format.${format.id}`), format.hotkey)
 
       return `
         <button

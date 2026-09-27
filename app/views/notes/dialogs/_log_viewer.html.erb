@@ -13,7 +13,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <div>
-            <h2 class="text-sm font-medium" data-log-viewer-target="title">Rails Log</h2>
+            <h2 class="text-sm font-medium" data-log-viewer-target="title"><%= t('dialogs.log_viewer.title_logs') %></h2>
             <p class="text-xs text-[var(--theme-text-muted)]" data-log-viewer-target="environment">-</p>
           </div>
         </div>
@@ -23,7 +23,7 @@
             type="button"
             data-action="click->log-viewer#refresh"
             class="p-1.5 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
-            title="Refresh"
+            title="<%= t('dialogs.log_viewer.refresh') %>"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -33,7 +33,7 @@
             type="button"
             data-action="click->log-viewer#close"
             class="p-1.5 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
-            title="Close (Esc)"
+            title="<%= t('dialogs.log_viewer.close') %>"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -49,26 +49,26 @@
           data-log-viewer-target="tabLogs"
           data-action="click->log-viewer#showLogs"
           class="px-4 py-2 text-xs font-medium border-b-2 border-[var(--theme-accent)] text-[var(--theme-text-primary)]"
-        >Logs</button>
+        ><%= t('dialogs.log_viewer.logs') %></button>
         <button
           type="button"
           data-log-viewer-target="tabConfig"
           data-action="click->log-viewer#showConfig"
           class="px-4 py-2 text-xs font-medium border-b-2 border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)]"
-        >Config</button>
+        ><%= t('dialogs.log_viewer.config') %></button>
       </div>
 
       <!-- Log Content (tab 1) -->
       <pre
         data-log-viewer-target="content"
         class="flex-1 overflow-auto p-4 text-xs font-mono leading-relaxed bg-[var(--theme-bg-primary)] text-[var(--theme-text-secondary)] whitespace-pre-wrap break-words"
-      >Loading...</pre>
+      ><%= t('dialogs.log_viewer.loading') %></pre>
 
       <!-- Config Content (tab 2, hidden by default) -->
       <div
         data-log-viewer-target="configContent"
         class="flex-1 overflow-auto p-4 text-xs font-mono bg-[var(--theme-bg-primary)] text-[var(--theme-text-secondary)] hidden"
-      >Loading...</div>
+      ><%= t('dialogs.log_viewer.loading') %></div>
     </div>
   </dialog>
 </div>

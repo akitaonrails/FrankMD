@@ -2,8 +2,13 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
+vi.mock("lib/app_prompt", () => ({
+  appAlert: vi.fn().mockResolvedValue(undefined),
+  appConfirm: vi.fn().mockResolvedValue(true)
+}))
 import { Application } from "@hotwired/stimulus"
 import FileOperationsController from "../../../app/javascript/controllers/file_operations_controller.js"
+import { appAlert, appConfirm } from "lib/app_prompt"
 
 describe("FileOperationsController", () => {
   let application, controller, element
@@ -28,9 +33,11 @@ describe("FileOperationsController", () => {
         </div>
         <dialog data-file-operations-target="renameDialog">
           <input data-file-operations-target="renameInput" type="text" />
+          <p data-file-operations-target="renameError" class="hidden"></p>
         </dialog>
         <dialog data-file-operations-target="newNoteDialog">
           <input data-file-operations-target="newNoteInput" type="text" />
+          <p data-file-operations-target="newNoteError" class="hidden"></p>
           <button data-file-operations-target="newNoteTemplateCard" data-template="empty" aria-pressed="true">Empty Document</button>
           <button data-file-operations-target="newNoteTemplateCard" data-template="hugo" aria-pressed="false">Hugo Blog Post</button>
           <div><span data-file-operations-target="newNotePath"></span></div>
@@ -40,6 +47,7 @@ describe("FileOperationsController", () => {
           <h3 data-file-operations-target="newItemTitle"></h3>
           <p data-file-operations-target="newItemLocation"></p>
           <input data-file-operations-target="newItemInput" type="text" />
+          <p data-file-operations-target="newItemError" class="hidden"></p>
         </dialog>
       </div>
     `
@@ -60,8 +68,9 @@ describe("FileOperationsController", () => {
       text: () => Promise.resolve('{"path": "test.md"}')
     })
 
-    // Mock confirm
-    global.confirm = vi.fn().mockReturnValue(true)
+    vi.clearAllMocks()
+    appAlert.mockResolvedValue(undefined)
+    appConfirm.mockResolvedValue(true)
 
     element = document.querySelector('[data-controller="file-operations"]')
     application = Application.start()
@@ -425,20 +434,20 @@ describe("FileOperationsController", () => {
       expect(controller.newNoteDialogTarget.close).toHaveBeenCalled()
     })
 
-    it("keeps the dialog open and alerts on failure", async () => {
+    it("keeps the dialog open and shows failures inline", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         headers: { get: () => "application/json" },
         json: () => Promise.resolve({ error: "already exists" }),
         text: () => Promise.resolve('{"error": "already exists"}')
       })
-      global.alert = vi.fn()
       controller.newNote()
       controller.newNoteInputTarget.value = "test"
 
       await controller.submitNewNote()
 
-      expect(global.alert).toHaveBeenCalledWith("already exists")
+      expect(controller.newNoteErrorTarget.textContent).toBe("already exists")
+      expect(controller.newNoteErrorTarget.classList.contains("hidden")).toBe(false)
       expect(controller.newNoteDialogTarget.close).not.toHaveBeenCalled()
     })
   })
@@ -572,6 +581,23 @@ describe("FileOperationsController", () => {
 
       expect(handler).toHaveBeenCalled()
     })
+
+    it("keeps folder creation failures inline in the open dialog", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        headers: { get: () => "application/json" },
+        json: () => Promise.resolve({ error: "folder already exists" }),
+        text: () => Promise.resolve('{"error":"folder already exists"}')
+      })
+      controller.openNewItemDialog("folder", "")
+      controller.newItemInputTarget.value = "existing"
+
+      await controller.submitNewItem()
+
+      expect(controller.newItemErrorTarget.textContent).toBe("folder already exists")
+      expect(controller.newItemErrorTarget.classList.contains("hidden")).toBe(false)
+      expect(controller.newItemDialogTarget.close).not.toHaveBeenCalled()
+    })
   })
 
   describe("renameItem()", () => {
@@ -662,6 +688,24 @@ describe("FileOperationsController", () => {
       expect(controller.renameDialogTarget.close).toHaveBeenCalled()
     })
 
+    it("keeps rename failures inline in the open dialog", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        headers: { get: () => "application/json" },
+        json: () => Promise.resolve({ error: "name already exists" }),
+        text: () => Promise.resolve('{"error":"name already exists"}')
+      })
+      controller.contextItem = { path: "test.md", type: "file" }
+      controller.renameItem()
+      controller.renameInputTarget.value = "duplicate"
+
+      await controller.submitRename()
+
+      expect(controller.renameErrorTarget.textContent).toBe("name already exists")
+      expect(controller.renameErrorTarget.classList.contains("hidden")).toBe(false)
+      expect(controller.renameDialogTarget.close).not.toHaveBeenCalled()
+    })
+
     it("flushes the active draft before sending a rename request", async () => {
       const autosave = { prepareForTransition: vi.fn(() => ({ ok: true })) }
       controller.getAppController = () => ({
@@ -683,7 +727,6 @@ describe("FileOperationsController", () => {
         currentFile: "test.md",
         getAutosaveController: () => autosave
       })
-      global.alert = vi.fn()
       controller.contextItem = { path: "test.md", type: "file" }
       controller.renameInputTarget.value = "renamed"
 
@@ -706,16 +749,41 @@ describe("FileOperationsController", () => {
       controller.contextItem = { path: "test.md", type: "file" }
       await controller.deleteItem()
 
-      expect(global.confirm).toHaveBeenCalled()
+      expect(appConfirm).toHaveBeenCalledWith(expect.stringContaining("dialogs.confirm.delete_file"), {
+        acceptLabel: "common.delete",
+        destructive: true
+      })
     })
 
     it("does not delete if confirmation cancelled", async () => {
-      global.confirm = vi.fn().mockReturnValue(false)
+      appConfirm.mockResolvedValue(false)
       controller.contextItem = { path: "test.md", type: "file" }
 
       await controller.deleteItem()
 
       expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    it("deletes the item selected before confirmation even if context changes while waiting", async () => {
+      let resolveConfirmation
+      appConfirm.mockReturnValueOnce(new Promise((resolve) => {
+        resolveConfirmation = resolve
+      }))
+      controller.contextItem = { path: "selected.md", type: "file" }
+
+      const deletion = controller.deleteItem()
+      controller.contextItem = { path: "different-folder", type: "folder" }
+      resolveConfirmation(true)
+      await deletion
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/notes/selected.md"),
+        expect.objectContaining({ method: "DELETE" })
+      )
+      expect(global.fetch).not.toHaveBeenCalledWith(
+        expect.stringContaining("different-folder"),
+        expect.anything()
+      )
     })
 
     it("calls delete API", async () => {
@@ -761,7 +829,6 @@ describe("FileOperationsController", () => {
         currentFile: "test.md",
         getAutosaveController: () => autosave
       })
-      global.alert = vi.fn()
       controller.contextItem = { path: "test.md", type: "file" }
 
       await controller.deleteItem()
