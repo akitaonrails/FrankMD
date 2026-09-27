@@ -65,6 +65,26 @@ jobs:
       - name: Run JavaScript tests
         run: npm ci && npx vitest run
 
+  test_ruby:
+    needs: scan_ruby
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@e8944e80fb94b20106697132f8c20c665fab29e9 # v1
+        with:
+          bundler-cache: true
+
+      # Logic suites only: Capybara/Chrome system tests stay on local bin/ci
+      # (deliberate: keeps hosted Ruby gating deterministic).
+      - name: Run Ruby tests
+        run: bin/rails test test/controllers test/models test/services test/helpers
+
   lint:
     runs-on: ubuntu-latest
     permissions:
