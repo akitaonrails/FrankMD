@@ -292,6 +292,47 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "en", data["locale"]
   end
 
+  # === English Fallback for Missing Keys ===
+
+  test "locale missing a key fills it from English instead of rendering a dotted key" do
+    # es has an errors section but no errors.title_required entry
+    ENV["FRANKMD_LOCALE"] = "es"
+
+    get translations_url, as: :json
+    assert_response :success
+
+    translations = JSON.parse(response.body)["translations"]
+    assert_equal "Title is required", translations["errors"]["title_required"]
+    assert_equal "Permission denied. You may not have access to this file or folder.",
+                 translations["errors"]["permission_denied"]
+
+    # Whole missing sections fall back too
+    assert_equal "Connection lost. Editing disabled until connection is restored.",
+                 translations.dig("connection", "offline_message")
+  end
+
+  test "locale values win over English for shared keys" do
+    ENV["FRANKMD_LOCALE"] = "es"
+
+    get translations_url, as: :json
+    assert_response :success
+
+    translations = JSON.parse(response.body)["translations"]
+    assert_equal "Guardar", translations["common"]["save"]
+    assert_equal "Cancelar", translations["common"]["cancel"]
+  end
+
+  test "requesting English returns the English tree unchanged" do
+    ENV["FRANKMD_LOCALE"] = "en"
+
+    get translations_url, as: :json
+    assert_response :success
+
+    translations = JSON.parse(response.body)["translations"]
+    assert_equal "Title is required", translations.dig("errors", "title_required")
+    assert_equal "Save", translations.dig("common", "save")
+  end
+
   # === Priority: .fed file > ENV > default ===
 
   test "config file takes precedence over ENV variable" do
