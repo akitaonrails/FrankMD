@@ -499,6 +499,7 @@ en:
   errors:
     title_required: "Title is required"
     note_not_found: "Note not found"
+    note_changed_since_loaded: "This note changed since it was loaded. Reload it before deleting."
     note_already_exists: "Note already exists"
     note_is_empty: "Note is empty"
     folder_not_found: "Folder not found"
@@ -535,6 +536,8 @@ en:
   # Confirm messages
   confirm:
     delete_note: "Are you sure you want to delete this note?"
+    undo_created_note_title: "Undo note creation?"
+    undo_created_note: "Undoing creation will delete \"%{name}\". You can redo it during this session."
     delete_folder: "Are you sure you want to delete this folder and all its contents?"
 
   # Success messages

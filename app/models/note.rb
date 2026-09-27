@@ -103,9 +103,16 @@ class Note
     false
   end
 
-  def destroy
-    service.delete(normalized_path)
+  def destroy(expected_revision: nil)
+    service.delete(normalized_path, expected_revision: expected_revision)
     true
+  rescue NotesService::RevisionConflictError
+    errors.add(
+      :base,
+      :revision_conflict,
+      message: I18n.t("errors.note_changed_since_loaded")
+    )
+    false
   rescue NotesService::NotFoundError
     errors.add(:base, I18n.t("errors.note_not_found"))
     false
@@ -118,6 +125,10 @@ class Note
   rescue Errno::ENOENT
     errors.add(:base, I18n.t("errors.file_no_longer_exists"))
     false
+  end
+
+  def revision_conflict?
+    errors.details.fetch(:base, []).any? { |error| error[:error] == :revision_conflict }
   end
 
   def rename(new_path)

@@ -102,13 +102,20 @@ class NotesController < ApplicationController
   end
 
   def destroy
-    if @note.destroy
+    if @note.destroy(expected_revision: params[:expected_revision])
       respond_to do |format|
         format.turbo_stream { load_tree_for_turbo_stream }
         format.any { render json: { message: t("success.note_deleted") } }
       end
     else
-      render json: { error: @note.errors.full_messages.join(", ") }, status: :not_found
+      if @note.revision_conflict?
+        render json: {
+          error: @note.errors.full_messages.join(", "),
+          code: "revision_conflict"
+        }, status: :conflict
+      else
+        render json: { error: @note.errors.full_messages.join(", ") }, status: :not_found
+      end
     end
   end
 

@@ -487,6 +487,7 @@ ja:
   # Error messages
   errors:
     note_not_found: "ノートが見つかりません"
+    note_changed_since_loaded: "このノートは読み込み後に変更されています。削除する前に再読み込みしてください。"
     note_already_exists: "ノートは既に存在します"
     note_is_empty: "ノートが空です"
     folder_not_found: "フォルダが見つかりません"
@@ -519,6 +520,8 @@ ja:
   # Confirm messages
   confirm:
     delete_note: "このノートを削除してもよろしいですか？"
+    undo_created_note_title: "ノートの作成を取り消しますか？"
+    undo_created_note: "作成を取り消すと「%{name}」が削除されます。このセッション中に操作をやり直せます。"
     delete_folder: "このフォルダとすべての内容を削除してもよろしいですか？"
 
   # Success messages

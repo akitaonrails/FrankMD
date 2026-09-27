@@ -24,6 +24,19 @@
     flex-direction: column;
   }
 
+  .confirm-dialog__filename {
+    display: inline-block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    border: 1px solid var(--theme-border);
+    border-radius: 0.25rem;
+    background: var(--theme-bg-primary);
+    color: var(--theme-text-primary);
+    padding: 0.05rem 0.3rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.95em;
+  }
+
   /* Dialogs that should appear near click position (e.g., context menus) */
   dialog.positioned {
     inset: auto;

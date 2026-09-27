@@ -487,6 +487,7 @@ es:
   # Error messages
   errors:
     note_not_found: "Nota no encontrada"
+    note_changed_since_loaded: "Esta nota cambió desde que se cargó. Vuelve a cargarla antes de eliminarla."
     note_already_exists: "La nota ya existe"
     note_is_empty: "La nota está vacía"
     folder_not_found: "Carpeta no encontrada"
@@ -519,6 +520,8 @@ es:
   # Confirm messages
   confirm:
     delete_note: "¿Estás seguro de que quieres eliminar esta nota?"
+    undo_created_note_title: "¿Deshacer la creación de la nota?"
+    undo_created_note: "Al deshacer la creación, se eliminará \"%{name}\". Puedes rehacer esta acción durante esta sesión."
     delete_folder: "¿Estás seguro de que quieres eliminar esta carpeta y todo su contenido?"
 
   # Success messages
