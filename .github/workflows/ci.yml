@@ -82,6 +82,9 @@ jobs:
 
       # Logic suites only: Capybara/Chrome system tests stay on local bin/ci
       # (deliberate: keeps hosted Ruby gating deterministic).
+      - name: Build Tailwind CSS
+        run: bin/rails tailwindcss:build
+
       - name: Run Ruby tests
         run: bin/rails test test/controllers test/models test/services test/helpers
 
