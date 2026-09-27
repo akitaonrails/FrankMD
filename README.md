@@ -700,6 +700,8 @@ Notes autosave, so `:w` simply forces an immediate save. There is no Lua/plugin 
 
 On Windows and Linux, where FrankMD binds `Ctrl`, the shortcuts the app already owns stay with the app rather than Vim: `Ctrl+F`, `Ctrl+N`, `Ctrl+P`, `Ctrl+E`, `Ctrl+B`, `Ctrl+I` and `Ctrl+V`. `Ctrl+D`/`Ctrl+U` still page, and `Ctrl+Q` gives blockwise visual in place of `Ctrl+V`. macOS is unaffected, since app shortcuts use `Cmd` there.
 
+Under Vim mode, the "undo note creation?" prompt that normally appears when you press `Ctrl+Z` at the very start of a new note's history is intentionally disabled. Vim's own undo owns `Ctrl+Z` in this mode, so the creation boundary defers until vim's undo depth is exhausted instead of interrupting you with a dialog.
+
 This keeps your typing position steady on the page, which reduces eye movement during longer writing sessions.
 
 ## Hugo Blog Post Support
