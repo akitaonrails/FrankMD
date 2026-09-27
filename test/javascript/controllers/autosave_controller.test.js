@@ -38,6 +38,7 @@ describe("AutosaveController — Content Loss Detection", () => {
   const mockCodemirrorController = {
     getValue: () => mockCodemirrorValue,
     setValue: vi.fn(),
+    loadContent: vi.fn((content) => { mockCodemirrorValue = content }),
     focus: vi.fn(),
     getEditorView: vi.fn(() => ({})),
   }
@@ -90,6 +91,8 @@ describe("AutosaveController — Content Loss Detection", () => {
     // Reset mock state
     mockCodemirrorValue = ""
     mockCodemirrorController.setValue.mockClear()
+    mockCodemirrorController.loadContent.mockClear()
+    undo.mockReset()
     global.fetch.mockClear()
     localStorage.clear()
   })
@@ -356,7 +359,10 @@ describe("AutosaveController — Content Loss Detection", () => {
       await controller.saveNow()
       expect(draftStorage.readDraft("a.md").draft).not.toBeNull()
 
-      undo.mockImplementation(() => { mockCodemirrorValue = baseline })
+      undo.mockImplementation(() => {
+        mockCodemirrorValue = baseline
+        return true
+      })
       controller.undoContentLoss()
 
       expect(controller._contentLossWarningActive).toBe(false)
@@ -369,7 +375,10 @@ describe("AutosaveController — Content Loss Detection", () => {
       mockCodemirrorValue = ""
       await controller.saveNow()
 
-      undo.mockImplementation(() => { mockCodemirrorValue = makeContent(100) })
+      undo.mockImplementation(() => {
+        mockCodemirrorValue = makeContent(100)
+        return true
+      })
       controller.undoContentLoss()
 
       expect(controller._contentLossWarningActive).toBe(true)
@@ -377,6 +386,23 @@ describe("AutosaveController — Content Loss Detection", () => {
         content: makeContent(100),
         baseRevision: "revision-a"
       })
+    })
+
+    it("restores the server baseline when a recovered deletion has no editor history", async () => {
+      const baseline = makeContent(300)
+      controller.setFile("a.md", baseline, "revision-a")
+      mockCodemirrorValue = makeContent(100)
+      const savedDraft = controller.flushDraftWrite("a.md", mockCodemirrorValue, "revision-a")
+      controller._draftRevision = savedDraft.draft.draftRevision
+      controller.showContentLossWarning()
+
+      undo.mockReturnValue(false)
+      controller.undoContentLoss()
+
+      expect(controller.getCodemirrorController().loadContent).toHaveBeenCalledWith(baseline, "a.md")
+      expect(mockCodemirrorValue).toBe(baseline)
+      expect(controller._contentLossWarningActive).toBe(false)
+      expect(draftStorage.readDraft("a.md").draft).toBeNull()
     })
 
     it("save anyway removes the matching draft only after success", async () => {
@@ -914,6 +940,83 @@ describe("AutosaveController — Content Loss Detection", () => {
       // Content didn't change during save
       expect(controller.hasUnsavedChanges).toBe(false)
       expect(controller.saveTimeout).toBeNull()
+    })
+  })
+
+  describe("prepareForFileDeletion()", () => {
+    it("waits for an in-flight autosave and returns its acknowledged revision", async () => {
+      controller.setFile("created.md", "initial", "initial-revision")
+      mockCodemirrorValue = "edited"
+
+      let resolveFetch
+      global.fetch = vi.fn().mockImplementation(() =>
+        new Promise((resolve) => { resolveFetch = resolve })
+      )
+
+      const savePromise = controller.saveNow()
+      const preparationPromise = controller.prepareForFileDeletion("created.md")
+      expect(controller._isSaving).toBe(true)
+
+      resolveFetch({
+        ok: true,
+        json: () => Promise.resolve({ revision: "autosaved-revision" })
+      })
+      await savePromise
+
+      await expect(preparationPromise).resolves.toEqual({
+        ok: true,
+        revision: "autosaved-revision"
+      })
+    })
+
+    it("cancels a follow-up debounce scheduled by an in-flight autosave", async () => {
+      controller.setFile("created.md", "initial", "initial-revision")
+      mockCodemirrorValue = "first edit"
+
+      let resolveFetch
+      global.fetch = vi.fn().mockImplementation(() =>
+        new Promise((resolve) => { resolveFetch = resolve })
+      )
+
+      const savePromise = controller.saveNow()
+      mockCodemirrorValue = "latest editor content"
+      const preparationPromise = controller.prepareForFileDeletion("created.md")
+
+      resolveFetch({
+        ok: true,
+        json: () => Promise.resolve({ revision: "autosaved-revision" })
+      })
+      await savePromise
+
+      await expect(preparationPromise).resolves.toEqual({
+        ok: true,
+        revision: "autosaved-revision"
+      })
+      expect(controller.saveTimeout).toBeNull()
+      expect(controller.saveMaxIntervalTimeout).toBeNull()
+      expect(controller._knownBaseRevisions.get("created.md")).toBe("autosaved-revision")
+    })
+
+    it("abandons preparation if the active note changes while waiting for a save", async () => {
+      controller.setFile("created.md", "initial", "initial-revision")
+      mockCodemirrorValue = "edited"
+
+      let resolveFetch
+      global.fetch = vi.fn().mockImplementation(() =>
+        new Promise((resolve) => { resolveFetch = resolve })
+      )
+
+      const savePromise = controller.saveNow()
+      const preparationPromise = controller.prepareForFileDeletion("created.md")
+      controller.setFile("other.md", "other content", "other-revision")
+
+      resolveFetch({
+        ok: true,
+        json: () => Promise.resolve({ revision: "autosaved-revision" })
+      })
+      await savePromise
+
+      await expect(preparationPromise).resolves.toEqual({ ok: false, stale: true })
     })
   })
 
