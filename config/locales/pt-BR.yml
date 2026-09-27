@@ -65,6 +65,21 @@ pt-BR:
     select_note_hint: "ou pressione Ctrl+N para criar uma nova"
     start_writing: "Comece a escrever..."
     cursor_in_table: "Cursor na tabela - clique para editar"
+    slash_commands:
+      heading_1: "Título 1"
+      heading_2: "Título 2"
+      heading_3: "Título 3"
+      bulleted_list: "Lista com marcadores"
+      numbered_list: "Lista numerada"
+      to_do_list: "Lista de tarefas"
+      quote: "Citação"
+      code_block: "Bloco de código"
+      equation: "Equação"
+      divider: "Divisor"
+      table: "Tabela"
+      image: "Imagem"
+      video: "Vídeo"
+      emoji: "Emoji"
     # Barra de ferramentas do editor
     toolbar:
       help: "Ajuda"
@@ -394,6 +409,7 @@ pt-BR:
         unindent: "Remover indentação"
         insert: "Inserir"
         emoji_picker: "Seletor de emoji"
+        slash_commands: "Digite / em um parágrafo para adicionar um bloco, equação, tabela, imagem, vídeo ou emoji."
         format_menu: "Menu de formatação"
         context_menu: "Menu de contexto (com seleção)"
         text_format: "Menu de Formatação"
@@ -558,6 +574,7 @@ pt-BR:
   errors:
     title_required: "Título é obrigatório"
     note_not_found: "Nota não encontrada"
+    note_changed_since_loaded: "Esta nota foi alterada desde que foi carregada. Recarregue-a antes de excluí-la."
     note_already_exists: "Nota já existe"
     note_is_empty: "A nota está vazia"
     folder_not_found: "Pasta não encontrada"
@@ -590,6 +607,8 @@ pt-BR:
   # Mensagens de confirmação
   confirm:
     delete_note: "Tem certeza que deseja excluir esta nota?"
+    undo_created_note_title: "Desfazer a criação da nota?"
+    undo_created_note: "Desfazer a criação excluirá \"%{name}\". Você pode refazer esta ação durante esta sessão."
     delete_folder: "Tem certeza que deseja excluir esta pasta e todo seu conteúdo?"
 
   # Mensagens de sucesso

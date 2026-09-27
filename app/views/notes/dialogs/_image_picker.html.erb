@@ -3,7 +3,8 @@
   class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] w-[700px] max-w-[90vw] max-h-[90vh] overflow-hidden"
   data-controller="image-picker"
   data-image-picker-target="dialog"
-  data-action="image-picker:image-selected->app#onImageSelected"
+  data-slash-command-action="image"
+  data-action="image-picker:image-selected->app#onImageSelected close->app#onSlashCommandDialogClose"
 >
   <div class="text-[var(--theme-text-primary)] flex flex-col h-full max-h-[90vh]">
     <!-- Header -->

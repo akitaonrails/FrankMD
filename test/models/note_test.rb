@@ -143,6 +143,25 @@ class NoteTest < ActiveSupport::TestCase
     refute File.exist?(@test_notes_dir.join("to_delete.md"))
   end
 
+  test "note.destroy deletes when the expected revision matches" do
+    content = "current content"
+    create_test_note("to_delete.md", content)
+    note = Note.new(path: "to_delete.md")
+
+    assert note.destroy(expected_revision: Digest::SHA256.hexdigest(content))
+    refute File.exist?(@test_notes_dir.join("to_delete.md"))
+  end
+
+  test "note.destroy reports a revision conflict and preserves the changed file" do
+    create_test_note("to_delete.md", "updated content")
+    note = Note.new(path: "to_delete.md")
+
+    refute note.destroy(expected_revision: Digest::SHA256.hexdigest("old content"))
+
+    assert note.revision_conflict?
+    assert_equal "updated content", File.read(@test_notes_dir.join("to_delete.md"))
+  end
+
   test "note.destroy returns false for missing file" do
     note = Note.new(path: "nonexistent.md")
     refute note.destroy

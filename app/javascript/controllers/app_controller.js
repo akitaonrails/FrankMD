@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { get, patch } from "@rails/request.js"
+import { destroy, get, patch, post } from "@rails/request.js"
 import { marked } from "marked"
 import { escapeHtml } from "lib/text_utils"
 import { nextNoteIndex } from "lib/vim_mode"
@@ -21,6 +21,19 @@ import {
 } from "lib/codemirror_content_insertion"
 import { setWikilinkFileProvider } from "lib/codemirror_wikilink"
 import { appAlert } from "lib/app_prompt"
+import { setSlashCommandsEnabledProvider } from "lib/codemirror_slash_commands"
+
+function pathMatchesScope(candidatePath, path, type) {
+  if (typeof candidatePath !== "string") return false
+  return candidatePath === path || (type === "folder" && candidatePath.startsWith(`${path}/`))
+}
+
+function remapScopedPath(candidatePath, oldPath, newPath, type) {
+  return pathMatchesScope(candidatePath, oldPath, type)
+    ? `${newPath}${candidatePath.slice(oldPath.length)}`
+    : candidatePath
+}
+
 export default class extends Controller {
   static targets = [
     "fileTree",
@@ -31,6 +44,8 @@ export default class extends Controller {
     "contextMenu",
     "editorToolbar",
     "helpDialog",
+    "undoCreatedNoteDialog",
+    "undoCreatedNoteMessage",
     "tableHint",
     "sidebar",
     "sidebarToggle",
@@ -64,11 +79,14 @@ export default class extends Controller {
     this.installUnauthorizedRedirect()
     this.currentFile = null
     this.currentFileType = null  // "markdown", "config", or null
+    // Session-only creation boundaries used by file-scoped undo.
+    this.createdNoteBoundaries = new Map()
     this.expandedFolders = new Set()
     this._navigationGeneration = 0
     this._treeRevision = 0
     this._treeRefreshGeneration = 0
     this._fileNotFoundTimeout = null
+    this.pendingSlashInsertionRange = null
 
     // Sidebar/Explorer visibility - always start visible
     // (don't persist closed state across sessions)
@@ -88,9 +106,13 @@ export default class extends Controller {
     this.initializeTypewriterMode()
     this.setupConfigFileListener()
     this.setupTableEditorListener()
+    this.setupSlashCommandListener()
 
     // Provide file list to wikilink autocomplete
     setWikilinkFileProvider(() => this.getFilesFromTree())
+    // The editor is reused for Markdown notes and .fed, so gate commands on
+    // the currently active file type instead of its initial editor setup.
+    setSlashCommandsEnabledProvider(() => this.isMarkdownFile())
 
     // Configure marked with custom extensions for superscript, subscript, highlight, emoji
     marked.use({
@@ -167,11 +189,17 @@ export default class extends Controller {
     if (this.boundTableInsertHandler) {
       window.removeEventListener("frankmd:insert-table", this.boundTableInsertHandler)
     }
+    if (this.boundSlashCommandOpenHandler) {
+      window.removeEventListener("frankmd:open-slash-command", this.boundSlashCommandOpenHandler)
+    }
     if (this.boundConfigFileHandler) {
       window.removeEventListener("frankmd:config-file-modified", this.boundConfigFileHandler)
     }
     if (this.boundKeydownHandler) {
       document.removeEventListener("keydown", this.boundKeydownHandler)
+    }
+    if (this.boundRootRedoHandler) {
+      document.removeEventListener("keydown", this.boundRootRedoHandler)
     }
     if (this.boundTreeStreamRenderHandler) {
       document.removeEventListener("turbo:before-stream-render", this.boundTreeStreamRenderHandler)
@@ -327,6 +355,7 @@ export default class extends Controller {
     if (!this.prepareEditorTransition(generation)) return false
     if (!this.isCurrentNavigation(generation)) return false
 
+    this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
     this.getAutosaveController()?.clearFile?.()
@@ -342,6 +371,7 @@ export default class extends Controller {
     if (!this.prepareEditorTransition(generation)) return false
     if (!this.isCurrentNavigation(generation)) return false
 
+    this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
     this.getAutosaveController()?.clearFile?.()
@@ -434,6 +464,7 @@ export default class extends Controller {
   onItemMoved(event) {
     const { oldPath, newPath, type } = event.detail
     this.invalidateTreeRefreshes()
+    this.remapSessionNotePaths(oldPath, newPath, type)
 
     if (type === "folder") {
       // Preserve expand/collapse state for moved folder and its descendants
@@ -491,24 +522,28 @@ export default class extends Controller {
             updateHistory,
             replaceHistory: false
           })
-          return
+          return null
         }
         throw new Error(window.t("errors.failed_to_load"))
       }
 
       const data = await response.json
       if (!this.isCurrentNavigation(generation)) return
-      this.applyLoadedFile(path, data.content, data.revision, generation, { updateHistory })
+      const applied = this.applyLoadedFile(path, data.content, data.revision, generation, { updateHistory })
+      if (!applied) return null
+      return { path, content: data.content, revision: data.revision }
     } catch (error) {
       if (!this.isCurrentNavigation(generation)) return
       console.error("Error loading file:", error)
       this.restoreCurrentFileUrl()
       const autosave = this.getAutosaveController()
       if (autosave) autosave.showSaveStatus(window.t("status.error_loading"), true)
+      return null
     }
   }
 
   showEditor(content, fileType = "markdown", revision = null) {
+    this.clearPendingSlashInsertion()
     if (this._fileNotFoundTimeout) {
       clearTimeout(this._fileNotFoundTimeout)
       this._fileNotFoundTimeout = null
@@ -540,7 +575,9 @@ export default class extends Controller {
     // Set content via CodeMirror controller
     const codemirrorController = this.getCodemirrorController()
     if (codemirrorController) {
-      codemirrorController.setValue(editorContent)
+      codemirrorController.setUndoAtHistoryStartHandler?.((path) => this.onUndoAtHistoryStart(path))
+      codemirrorController.setRedoAtHistoryEndHandler?.((path) => this.onRedoAtHistoryEnd(path))
+      codemirrorController.loadContent(editorContent, this.currentFile)
       codemirrorController.focus()
     } else {
       // Fallback to hidden textarea
@@ -725,7 +762,7 @@ export default class extends Controller {
   }
 
   // === Table Editor ===
-  openTableEditor() {
+  openTableEditor({ slashInsertion = false } = {}) {
     let existingTable = null
     let startPos = 0
     let endPos = 0
@@ -741,6 +778,22 @@ export default class extends Controller {
         existingTable = tableInfo.lines.join("\n")
         startPos = tableInfo.startPos
         endPos = tableInfo.endPos
+
+        const pending = this.pendingSlashInsertionRange
+        if (slashInsertion && pending?.action === "table" && pending.from >= startPos && pending.to <= endPos && text.slice(pending.from, pending.to) === pending.query) {
+          const queryFrom = pending.from - startPos
+          const queryTo = pending.to - startPos
+          let beforeQuery = existingTable.slice(0, queryFrom)
+          let afterQuery = existingTable.slice(queryTo)
+          if (/[ \t]$/.test(beforeQuery) && /^[ \t]/.test(afterQuery)) {
+            afterQuery = afterQuery.slice(1)
+          } else if (beforeQuery.length === 0 && /^[ \t]/.test(afterQuery)) {
+            afterQuery = afterQuery.slice(1)
+          } else if (!afterQuery.trim() && /[ \t]+$/.test(beforeQuery)) {
+            beforeQuery = beforeQuery.replace(/[ \t]+$/, "")
+          }
+          existingTable = beforeQuery + afterQuery
+        }
       }
     }
 
@@ -748,6 +801,7 @@ export default class extends Controller {
     window.dispatchEvent(new CustomEvent("frankmd:open-table-editor", {
       detail: { existingTable, startPos, endPos }
     }))
+    return Boolean(document.querySelector('[data-controller~="table-editor"]'))
   }
 
   // Setup listener for table insertion from table_editor_controller
@@ -756,8 +810,57 @@ export default class extends Controller {
     window.addEventListener("frankmd:insert-table", this.boundTableInsertHandler)
   }
 
+  setupSlashCommandListener() {
+    this.boundSlashCommandOpenHandler = this.openSlashCommandAction.bind(this)
+    window.addEventListener("frankmd:open-slash-command", this.boundSlashCommandOpenHandler)
+  }
+
+  openSlashCommandAction(event) {
+    const { action, from, to, query } = event.detail || {}
+    if (!this.isMarkdownFile() || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < from || typeof query !== "string" || !query.startsWith("/")) return
+
+    this.pendingSlashInsertionRange = { action, from, to, query }
+
+    let opened = false
+    if (action === "table") opened = this.openTableEditor({ slashInsertion: true })
+    if (action === "image") opened = this.openImagePicker()
+    if (action === "video") opened = this.openVideoDialog()
+    if (action === "emoji") opened = this.openEmojiPicker()
+
+    if (!opened) this.clearPendingSlashInsertion(action)
+  }
+
+  getPendingSlashInsertionRange(action) {
+    const pending = this.pendingSlashInsertionRange
+    if (!pending || pending.action !== action) return null
+
+    const codemirrorController = this.getCodemirrorController()
+    const currentQuery = codemirrorController?.getValue().slice(pending.from, pending.to)
+    if (!codemirrorController || currentQuery !== pending.query) {
+      this.clearPendingSlashInsertion(action)
+      return false
+    }
+
+    return { from: pending.from, to: pending.to }
+  }
+
+  clearPendingSlashInsertion(action = null) {
+    if (!action || this.pendingSlashInsertionRange?.action === action) {
+      this.pendingSlashInsertionRange = null
+    }
+  }
+
+  onSlashCommandDialogClose(event) {
+    this.clearPendingSlashInsertion(event.currentTarget?.dataset?.slashCommandAction)
+  }
+
   // Handle table insertion from table_editor_controller
   handleTableInsert(event) {
+    if (!this.isMarkdownFile()) {
+      this.clearPendingSlashInsertion()
+      return
+    }
+
     const { markdown, editMode, startPos, endPos } = event.detail
 
     if (!markdown) return
@@ -765,27 +868,46 @@ export default class extends Controller {
     const codemirrorController = this.getCodemirrorController()
     if (!codemirrorController) return
 
-    insertBlockContent(codemirrorController, markdown, { editMode, startPos, endPos })
+    let slashRange = null
+    if (!editMode) {
+      slashRange = this.getPendingSlashInsertionRange("table")
+      if (slashRange === false) return
+    }
+    const options = editMode ? { editMode, startPos, endPos } : (slashRange || { editMode, startPos, endPos })
+    insertBlockContent(codemirrorController, markdown, options)
+    if (slashRange || editMode) this.clearPendingSlashInsertion("table")
     codemirrorController.focus()
     this.onEditorChange({ detail: { docChanged: true } })
   }
 
   // === Image Picker Event Handler ===
   onImageSelected(event) {
+    if (!this.isMarkdownFile()) {
+      this.clearPendingSlashInsertion()
+      return
+    }
+
     const { markdown } = event.detail
     if (!markdown) return
 
     const codemirrorController = this.getCodemirrorController()
     if (!codemirrorController) return
 
-    insertImage(codemirrorController, markdown)
+    const slashRange = this.getPendingSlashInsertionRange("image")
+    if (slashRange === false) return
+    insertImage(codemirrorController, markdown, slashRange || {})
+    if (slashRange) this.clearPendingSlashInsertion("image")
     codemirrorController.focus()
     this.onEditorChange({ detail: { docChanged: true } })
   }
 
   // Open image picker dialog (delegates to image-picker controller)
   openImagePicker() {
-    if (this.hasImagePickerOutlet) this.imagePickerOutlet.open()
+    if (this.hasImagePickerOutlet) {
+      this.imagePickerOutlet.open()
+      return true
+    }
+    return false
   }
 
   // Route pasted images through the picker (pre-selected) so the normal Insert flow still applies
@@ -1316,18 +1438,30 @@ export default class extends Controller {
 
   // Video Dialog - delegates to video-dialog controller
   openVideoDialog() {
-    if (this.hasVideoDialogOutlet) this.videoDialogOutlet.open()
+    if (this.hasVideoDialogOutlet) {
+      this.videoDialogOutlet.open()
+      return true
+    }
+    return false
   }
 
   // Video Embed Event Handler - receives events from video_dialog_controller
   insertVideoEmbed(event) {
+    if (!this.isMarkdownFile()) {
+      this.clearPendingSlashInsertion()
+      return
+    }
+
     const { embedCode } = event.detail
     if (!embedCode) return
 
     const codemirrorController = this.getCodemirrorController()
     if (!codemirrorController) return
 
-    insertVideoEmbed(codemirrorController, embedCode)
+    const slashRange = this.getPendingSlashInsertionRange("video")
+    if (slashRange === false) return
+    insertVideoEmbed(codemirrorController, embedCode, slashRange || {})
+    if (slashRange) this.clearPendingSlashInsertion("video")
     codemirrorController.focus()
     this.onEditorChange({ detail: { docChanged: true } })
   }
@@ -1421,8 +1555,341 @@ export default class extends Controller {
 
   // === File Operations Event Handlers ===
 
+  acquireCreatedNoteUndoEditorLock(codemirror) {
+    if (codemirror?.acquireReadOnlyLock) return codemirror.acquireReadOnlyLock()
+
+    if (codemirror?.setReadOnly) {
+      const wasReadOnly = Boolean(codemirror.readOnlyValue)
+      codemirror.setReadOnly(true)
+      return () => codemirror.setReadOnly(wasReadOnly)
+    }
+
+    if (this.hasTextareaTarget) {
+      const textarea = this.textareaTarget
+      const wasDisabled = textarea.disabled
+      textarea.disabled = true
+      return () => { textarea.disabled = wasDisabled }
+    }
+
+    return () => {}
+  }
+
+  onUndoAtHistoryStart(path) {
+    if (!path || path !== this.currentFile || this.getFileType(path) !== "markdown") return false
+    if (this._pendingCreatedNoteUndo?.size) return true
+
+    const boundary = this.createdNoteBoundaries?.get(path)
+    if (!boundary || boundary.deleted) return false
+
+    const codemirror = this.getCodemirrorController()
+    if (!codemirror || codemirror.getValue() !== boundary.initialContent) return false
+
+    const autosave = this.getAutosaveController()
+    if (!autosave?.prepareForFileDeletion) {
+      this.showTemporaryMessage(window.t("status.draft_storage_error"), 5000)
+      return true
+    }
+
+    const contentAtConfirmation = codemirror.getValue()
+    if (contentAtConfirmation !== boundary.initialContent) return true
+
+    this._pendingCreatedNoteUndo ??= new Set()
+    this._pendingCreatedNoteUndo.add(path)
+    void this.confirmAndPerformCreatedNoteUndo(
+      path,
+      boundary,
+      autosave,
+      this._navigationGeneration,
+      contentAtConfirmation
+    )
+    return true
+  }
+
+  confirmCreatedNoteUndo(path) {
+    const name = path.split("/").pop() || path
+    const dialog = this.undoCreatedNoteDialogTarget
+    const messageTarget = this.undoCreatedNoteMessageTarget
+
+    if (!dialog || typeof dialog.showModal !== "function" || !messageTarget) {
+      return Promise.resolve(window.confirm(window.t("confirm.undo_created_note", { name })))
+    }
+
+    const filenameToken = "__FRANKMD_UNDO_FILENAME__"
+    const message = window.t("confirm.undo_created_note", { name: filenameToken })
+    const parts = String(message).split(filenameToken)
+    const fragment = document.createDocumentFragment()
+
+    parts.forEach((part, index) => {
+      if (part) fragment.append(document.createTextNode(part))
+      if (index < parts.length - 1) {
+        const filename = document.createElement("span")
+        filename.className = "confirm-dialog__filename"
+        filename.textContent = name
+        fragment.append(filename)
+      }
+    })
+
+    if (parts.length > 1) {
+      messageTarget.replaceChildren(fragment)
+    } else {
+      // Keep a useful localized message if a locale has not loaded its
+      // placeholder-based translation yet.
+      messageTarget.textContent = window.t("confirm.undo_created_note", { name })
+    }
+
+    dialog.returnValue = ""
+    return new Promise((resolve) => {
+      dialog.addEventListener("close", () => {
+        resolve(dialog.returnValue === "confirm")
+      }, { once: true })
+      dialog.showModal()
+    })
+  }
+
+  closeUndoCreatedNoteDialog() {
+    const dialog = this.undoCreatedNoteDialogTarget
+    if (typeof dialog.close === "function") dialog.close("cancel")
+  }
+
+  async confirmAndPerformCreatedNoteUndo(path, boundary, autosave, navigationGeneration, expectedContent) {
+    let releaseEditorLock
+    try {
+      if (!await this.confirmCreatedNoteUndo(path)) return
+
+      if (this.currentFile !== path || this._navigationGeneration !== navigationGeneration ||
+          this.createdNoteBoundaries?.get(path) !== boundary || boundary.deleted) return
+
+      const codemirror = this.getCodemirrorController()
+      if (!codemirror || codemirror.getValue() !== expectedContent ||
+          codemirror.getValue() !== boundary.initialContent) {
+        this.showTemporaryMessage(window.t("errors.failed_to_delete"), 5000)
+        return
+      }
+
+      releaseEditorLock = this.acquireCreatedNoteUndoEditorLock(codemirror)
+      await this.performCreatedNoteUndo(
+        path,
+        boundary,
+        autosave,
+        navigationGeneration,
+        expectedContent,
+        releaseEditorLock
+      )
+      releaseEditorLock = null
+    } catch (error) {
+      console.error("Failed to confirm created-note undo:", error)
+      this.showTemporaryMessage(error.message || window.t("errors.failed_to_delete"), 5000)
+    } finally {
+      releaseEditorLock?.()
+      this._pendingCreatedNoteUndo?.delete(path)
+    }
+  }
+
+  async performCreatedNoteUndo(path, boundary, autosave, navigationGeneration, expectedContent, releaseEditorLock) {
+    let deletionSucceeded = false
+    try {
+      const preparation = await autosave.prepareForFileDeletion(path)
+      if (!preparation.ok) {
+        if (!preparation.stale) {
+          if (preparation.error) console.error("Unable to prepare created note for deletion:", preparation.error)
+          this.showTemporaryMessage(window.t("status.draft_storage_error"), 5000)
+        }
+        return
+      }
+      // The user may have navigated while an autosave was draining. Keep the
+      // explicit confirmation tied to the note that was active at keypress.
+      if (this.currentFile !== path || this._navigationGeneration !== navigationGeneration) {
+        return
+      }
+
+      // The editor stays interaction-locked while the server request is in
+      // flight. This second check also protects against programmatic edits or
+      // a read-only lock that could not be acquired on a fallback editor.
+      if (this.getCodemirrorController()?.getValue() !== expectedContent) {
+        this.showTemporaryMessage(window.t("errors.failed_to_delete"), 5000)
+        return
+      }
+
+      const expectedRevision = preparation.revision || boundary.initialRevision
+      const response = await destroy(
+        `/notes/${encodePath(path)}?expected_revision=${encodeURIComponent(expectedRevision)}`,
+        { responseKind: "turbo-stream" }
+      )
+
+      if (!response.ok) {
+        const data = await response.json
+        this.showTemporaryMessage(data.error || window.t("errors.failed_to_delete"), 5000)
+        return
+      }
+
+      // Keep this boundary and the CodeMirror history cached by path: redo can
+      // use them to recreate the note and restore its undone text edits.
+      deletionSucceeded = true
+      boundary.deleted = true
+      const shouldReturnToPrevious = this.currentFile === path &&
+        this._navigationGeneration === navigationGeneration
+      this.onFileDeleted({ detail: { path, type: "file" } }, { preserveSessionState: true })
+
+      if (shouldReturnToPrevious && boundary.previousPath && boundary.previousPath !== path) {
+        const loadedPrevious = await this.loadFile(boundary.previousPath, { updateHistory: false })
+        if (loadedPrevious && this.currentFile === boundary.previousPath) {
+          this.updateUrl(boundary.previousPath, { replace: true })
+        }
+      }
+    } catch (error) {
+      console.error("Failed to undo note creation:", error)
+      this.showTemporaryMessage(error.message || window.t("errors.failed_to_delete"), 5000)
+    } finally {
+      try {
+        if (!deletionSucceeded) autosave.resumeAfterTransition?.()
+      } catch (resumeError) {
+        console.error("Unable to resume autosave after created-note undo:", resumeError)
+      } finally {
+        try {
+          releaseEditorLock?.()
+        } catch (unlockError) {
+          console.error("Unable to unlock the editor after created-note undo:", unlockError)
+        } finally {
+          this._pendingCreatedNoteUndo?.delete(path)
+        }
+      }
+    }
+  }
+
+  onRedoAtHistoryEnd(path) {
+    if (!path || path !== this.currentFile || this.getFileType(path) !== "markdown") return false
+
+    // A deleted creation is the next redo boundary only after the current
+    // note's native CodeMirror redo history has been exhausted.
+    const boundary = Array.from(this.createdNoteBoundaries?.values?.() || []).reverse().find((candidate) =>
+      candidate.deleted && candidate.previousPath === path
+    )
+    if (!boundary) return false
+
+    return this.requestCreatedNoteRedo(boundary)
+  }
+
+  onGlobalRedoAtRootBoundary(event) {
+    if (this.currentFile) return false
+    if (!event || event.defaultPrevented || event.altKey) return false
+
+    const ctrlOrMeta = event.ctrlKey || event.metaKey
+    const key = event.key?.toLowerCase()
+    const isRedoShortcut = ctrlOrMeta && (
+      (key === "y" && !event.shiftKey) || (key === "z" && event.shiftKey)
+    )
+    if (!isRedoShortcut) return false
+
+    const target = event.target instanceof Element ? event.target : null
+    const targetIsEditor = Boolean(target?.closest(".cm-content"))
+    const hiddenEditorHasFocus = targetIsEditor && this.hasEditorTarget &&
+      this.editorTarget.classList.contains("hidden")
+    if (target?.closest("input, textarea, select, [contenteditable='true'], [contenteditable='']") &&
+        !hiddenEditorHasFocus) return false
+
+    if (this._pendingCreatedNoteUndo?.size || this._pendingCreatedNoteRedo?.size) return false
+
+    const boundary = Array.from(this.createdNoteBoundaries?.values?.() || []).reverse().find((candidate) =>
+      candidate.deleted && candidate.previousPath == null
+    )
+    if (!boundary) return false
+
+    event.preventDefault()
+    return this.requestCreatedNoteRedo(boundary)
+  }
+
+  requestCreatedNoteRedo(boundary) {
+    if (this._pendingCreatedNoteRedo?.has(boundary.path)) return true
+
+    const autosave = this.getAutosaveController()
+    if (!autosave?.prepareForTransition) {
+      this.showTemporaryMessage(window.t("status.draft_storage_error"), 5000)
+      return true
+    }
+
+    // Preserve the active predecessor's draft before creating/opening another
+    // note. A blocked draft write cancels redo without changing the file.
+    let preparation
+    try {
+      preparation = autosave.prepareForTransition()
+    } catch (error) {
+      console.error("Unable to prepare for created-note redo:", error)
+      try {
+        autosave.resumeAfterTransition?.()
+      } catch (resumeError) {
+        console.error("Unable to resume autosave after created-note redo preparation:", resumeError)
+      }
+      return true
+    }
+    if (!preparation?.ok) {
+      try {
+        autosave.resumeAfterTransition?.()
+      } catch (resumeError) {
+        console.error("Unable to resume autosave after blocked created-note redo:", resumeError)
+      }
+      return true
+    }
+
+    this._pendingCreatedNoteRedo ??= new Set()
+    this._pendingCreatedNoteRedo.add(boundary.path)
+    void this.performCreatedNoteRedo(boundary, this._navigationGeneration, autosave)
+    return true
+  }
+
+  async performCreatedNoteRedo(boundary, navigationGeneration, autosave) {
+    const path = boundary.path
+    try {
+      const response = await post("/notes", {
+        body: { path, content: boundary.initialContent },
+        responseKind: "json"
+      })
+
+      if (!response.ok) {
+        const data = await response.json
+        this.showTemporaryMessage(data.error || window.t("errors.failed_to_create"), 5000)
+        return
+      }
+
+      // The create endpoint uses create-only semantics. Once it succeeds, the
+      // note exists again; never retry creation by overwriting its path.
+      boundary.deleted = false
+
+      const shouldReopenNote = this.currentFile === boundary.previousPath &&
+        this._navigationGeneration === navigationGeneration
+      if (shouldReopenNote) {
+        const loadedNote = await this.loadFile(path)
+        if (loadedNote && this.currentFile === path) return
+
+        // The note exists, but an interrupted or blocked load must not replace
+        // the currently active predecessor.
+        await this.refreshTree()
+        this.showTemporaryMessage(window.t("errors.failed_to_load"), 5000)
+        return
+      }
+
+      // The user navigated while the create request was in flight. Preserve
+      // that navigation and still reveal the newly created note in the tree.
+      await this.refreshTree()
+    } catch (error) {
+      console.error("Failed to redo note creation:", error)
+      this.showTemporaryMessage(error.message || window.t("errors.failed_to_create"), 5000)
+    } finally {
+      // prepareForTransition flushed and paused follow-up autosave work. Resume
+      // whichever file is active now on create failure, stale navigation, or
+      // load failure; after a successful note switch this is a harmless no-op.
+      try {
+        autosave?.resumeAfterTransition?.()
+      } catch (resumeError) {
+        console.error("Unable to resume autosave after created-note redo:", resumeError)
+      } finally {
+        this._pendingCreatedNoteRedo?.delete(path)
+      }
+    }
+  }
+
   async onFileCreated(event) {
     const { path } = event.detail
+    const previousPath = this.currentFile
     this.invalidateTreeRefreshes()
 
     // Expand parent folders
@@ -1433,8 +1900,19 @@ export default class extends Controller {
       this.expandedFolders.add(expandPath)
     }
 
-    // Tree is already updated by Turbo Stream
-    await this.loadFile(path)
+    // Tree is already updated by Turbo Stream. Capture the initial server
+    // state only after the created note has been loaded and applied; this also
+    // captures server-generated content such as Hugo templates.
+    const loadedNote = await this.loadFile(path)
+    if (!loadedNote || this.currentFile !== path || this.getFileType(path) !== "markdown") return
+    if (typeof loadedNote.content !== "string" || typeof loadedNote.revision !== "string") return
+
+    this.createdNoteBoundaries.set(path, {
+      path,
+      initialContent: loadedNote.content,
+      initialRevision: loadedNote.revision,
+      previousPath
+    })
   }
 
   onFolderCreated(event) {
@@ -1447,6 +1925,7 @@ export default class extends Controller {
   onFileRenamed(event) {
     const { oldPath, newPath, type } = event.detail
     this.invalidateTreeRefreshes()
+    this.remapSessionNotePaths(oldPath, newPath, type)
 
     if (type === "folder") {
       // Preserve expand/collapse state for renamed folder and its descendants.
@@ -1479,7 +1958,47 @@ export default class extends Controller {
     // Tree is already updated by Turbo Stream
   }
 
-  onFileDeleted(event) {
+  remapSessionNotePaths(oldPath, newPath, type) {
+    this.getCodemirrorController()?.remapHistoryPaths?.(oldPath, newPath, type)
+
+    const boundaries = this.createdNoteBoundaries
+    if (!boundaries || typeof boundaries.entries !== "function") return
+
+    const entries = Array.from(boundaries.entries()).map(([key, boundary]) => {
+      const remappedKey = remapScopedPath(key, oldPath, newPath, type)
+      if (boundary && typeof boundary === "object") {
+        boundary.path = remapScopedPath(boundary.path, oldPath, newPath, type)
+        boundary.previousPath = remapScopedPath(boundary.previousPath, oldPath, newPath, type)
+      }
+      return [key, remappedKey, boundary, key !== remappedKey]
+    })
+    const destinationPaths = new Set(entries.filter(([, , , moved]) => moved).map(([, path]) => path))
+    boundaries.clear()
+
+    // Preserve insertion order for redo selection while allowing the moved
+    // note to replace any stale destination boundary from a previously deleted note.
+    for (const [key, remappedKey, boundary, moved] of entries) {
+      if (!moved && destinationPaths.has(key)) continue
+      boundaries.set(remappedKey, boundary)
+    }
+  }
+
+  evictCreatedNoteBoundaries(path, type) {
+    const boundaries = this.createdNoteBoundaries
+    if (!boundaries || typeof boundaries.entries !== "function") return
+
+    for (const [key, boundary] of boundaries.entries()) {
+      if (pathMatchesScope(key, path, type) || pathMatchesScope(boundary?.path, path, type)) {
+        boundaries.delete(key)
+      } else if (pathMatchesScope(boundary?.previousPath, path, type)) {
+        // Keep an independently created note undoable, but sever a deleted
+        // predecessor so a future note at the same path cannot inherit its redo.
+        boundary.previousPath = null
+      }
+    }
+  }
+
+  onFileDeleted(event, { preserveSessionState = false } = {}) {
     const { path, type } = event.detail
     this.invalidateTreeRefreshes()
     const activeFileWasDeleted = this.currentFile === path || (
@@ -1492,8 +2011,14 @@ export default class extends Controller {
       this.showTemporaryMessage(window.t("status.draft_storage_error"), 5000)
     }
 
+    if (!preserveSessionState) {
+      this.getCodemirrorController()?.evictHistoryPaths?.(path, type)
+      this.evictCreatedNoteBoundaries(path, type)
+    }
+
     // Clear editor if deleted file was currently open
     if (activeFileWasDeleted) {
+      this.clearPendingSlashInsertion()
       this.currentFile = null
       this.currentFileType = null
       this.updatePathDisplay(null)
@@ -1578,6 +2103,8 @@ export default class extends Controller {
     })
 
     document.addEventListener("keydown", this.boundKeydownHandler)
+    this.boundRootRedoHandler = (event) => this.onGlobalRedoAtRootBoundary(event)
+    document.addEventListener("keydown", this.boundRootRedoHandler)
   }
 
   // Execute an action triggered by a keyboard shortcut
@@ -1762,24 +2289,34 @@ export default class extends Controller {
 
   // Open emoji picker dialog
   openEmojiPicker() {
-    if (!this.hasTextareaTarget) return
-    if (!this.isMarkdownFile()) return
+    if (!this.hasTextareaTarget) return false
+    if (!this.isMarkdownFile()) return false
 
     const emojiPickerController = this.getEmojiPickerController()
     if (emojiPickerController) {
       emojiPickerController.open()
+      return true
     }
+    return false
   }
 
   // Handle emoji/emoticon selected event
   onEmojiSelected(event) {
+    if (!this.isMarkdownFile()) {
+      this.clearPendingSlashInsertion()
+      return
+    }
+
     const codemirrorController = this.getCodemirrorController()
     if (!codemirrorController) return
 
     const { text: insertText } = event.detail
     if (!insertText) return
 
-    insertInlineContent(codemirrorController, insertText)
+    const slashRange = this.getPendingSlashInsertionRange("emoji")
+    if (slashRange === false) return
+    insertInlineContent(codemirrorController, insertText, slashRange || {})
+    if (slashRange) this.clearPendingSlashInsertion("emoji")
     codemirrorController.focus()
     this.getAutosaveController()?.scheduleAutoSave()
     this.updatePreview()

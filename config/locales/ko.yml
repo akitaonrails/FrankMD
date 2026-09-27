@@ -64,6 +64,21 @@ ko:
     select_note_hint: "또는 Ctrl+N을 눌러 새로 만드세요"
     start_writing: "여기에 입력하세요..."
     cursor_in_table: "테이블 내 - 클릭하여 편집"
+    slash_commands:
+      heading_1: "제목 1"
+      heading_2: "제목 2"
+      heading_3: "제목 3"
+      bulleted_list: "글머리 기호 목록"
+      numbered_list: "번호 매기기 목록"
+      to_do_list: "할 일 목록"
+      quote: "인용"
+      code_block: "코드 블록"
+      equation: "수식"
+      divider: "구분선"
+      table: "표"
+      image: "이미지"
+      video: "동영상"
+      emoji: "이모지"
     # 에디터 툴바
     toolbar:
       help: "도움말"
@@ -387,6 +402,7 @@ ko:
         unindent: "들여쓰기 해제"
         insert: "삽입"
         emoji_picker: "이모지 선택"
+        slash_commands: "문단에서 /를 입력해 블록, 수식, 표, 이미지, 동영상 또는 이모지를 추가하세요."
         format_menu: "텍스트 서식 메뉴"
         context_menu: "컨텍스트 메뉴 (선택 시)"
         text_format: "텍스트 서식 메뉴"
@@ -550,6 +566,7 @@ ko:
   # 오류 메시지
   errors:
     note_not_found: "노트를 찾을 수 없습니다"
+    note_changed_since_loaded: "이 노트는 불러온 후 변경되었습니다. 삭제하기 전에 다시 불러오세요."
     note_already_exists: "노트가 이미 존재합니다"
     note_is_empty: "노트가 비어 있습니다"
     folder_not_found: "폴더를 찾을 수 없습니다"
@@ -582,6 +599,8 @@ ko:
   # 확인 메시지
   confirm:
     delete_note: "이 노트를 삭제하시겠습니까?"
+    undo_created_note_title: "노트 생성을 취소할까요?"
+    undo_created_note: "생성을 취소하면 \"%{name}\" 파일이 삭제됩니다. 이 세션 동안 다시 실행할 수 있습니다."
     delete_folder: "이 폴더와 모든 내용을 삭제하시겠습니까?"
 
   # 성공 메시지

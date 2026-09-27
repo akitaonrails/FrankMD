@@ -6,6 +6,7 @@ class NotesService
   class NotFoundError < StandardError; end
   class InvalidPathError < StandardError; end
   class AlreadyExistsError < InvalidPathError; end
+  class RevisionConflictError < StandardError; end
 
   MAX_SEARCH_FILE_BYTES = 5 * 1024 * 1024
   SEARCH_REGEX_TIMEOUT = 0.5
@@ -63,10 +64,16 @@ class NotesService
     true
   end
 
-  def delete(path)
+  def delete(path, expected_revision: nil)
     with_filesystem_lock do
       full_path = safe_path(path)
       raise NotFoundError, "Note not found: #{path}" unless full_path.file?
+
+      # Keep the revision check and removal in one lock scope so a cooperating
+      # FrankMD writer cannot change the note between the check and deletion.
+      if !expected_revision.nil? && Digest::SHA256.file(full_path.to_s).hexdigest != expected_revision
+        raise RevisionConflictError, "Note has changed: #{path}"
+      end
 
       full_path.delete
     end

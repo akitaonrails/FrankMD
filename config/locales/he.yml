@@ -63,6 +63,21 @@ he:
     select_note_hint: "או לחץ Ctrl+N ליצירת הערה חדשה"
     start_writing: "התחל לכתוב..."
     cursor_in_table: "סמן בטבלה - לחץ לעריכה"
+    slash_commands:
+      heading_1: "כותרת 1"
+      heading_2: "כותרת 2"
+      heading_3: "כותרת 3"
+      bulleted_list: "רשימת תבליטים"
+      numbered_list: "רשימה ממוספרת"
+      to_do_list: "רשימת משימות"
+      quote: "ציטוט"
+      code_block: "בלוק קוד"
+      equation: "משוואה"
+      divider: "מפריד"
+      table: "טבלה"
+      image: "תמונה"
+      video: "וידאו"
+      emoji: "אימוג'י"
     # סרגל כלים העורך
     toolbar:
       help: "עזרה"
@@ -384,6 +399,7 @@ he:
         unindent: "הסר הזחה"
         insert: "הוסף"
         emoji_picker: "בוחר אימוג'י"
+        slash_commands: "הקלד / בפסקה כדי להוסיף בלוק, משוואה, טבלה, תמונה, סרטון או אימוג'י."
         format_menu: "תפריט עיצוב טקסט"
         context_menu: "תפריט הקשר (עם בחירה)"
         text_format: "תפריט עיצוב טקסט"
@@ -522,6 +538,7 @@ he:
   # הודעות שגיאה
   errors:
     note_not_found: "ההערה לא נמצאה"
+    note_changed_since_loaded: "הפתק השתנה מאז שנטען. יש לטעון אותו מחדש לפני המחיקה."
     note_already_exists: "ההערה כבר קיימת"
     note_is_empty: "ההערה ריקה"
     folder_not_found: "התיקייה לא נמצאה"
@@ -554,6 +571,8 @@ he:
   # הודעות אישור
   confirm:
     delete_note: "האם אתה בטוח שברצונך למחוק הערה זו?"
+    undo_created_note_title: "לבטל את יצירת ההערה?"
+    undo_created_note: "ביטול היצירה ימחק את \"%{name}\". אפשר לשחזר את הפעולה במהלך ההפעלה הזו."
     delete_folder: "האם אתה בטוח שברצונך למחוק תיקייה זו וכל תוכנה?"
 
   # הודעות הצלחה
