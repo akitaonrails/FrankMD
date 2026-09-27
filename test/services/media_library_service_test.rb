@@ -47,6 +47,71 @@ class MediaLibraryServiceTest < ActiveSupport::TestCase
     FileUtils.rm_f(outside) if outside
   end
 
+  test "delete removes a supported file from a managed media directory" do
+    path = write_media("images/nested/photo.png", "image")
+
+    assert @service.delete("images/nested/photo.png")
+    refute path.exist?
+  end
+
+  test "delete rejects traversal, absolute paths, and paths outside managed roots" do
+    outside = @test_notes_dir.parent.join("library_delete_outside_#{SecureRandom.hex(6)}.png")
+    File.write(outside, "outside")
+    write_media("notes.png", "note")
+    write_media("attachments/photo.png", "attachment")
+
+    refute @service.delete("images/../#{outside.basename}")
+    refute @service.delete(outside.to_s)
+    refute @service.delete("notes.png")
+    refute @service.delete("attachments/photo.png")
+    assert outside.exist?
+    assert @test_notes_dir.join("notes.png").exist?
+    assert @test_notes_dir.join("attachments/photo.png").exist?
+  ensure
+    FileUtils.rm_f(outside) if outside
+  end
+
+  test "delete rejects unsupported extensions" do
+    path = write_media("images/readme.md", "note content")
+
+    refute @service.delete("images/readme.md")
+    assert path.exist?
+  end
+
+  test "delete rejects symlinks in nested directories and leaves their targets intact" do
+    outside = @test_notes_dir.parent.join("library_symlink_target_#{SecureRandom.hex(6)}.png")
+    File.write(outside, "outside")
+    FileUtils.mkdir_p(@test_notes_dir.join("images"))
+    File.symlink(outside.dirname, @test_notes_dir.join("images/external"))
+
+    refute @service.delete("images/external/#{outside.basename}")
+    assert outside.exist?
+    assert File.symlink?(@test_notes_dir.join("images/external"))
+  ensure
+    FileUtils.rm_f(outside) if outside
+  end
+
+  test "delete rejects a symlinked leaf file and leaves its target intact" do
+    outside = @test_notes_dir.parent.join("library_symlink_leaf_target_#{SecureRandom.hex(6)}.png")
+    File.write(outside, "outside")
+    FileUtils.mkdir_p(@test_notes_dir.join("images"))
+    File.symlink(outside, @test_notes_dir.join("images/linked.png"))
+
+    refute @service.delete("images/linked.png")
+    assert outside.exist?
+    assert File.symlink?(@test_notes_dir.join("images/linked.png"))
+  ensure
+    FileUtils.rm_f(outside) if outside
+  end
+
+  test "delete reports filesystem errors to its caller" do
+    path = write_media("images/protected.png", "image")
+    File.stubs(:delete).with(path).raises(Errno::EACCES)
+
+    assert_raises(Errno::EACCES) { @service.delete("images/protected.png") }
+    assert path.exist?
+  end
+
   private
 
   def write_media(relative_path, contents)

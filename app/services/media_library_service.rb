@@ -22,6 +22,20 @@ class MediaLibraryService
     end
   end
 
+  # Delete one supported media file from its managed root. The path is always
+  # relative to NOTES_PATH, matching the paths used by existing Markdown notes.
+  # Return false for missing or invalid paths so callers cannot use this method
+  # to probe or mutate files outside the two managed media directories.
+  def delete(path)
+    file = safe_media_file(path)
+    return false unless file
+
+    File.delete(file)
+    true
+  rescue Errno::ENOENT, Errno::ENOTDIR
+    false
+  end
+
   private
 
   def list_directory(directory, media)
@@ -68,5 +82,38 @@ class MediaLibraryService
 
   def allowed_extensions(media)
     @config.upload_extensions(media[:extension_key])
+  end
+
+  def safe_media_file(path)
+    segments = path.to_s.split("/", -1)
+    return nil if segments.length < 2 || segments.any? { |segment| segment.blank? || segment == "." || segment == ".." || segment.include?("\\") }
+
+    directory = segments.first
+    media = MEDIA_DIRECTORIES[directory]
+    return nil unless media
+    return nil unless allowed_extensions(media).include?(File.extname(segments.last).downcase)
+
+    relative_path = segments.join("/")
+    file = PathSafety.contain(@base_path, relative_path)
+    return nil unless file && file == @base_path.join(relative_path).cleanpath
+
+    managed_root = @base_path.join(directory)
+    return nil unless PathSafety.contain(managed_root, segments.drop(1).join("/")) == file
+
+    # Reject symlinks in the managed root, intermediate directories, or leaf.
+    # PathSafety also checks real-path containment, while lstat ensures an
+    # in-tree symlink cannot be used to redirect deletion to another entry.
+    current = @base_path
+    segments.each_with_index do |segment, index|
+      current = current.join(segment)
+      stat = current.lstat
+      return nil if stat.symlink?
+      return nil if index < segments.length - 1 && !stat.directory?
+      return nil if index == segments.length - 1 && !stat.file?
+    end
+
+    file
+  rescue Errno::ENOENT, Errno::ENOTDIR, Errno::ELOOP
+    nil
   end
 end

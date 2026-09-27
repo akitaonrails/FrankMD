@@ -47,13 +47,44 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     FileUtils.rm_f(outside) if outside
   end
 
-  test "the listing API does not expose mutation routes" do
+  test "destroy removes a supported media file" do
     path = write_media("images/photo.png", "image")
 
     delete "/library/file/images/photo.png", as: :json
 
+    assert_response :no_content
+    refute path.exist?
+  end
+
+  test "destroy rejects traversal, unrelated roots, and unsupported files" do
+    outside = @test_notes_dir.parent.join("library_controller_outside_#{SecureRandom.hex(6)}.png")
+    File.write(outside, "outside")
+    unrelated = write_media("attachments/photo.png", "attachment")
+    unsupported = write_media("images/readme.md", "note")
+
+    delete "/library/file/images/../#{outside.basename}", as: :json
     assert_response :not_found
-    assert path.exist?
+    assert outside.exist?
+
+    delete "/library/file/attachments/photo.png", as: :json
+    assert_response :not_found
+    assert unrelated.exist?
+
+    delete "/library/file/images/readme.md", as: :json
+    assert_response :not_found
+    assert unsupported.exist?
+  ensure
+    FileUtils.rm_f(outside) if outside
+  end
+
+  test "destroy returns a clear error when the filesystem rejects deletion" do
+    write_media("images/protected.png", "image")
+    MediaLibraryService.any_instance.stubs(:delete).raises(Errno::EACCES)
+
+    delete "/library/file/images/protected.png", as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal I18n.t("library.delete_failed"), JSON.parse(response.body)["error"]
   end
 
   private

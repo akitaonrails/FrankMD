@@ -1,11 +1,12 @@
 import { Controller } from "@hotwired/stimulus"
-import { get } from "@rails/request.js"
+import { destroy, get } from "@rails/request.js"
+import { appConfirm } from "lib/app_prompt"
 import { escapeHtml } from "lib/text_utils"
 import { encodePath } from "lib/url_utils"
 
 export default class extends Controller {
   static targets = [
-    "imagesTab", "videosTab", "count", "error", "loading", "grid",
+    "imagesTab", "videosTab", "count", "error", "loading", "status", "grid", "search", "sort",
     "previewDialog", "previewName", "previewMetadata", "previewMedia"
   ]
 
@@ -23,7 +24,7 @@ export default class extends Controller {
 
   async load() {
     const generation = ++this.requestGeneration
-    this.errorTarget.classList.add("hidden")
+    this.clearError()
     this.loadingTarget.classList.remove("hidden")
     this.gridTarget.innerHTML = ""
 
@@ -41,8 +42,7 @@ export default class extends Controller {
       this.render()
     } catch (error) {
       if (generation !== this.requestGeneration) return
-      this.errorTarget.textContent = error.message || window.t("library.load_failed")
-      this.errorTarget.classList.remove("hidden")
+      this.showError(error.message || window.t("library.load_failed"))
       this.items = []
       this.render()
     } finally {
@@ -68,15 +68,30 @@ export default class extends Controller {
   }
 
   render() {
-    const visible = this.items.filter((item) => item.path.startsWith(`${this.category}/`))
+    const query = this.hasSearchTarget ? this.searchTarget.value.trim().toLocaleLowerCase() : ""
+    const sort = this.hasSortTarget ? this.sortTarget.value : "newest"
+    const visible = this.items
+      .filter((item) => item.path.startsWith(`${this.category}/`))
+      .filter((item) => !query || `${item.name} ${item.path}`.toLocaleLowerCase().includes(query))
+      .sort((first, second) => this.compareItems(first, second, sort))
+
     this.countTarget.textContent = window.t("library.item_count", { count: visible.length })
 
     if (visible.length === 0) {
-      this.gridTarget.innerHTML = `<p class="col-span-full py-12 text-center text-sm text-[var(--theme-text-muted)]">${escapeHtml(window.t("library.empty"))}</p>`
+      const emptyKey = query ? "library.no_search_results" : "library.empty"
+      this.gridTarget.innerHTML = `<p class="col-span-full py-12 text-center text-sm text-[var(--theme-text-muted)]">${escapeHtml(window.t(emptyKey))}</p>`
       return
     }
 
     this.gridTarget.innerHTML = visible.map((item) => this.renderCard(item)).join("")
+  }
+
+  compareItems(first, second, sort) {
+    if (sort === "name") return first.name.localeCompare(second.name, undefined, { sensitivity: "base", numeric: true })
+
+    const firstTime = Date.parse(first.mtime) || 0
+    const secondTime = Date.parse(second.mtime) || 0
+    return sort === "oldest" ? firstTime - secondTime : secondTime - firstTime
   }
 
   renderCard(item) {
@@ -97,6 +112,11 @@ export default class extends Controller {
         <div class="library-card-details">
           <p class="truncate text-sm font-medium" title="${name}">${name}</p>
           <p class="mt-1 text-xs text-[var(--theme-text-muted)]">${size} <span aria-hidden="true">·</span> ${date}</p>
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            <button type="button" data-path="${path}" data-action="click->library#insertItem" class="rounded px-2 py-1 text-xs text-[var(--theme-accent)] hover:bg-[var(--theme-bg-hover)]">${escapeHtml(window.t("library.insert"))}</button>
+            <button type="button" data-path="${path}" data-action="click->library#copyRelativePath" class="rounded px-2 py-1 text-xs text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-hover)]" aria-label="${escapeHtml(window.t("library.copy_path"))}">${escapeHtml(window.t("library.copy_path"))}</button>
+            <button type="button" data-path="${path}" data-action="click->library#deleteItem" class="rounded px-2 py-1 text-xs text-[var(--theme-error)] hover:bg-[var(--theme-bg-hover)]">${escapeHtml(window.t("library.delete"))}</button>
+          </div>
         </div>
       </article>
     `
@@ -119,6 +139,83 @@ export default class extends Controller {
 
     this.previewDialogTarget.classList.remove("hidden")
     this.previewDialogTarget.classList.add("flex")
+  }
+
+  insertPreviewItem(event) {
+    this.insertItemFor(this.previewItem, event)
+  }
+
+  insertItem(event) {
+    this.insertItemFor(this.itemForPath(event.currentTarget.dataset.path), event)
+  }
+
+  insertItemFor(item, event) {
+    event?.stopPropagation?.()
+    if (!item) return
+
+    const insertEvent = this.dispatch("insert-media", { detail: { item, status: "pending" } })
+    if (insertEvent.detail.status === "inserted") {
+      this.closePreview()
+    } else if (insertEvent.detail.status === "pending") {
+      this.showError(window.t("library.insertion_failed"))
+    }
+  }
+
+  async copyPreviewPath(event) {
+    this.copyRelativePathFor(this.previewItem, event)
+  }
+
+  async copyRelativePath(event) {
+    this.copyRelativePathFor(this.itemForPath(event.currentTarget.dataset.path), event)
+  }
+
+  async copyRelativePathFor(item, event) {
+    event?.stopPropagation?.()
+    if (!item) return
+
+    this.clearError()
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error(window.t("library.copy_failed"))
+      // The API path is already relative to NOTES_PATH (images/... or videos/...).
+      await navigator.clipboard.writeText(item.path)
+      this.showStatus(window.t("library.copied"))
+    } catch (error) {
+      this.showError(error.message || window.t("library.copy_failed"))
+    }
+  }
+
+  async deletePreviewItem(event) {
+    this.deleteItemFor(this.previewItem, event)
+  }
+
+  async deleteItem(event) {
+    this.deleteItemFor(this.itemForPath(event.currentTarget.dataset.path), event)
+  }
+
+  async deleteItemFor(item, event) {
+    event?.stopPropagation?.()
+    if (!item) return
+
+    this.clearError()
+    if (!await appConfirm(window.t("library.delete_confirm", { name: item.name }), {
+      acceptLabel: window.t("library.delete"),
+      destructive: true
+    })) return
+
+    try {
+      const response = await destroy(`/library/file/${encodePath(item.path)}`, { responseKind: "json" })
+      if (!response.ok) {
+        const data = await response.json
+        throw new Error(data.error || window.t("library.delete_failed"))
+      }
+
+      this.items = this.items.filter((entry) => entry.path !== item.path)
+      if (this.previewItem?.path === item.path) this.closePreview()
+      this.render()
+      this.showStatus(window.t("library.deleted"))
+    } catch (error) {
+      this.showError(error.message || window.t("library.delete_failed"))
+    }
   }
 
   closePreview(event) {
@@ -147,6 +244,23 @@ export default class extends Controller {
 
   mediaUrl(item) {
     return `/notes/${encodePath(item.path)}`
+  }
+
+  showError(message) {
+    this.errorTarget.textContent = message
+    this.errorTarget.classList.remove("hidden")
+  }
+
+  clearError() {
+    if (!this.hasErrorTarget) return
+    this.errorTarget.textContent = ""
+    this.errorTarget.classList.add("hidden")
+  }
+
+  showStatus(message) {
+    if (!this.hasStatusTarget) return
+    this.statusTarget.textContent = message
+    this.statusTarget.classList.remove("hidden")
   }
 
   formatBytes(value) {

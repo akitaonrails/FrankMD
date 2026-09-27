@@ -39,6 +39,7 @@ Rails.application.routes.draw do
 
   # Local media Library
   get "library", to: "library#index"
+  delete "library/file/*path", to: "library#destroy", as: :library_file, format: false
 
   # YouTube API
   get "youtube/config", to: "youtube#status"

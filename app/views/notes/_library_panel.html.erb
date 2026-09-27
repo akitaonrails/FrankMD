@@ -30,8 +30,33 @@
       <span class="ml-auto pb-2 text-xs text-[var(--theme-text-faint)]" data-library-target="count"></span>
     </div>
 
+    <div class="mt-4 flex flex-col gap-3 sm:flex-row">
+      <label class="sr-only" for="library-search"><%= t('library.search') %></label>
+      <input
+        id="library-search"
+        type="search"
+        data-library-target="search"
+        data-action="input->library#render"
+        placeholder="<%= t('library.search') %>"
+        class="min-w-0 flex-1 rounded-md border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-2 text-sm text-[var(--theme-text-primary)] placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:outline-none"
+      >
+      <label class="sr-only" for="library-sort"><%= t('library.sort_by') %></label>
+      <select
+        id="library-sort"
+        data-library-target="sort"
+        data-action="change->library#render"
+        aria-label="<%= t('library.sort_by') %>"
+        class="rounded-md border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-2 text-sm text-[var(--theme-text-primary)] focus:border-[var(--theme-accent)] focus:outline-none"
+      >
+        <option value="newest"><%= t('library.sort_newest') %></option>
+        <option value="oldest"><%= t('library.sort_oldest') %></option>
+        <option value="name"><%= t('library.sort_name') %></option>
+      </select>
+    </div>
+
     <p class="hidden mt-4 rounded-md border border-[var(--theme-error)] px-3 py-2 text-sm text-[var(--theme-error)]" data-library-target="error" role="alert"></p>
     <p class="hidden mt-4 text-sm text-[var(--theme-text-muted)]" data-library-target="loading" role="status"><%= t('library.loading') %></p>
+    <p class="hidden mt-3 text-sm text-[var(--theme-text-muted)]" data-library-target="status" role="status" aria-live="polite"></p>
     <div class="library-grid mt-5" data-library-target="grid" aria-live="polite"></div>
 
     <div
@@ -53,6 +78,11 @@
           </button>
         </div>
         <div class="library-preview-media flex min-h-48 items-center justify-center p-4 sm:p-6" data-library-target="previewMedia"></div>
+        <div class="flex flex-wrap justify-end gap-2 border-t border-[var(--theme-border)] p-4 sm:p-5">
+          <button type="button" data-action="click->library#insertPreviewItem" class="rounded-md bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-[var(--theme-accent-text)] hover:opacity-90"><%= t('library.insert') %></button>
+          <button type="button" data-action="click->library#copyPreviewPath" class="rounded-md border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-hover)]"><%= t('library.copy_path') %></button>
+          <button type="button" data-action="click->library#deletePreviewItem" class="rounded-md border border-[var(--theme-error)] px-3 py-2 text-sm text-[var(--theme-error)] hover:bg-[var(--theme-bg-hover)]"><%= t('library.delete') %></button>
+        </div>
       </div>
     </div>
   </div>

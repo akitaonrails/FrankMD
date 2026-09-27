@@ -2,9 +2,13 @@
  * @vitest-environment jsdom
  */
 import { afterEach, describe, expect, it, vi } from "vitest"
+import { appAlert } from "lib/app_prompt"
 import AppController from "../../../app/javascript/controllers/app_controller.js"
 
+vi.mock("lib/app_prompt", () => ({ appAlert: vi.fn().mockResolvedValue(undefined) }))
+
 function makeWorkspaceApp() {
+  window.t = (key) => key
   const element = document.createElement("div")
   element.innerHTML = `
     <aside data-app-target="sidebar"></aside>
@@ -23,13 +27,19 @@ function makeWorkspaceApp() {
     expandParentFolders: vi.fn(),
     showEditor: vi.fn(),
     refreshTree: vi.fn(),
-    updateUrl: vi.fn()
+    updateUrl: vi.fn(),
+    onEditorChange: vi.fn(),
+    codemirrorOutlets: [],
+    previewOutlets: []
   })
   return { app, element }
 }
 
 describe("AppController Library workspace", () => {
-  afterEach(() => document.body.replaceChildren())
+  afterEach(() => {
+    document.body.replaceChildren()
+    delete window.t
+  })
 
   it("opens Library while preserving the sidebar and restores the previous preview state on Explorer navigation", () => {
     const { app, element } = makeWorkspaceApp()
@@ -68,5 +78,116 @@ describe("AppController Library workspace", () => {
     expect(preview.classList.contains("hidden")).toBe(true)
     expect(element.querySelector('[data-app-target="editorPanel"]').classList.contains("hidden")).toBe(false)
     expect(element.querySelector('[data-app-target="libraryToggle"]').getAttribute("aria-pressed")).toBe("false")
+  })
+
+  it("hides and restores a visible preview through its controller", () => {
+    const { app, element } = makeWorkspaceApp()
+    const previewPanel = element.querySelector('[data-app-target="previewPanel"]')
+    previewPanel.classList.remove("hidden")
+    previewPanel.classList.add("flex")
+    let previewVisible = true
+    const previewController = {
+      get isVisible() { return previewVisible },
+      hide: vi.fn(() => {
+        previewVisible = false
+        previewPanel.classList.add("hidden")
+        previewPanel.classList.remove("flex")
+      }),
+      show: vi.fn(() => {
+        previewVisible = true
+        previewPanel.classList.remove("hidden")
+        previewPanel.classList.add("flex")
+      })
+    }
+    app.previewOutlets = [previewController]
+
+    app.showLibraryWorkspace()
+    expect(previewController.hide).toHaveBeenCalledOnce()
+    expect(previewVisible).toBe(false)
+
+    app.showEditorWorkspace()
+    expect(previewController.show).toHaveBeenCalledOnce()
+    expect(previewVisible).toBe(true)
+    expect(previewPanel.classList.contains("hidden")).toBe(false)
+  })
+
+  it("inserts an image with a note-relative encoded path and returns to the editor", () => {
+    const { app, element } = makeWorkspaceApp()
+    const codemirror = {
+      getValue: () => "",
+      getSelection: () => ({ from: 0, to: 0 }),
+      getCursorPosition: () => ({ offset: 0 }),
+      insertAt: vi.fn(),
+      replaceRange: vi.fn(),
+      setSelection: vi.fn(),
+      focus: vi.fn()
+    }
+    app.currentFile = "folder/sub/note.md"
+    app.currentFileType = "markdown"
+    app.codemirrorOutlets = [codemirror]
+    app.libraryVisible = true
+    element.querySelector('[data-app-target="libraryPanel"]').classList.remove("hidden")
+    element.querySelector('[data-app-target="editorPanel"]').classList.add("hidden")
+    const event = {
+      detail: {
+        item: { name: "photo one.png", path: "images/photo (one).png", type: "image" },
+        status: "pending"
+      }
+    }
+
+    expect(app.insertLibraryMedia(event)).toBe(true)
+
+    expect(codemirror.replaceRange).toHaveBeenCalledWith("![photo one.png](../../images/photo%20%28one%29.png)", 0, 0)
+    expect(codemirror.focus).toHaveBeenCalled()
+    expect(app.onEditorChange).toHaveBeenCalledWith({ detail: { docChanged: true } })
+    expect(event.detail.status).toBe("inserted")
+    expect(element.querySelector('[data-app-target="libraryPanel"]').classList.contains("hidden")).toBe(true)
+    expect(element.querySelector('[data-app-target="editorPanel"]').classList.contains("hidden")).toBe(false)
+  })
+
+  it("inserts a video embed with a relative path from a root note", () => {
+    const { app } = makeWorkspaceApp()
+    const codemirror = {
+      getValue: () => "",
+      getSelection: () => ({ from: 0, to: 0 }),
+      getCursorPosition: () => ({ offset: 0 }),
+      insertAt: vi.fn(),
+      replaceRange: vi.fn(),
+      setSelection: vi.fn(),
+      focus: vi.fn()
+    }
+    app.currentFile = "note.md"
+    app.currentFileType = "markdown"
+    app.codemirrorOutlets = [codemirror]
+    const event = {
+      detail: {
+        item: { name: "clip.mp4", path: "videos/nested/clip.mp4", type: "video" },
+        status: "pending"
+      }
+    }
+
+    expect(app.insertLibraryMedia(event)).toBe(true)
+
+    expect(codemirror.insertAt).toHaveBeenCalledWith(
+      0,
+      '<video controls class="video-player">\n  <source src="videos/nested/clip.mp4" type="video/mp4">\n</video>'
+    )
+    expect(event.detail.status).toBe("inserted")
+  })
+
+  it("explains when no note is open or the open file is not Markdown", () => {
+    const { app } = makeWorkspaceApp()
+    const event = { detail: { item: { name: "photo.png", path: "images/photo.png", type: "image" }, status: "pending" } }
+
+    expect(app.insertLibraryMedia(event)).toBe(false)
+    expect(event.detail.status).toBe("no_open_note")
+    expect(appAlert).toHaveBeenLastCalledWith("library.no_open_note")
+
+    app.currentFile = ".fed"
+    app.currentFileType = "config"
+    event.detail.status = "pending"
+    expect(app.insertLibraryMedia(event)).toBe(false)
+    expect(event.detail.status).toBe("markdown_note_required")
+    expect(appAlert).toHaveBeenLastCalledWith("library.markdown_note_required")
   })
 })

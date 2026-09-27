@@ -34,6 +34,51 @@ function remapScopedPath(candidatePath, oldPath, newPath, type) {
     : candidatePath
 }
 
+function relativeMediaPath(notePath, mediaPath) {
+  if (typeof notePath !== "string" || typeof mediaPath !== "string") return null
+  const noteSegments = notePath.split("/")
+  const mediaSegments = mediaPath.split("/")
+  if (noteSegments.some((segment) => !segment || segment === "." || segment === ".." || segment.includes("\\"))) return null
+  if (mediaSegments.length < 2 || mediaSegments.some((segment) => !segment || segment === "." || segment === ".." || segment.includes("\\"))) return null
+  if (mediaSegments[0] !== "images" && mediaSegments[0] !== "videos") return null
+
+  const parentSegments = noteSegments.slice(0, -1)
+  let sharedSegments = 0
+  while (sharedSegments < parentSegments.length &&
+    sharedSegments < mediaSegments.length &&
+    parentSegments[sharedSegments] === mediaSegments[sharedSegments]) {
+    sharedSegments += 1
+  }
+
+  return [
+    ...Array(parentSegments.length - sharedSegments).fill(".."),
+    ...mediaSegments.slice(sharedSegments)
+  ].join("/")
+}
+
+function encodeRelativeMediaPath(path) {
+  return path.split("/").map((segment) => encodeURIComponent(segment)
+    .replace(/[!'()*]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)
+  ).join("/")
+}
+
+function escapeMarkdownAlt(value) {
+  const specialCharacters = new Set(["\\", "[", "]"])
+  return String(value).replace(/[\r\n]+/g, " ").split("").map((character) =>
+    specialCharacters.has(character) ? `\\${character}` : character
+  ).join("")
+}
+
+const VIDEO_MIME_TYPES = {
+  avi: "video/x-msvideo",
+  m4v: "video/x-m4v",
+  mkv: "video/x-matroska",
+  mov: "video/quicktime",
+  mp4: "video/mp4",
+  ogv: "video/ogg",
+  webm: "video/webm"
+}
+
 export default class extends Controller {
   static targets = [
     "fileTree",
@@ -1142,11 +1187,19 @@ export default class extends Controller {
     if (!libraryPanel) return false
 
     if (!this.libraryVisible) {
-      this._libraryPreviewWasVisible = Boolean(previewPanel && !previewPanel.classList.contains("hidden"))
+      const previewController = this.getPreviewController()
+      this._libraryPreviewWasVisible = previewController
+        ? previewController.isVisible
+        : Boolean(previewPanel && !previewPanel.classList.contains("hidden"))
+      if (this._libraryPreviewWasVisible && previewController) {
+        previewController.hide()
+      } else {
+        previewPanel?.classList.add("hidden")
+        previewPanel?.classList.remove("flex")
+      }
     }
     this.libraryVisible = true
     editorPanel?.classList.add("hidden")
-    previewPanel?.classList.add("hidden")
     libraryPanel.classList.remove("hidden")
     toggle?.setAttribute("aria-pressed", "true")
     return true
@@ -1164,11 +1217,72 @@ export default class extends Controller {
     libraryPanel?.classList.add("hidden")
     editorPanel?.classList.remove("hidden")
     if (wasInLibrary && previewPanel) {
-      previewPanel.classList.toggle("hidden", !this._libraryPreviewWasVisible)
+      const previewController = this.getPreviewController()
+      if (this._libraryPreviewWasVisible) {
+        if (previewController) previewController.show()
+        else {
+          previewPanel.classList.remove("hidden")
+          previewPanel.classList.add("flex")
+        }
+      } else {
+        previewPanel.classList.add("hidden")
+        previewPanel.classList.remove("flex")
+      }
       this._libraryPreviewWasVisible = null
     }
     toggle?.setAttribute("aria-pressed", "false")
     return true
+  }
+
+  insertLibraryMedia(event) {
+    const { item } = event.detail || {}
+    const reject = (status, messageKey) => {
+      event.detail.status = status
+      appAlert(window.t(messageKey))
+      return false
+    }
+
+    if (!this.currentFile) return reject("no_open_note", "library.no_open_note")
+    if (!this.isMarkdownFile()) return reject("markdown_note_required", "library.markdown_note_required")
+    if (!this.isValidLibraryMediaItem(item)) return reject("invalid_media", "library.insertion_failed")
+
+    const codemirror = this.getCodemirrorController()
+    if (!codemirror) return reject("editor_unavailable", "library.insertion_failed")
+
+    const relativePath = relativeMediaPath(this.currentFile, item.path)
+    if (!relativePath) return reject("invalid_media", "library.insertion_failed")
+    const encodedPath = encodeRelativeMediaPath(relativePath)
+
+    try {
+      if (item.type === "image") {
+        const markdown = `![${escapeMarkdownAlt(item.name)}](${encodedPath})`
+        insertImage(codemirror, markdown)
+      } else {
+        const extension = item.path.split("/").pop().split(".").pop().toLowerCase()
+        const mimeType = VIDEO_MIME_TYPES[extension]
+        const typeAttribute = mimeType ? ` type="${mimeType}"` : ""
+        const embed = `<video controls class="video-player">\n  <source src="${encodedPath}"${typeAttribute}>\n</video>`
+        insertVideoEmbed(codemirror, embed)
+      }
+
+      this.onEditorChange({ detail: { docChanged: true } })
+      this.showEditorWorkspace()
+      codemirror.focus()
+      event.detail.status = "inserted"
+      return true
+    } catch (error) {
+      console.error("Failed to insert Library media:", error)
+      return reject("failed", "library.insertion_failed")
+    }
+  }
+
+  isValidLibraryMediaItem(item) {
+    if (!item || typeof item.name !== "string" || typeof item.path !== "string") return false
+    if (item.type !== "image" && item.type !== "video") return false
+    const segments = item.path.split("/")
+    const expectedRoot = item.type === "image" ? "images" : "videos"
+    return segments[0] === expectedRoot && segments.length > 1 &&
+      segments.every((segment) => segment && segment !== "." && segment !== ".." && !segment.includes("\\"))
   }
 
   // === Typewriter Mode - Delegates to typewriter_controller ===
