@@ -34,6 +34,11 @@ function remapScopedPath(candidatePath, oldPath, newPath, type) {
     : candidatePath
 }
 
+// Cap on cached per-note EditorStates (doc + undo tree). The cache preserves
+// undo history across note switches; it is bounded LRU so a long browsing
+// session cannot grow it without limit.
+const MAX_NOTE_EDITOR_STATES = 20
+
 // CodeMirror Controller
 // Main Stimulus controller that manages the CodeMirror 6 editor
 // Replaces the textarea-based syntax highlighting with native CodeMirror
@@ -252,9 +257,9 @@ export default class extends Controller {
       if (!this._noteEditorStates) this._noteEditorStates = new Map()
 
       if (previousPath !== path) {
-        if (previousPath) this._noteEditorStates.set(previousPath, view.state)
+        this._cacheNoteEditorState(previousPath, view.state)
 
-        const savedState = path ? this._noteEditorStates.get(path) : null
+        const savedState = this._getCachedNoteEditorState(path)
         if (savedState && savedState.doc.toString() === text) {
           view.setState(savedState)
           this.applyCurrentEditorSettings()
@@ -264,6 +269,9 @@ export default class extends Controller {
         }
 
         this._activeHistoryPath = path
+        // Enforce the LRU cap once the active path is up to date, so the
+        // note being switched to is never an eviction candidate
+        this._evictNoteEditorStates()
       } else if (view.state.doc.toString() !== text) {
         if (path) this._noteEditorStates.delete(path)
         this.replaceContentWithoutHistory(text)
@@ -271,6 +279,39 @@ export default class extends Controller {
     } finally {
       this._suppressDocumentChange = wasSuppressingDocumentChange
       this.syncToHidden()
+    }
+  }
+
+  // Cache a note's EditorState as most-recently-used (re-insert to refresh)
+  _cacheNoteEditorState(path, state) {
+    if (!path || !state) return
+    this._noteEditorStates.delete(path)
+    this._noteEditorStates.set(path, state)
+  }
+
+  // Fetch a note's cached EditorState, refreshing its LRU recency on access
+  _getCachedNoteEditorState(path) {
+    if (!path) return null
+
+    const state = this._noteEditorStates.get(path)
+    if (!state) return null
+
+    this._noteEditorStates.delete(path)
+    this._noteEditorStates.set(path, state)
+    return state
+  }
+
+  // Evict least-recently-used states beyond the cap, never the active note.
+  // If the only candidates would include the active path, skip eviction.
+  _evictNoteEditorStates() {
+    if (!this._noteEditorStates) return
+
+    while (this._noteEditorStates.size > MAX_NOTE_EDITOR_STATES) {
+      const lruPath = Array.from(this._noteEditorStates.keys())
+        .find((cachedPath) => cachedPath !== this._activeHistoryPath)
+
+      if (!lruPath) break
+      this._noteEditorStates.delete(lruPath)
     }
   }
 

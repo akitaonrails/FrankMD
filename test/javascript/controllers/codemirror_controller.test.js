@@ -202,6 +202,70 @@ describe("CodemirrorController", () => {
     })
   })
 
+  describe("note editor state cache LRU cap (#192)", () => {
+    it("evicts the least-recently-used state beyond 20 cached notes", () => {
+      for (let i = 1; i <= 22; i++) {
+        controller.loadContent(`note ${i} content`, `note-${i}.md`)
+      }
+
+      // Visiting note 22 caches notes 1..21 (21 entries), so the oldest
+      // cached note (note 1) is evicted back down to the 20 cap
+      expect(controller._noteEditorStates.size).toBe(20)
+      expect(controller._noteEditorStates.has("note-1.md")).toBe(false)
+      expect(controller._noteEditorStates.has("note-2.md")).toBe(true)
+      expect(controller._noteEditorStates.has("note-21.md")).toBe(true)
+    })
+
+    it("never evicts the active note's cached state", () => {
+      controller.loadContent("active baseline", "note-0.md")
+
+      // Fill the cache up to (but not beyond) the cap: note-0 stays cached
+      for (let i = 1; i <= 20; i++) {
+        controller.loadContent(`note ${i} content`, `note-${i}.md`)
+      }
+      expect(controller._noteEditorStates.size).toBe(20)
+      expect(controller._noteEditorStates.has("note-0.md")).toBe(true)
+
+      // Make note-0 the least-recently-used entry AND the active note
+      controller._activeHistoryPath = "note-0.md"
+      const activeState = controller._noteEditorStates.get("note-0.md")
+      controller._noteEditorStates.delete("note-0.md")
+      controller._noteEditorStates.set("note-0.md", activeState)
+
+      // Overflow the cache by one entry
+      controller._cacheNoteEditorState("note-20.md", controller.editor.state)
+      expect(controller._noteEditorStates.size).toBe(21)
+
+      controller._evictNoteEditorStates()
+
+      expect(controller._noteEditorStates.size).toBe(20)
+      expect(controller._noteEditorStates.has("note-0.md")).toBe(true)
+      expect(controller._noteEditorStates.has("note-1.md")).toBe(false)
+    })
+
+    it("keeps states for recently re-visited notes", () => {
+      for (let i = 1; i <= 22; i++) {
+        controller.loadContent(`note ${i} content`, `note-${i}.md`)
+      }
+      // Map is now {note-2..note-21}; note-2 is the least recently used
+
+      // Re-visiting note 3 refreshes its recency and restores its state
+      const replaceSpy = vi.spyOn(controller, "replaceContentWithoutHistory")
+      controller.loadContent("note 3 content", "note-3.md")
+      expect(replaceSpy).not.toHaveBeenCalled()
+      replaceSpy.mockRestore()
+
+      // Two more note switches overflow the cache again: note-2 (stale) is
+      // evicted while the recently re-visited note-3 survives
+      controller.loadContent("note 23 content", "note-23.md")
+      controller.loadContent("note 24 content", "note-24.md")
+
+      expect(controller._noteEditorStates.size).toBe(20)
+      expect(controller._noteEditorStates.has("note-2.md")).toBe(false)
+      expect(controller._noteEditorStates.has("note-3.md")).toBe(true)
+    })
+  })
+
   describe("undo at the history boundary", () => {
     function pressUndo(view) {
       const event = new KeyboardEvent("keydown", {
