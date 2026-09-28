@@ -1183,7 +1183,7 @@ export default class extends Controller {
     const editorPanel = root?.querySelector('[data-app-target~="editorPanel"]')
     const previewPanel = root?.querySelector('[data-app-target~="previewPanel"]')
     const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
-    const toggle = root?.querySelector('[data-app-target~="libraryToggle"]')
+    const toggles = root?.querySelectorAll('[data-app-target~="libraryToggle"]')
     if (!libraryPanel) return false
 
     if (!this.libraryVisible) {
@@ -1201,7 +1201,7 @@ export default class extends Controller {
     this.libraryVisible = true
     editorPanel?.classList.add("hidden")
     libraryPanel.classList.remove("hidden")
-    toggle?.setAttribute("aria-pressed", "true")
+    toggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "true"))
     return true
   }
 
@@ -1211,7 +1211,7 @@ export default class extends Controller {
     const editorPanel = root?.querySelector('[data-app-target~="editorPanel"]')
     const previewPanel = root?.querySelector('[data-app-target~="previewPanel"]')
     const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
-    const toggle = root?.querySelector('[data-app-target~="libraryToggle"]')
+    const toggles = root?.querySelectorAll('[data-app-target~="libraryToggle"]')
 
     this.libraryVisible = false
     libraryPanel?.classList.add("hidden")
@@ -1230,7 +1230,7 @@ export default class extends Controller {
       }
       this._libraryPreviewWasVisible = null
     }
-    toggle?.setAttribute("aria-pressed", "false")
+    toggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "false"))
     return true
   }
 

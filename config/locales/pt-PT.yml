@@ -62,6 +62,7 @@ pt-PT:
   # Biblioteca de multimédia local
   library:
     title: "Biblioteca de multimédia"
+    back_to_editor: "Voltar ao editor"
     description: "Consulte e pré-visualize imagens e vídeos guardados com as suas notas."
     categories: "Categorias de multimédia"
     images: "Imagens"
