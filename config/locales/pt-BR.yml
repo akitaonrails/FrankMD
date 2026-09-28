@@ -63,7 +63,6 @@ pt-BR:
   # Biblioteca de mídia local
   library:
     title: "Biblioteca de mídia"
-    back_to_editor: "Voltar ao editor"
     description: "Navegue e visualize imagens e vídeos salvos com suas notas."
     categories: "Categorias de mídia"
     images: "Imagens"

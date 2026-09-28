@@ -63,7 +63,6 @@ en:
   # Managed local media workspace
   library:
     title: "Media Library"
-    back_to_editor: "Back to editor"
     description: "Browse and preview images and videos stored with your notes."
     categories: "Media categories"
     images: "Images"

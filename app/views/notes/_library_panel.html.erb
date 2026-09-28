@@ -13,12 +13,13 @@
       <button
         type="button"
         data-action="click->app#showEditorWorkspace"
-        class="flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-hover)]"
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--theme-border)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-hover)]"
+        aria-label="<%= t('common.close') %>"
+        title="<%= t('common.close') %>"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="m15 18-6-6 6-6M9 12h12" />
+          <path d="M18 6 6 18M6 6l12 12" />
         </svg>
-        <%= t('library.back_to_editor') %>
       </button>
     </div>
 
