@@ -19,6 +19,19 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select "div[data-controller~='app']"
   end
 
+  test "index renders the Library action and image and video workspace tabs" do
+    get root_url
+    assert_response :success
+
+    assert_select "button[data-app-target='libraryToggle'][aria-pressed='false']"
+    assert_select "aside[data-app-target='sidebar']"
+    assert_select "section[data-app-target='libraryPanel'][data-controller='library']" do
+      assert_select "button[data-library-target='imagesTab'][aria-pressed='true']"
+      assert_select "button[data-library-target='videosTab'][aria-pressed='false']"
+      assert_select "div[data-library-target='grid']"
+    end
+  end
+
   test "image picker has an inline alert target for folder browsing errors" do
     get root_url
     assert_response :success

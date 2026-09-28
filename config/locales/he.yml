@@ -56,6 +56,15 @@ he:
     size: "גודל"
     read_time: "קריאה"
 
+  # תוויות שימוש בספריית המדיה
+  library:
+    usage_checking: "בודק שימוש..."
+    usage_used: "מופיע ב־%{count} פתקים"
+    usage_unknown: "השימוש אינו ידוע"
+    usage_dialog_title: "פתקים קשורים"
+    usage_dialog_empty: "לא נמצאו פתקים תואמים."
+    usage_open_note: "פתיחת הפתק %{path}"
+
   # אזור העורך
   editor:
     select_note: "בחר או צור הערה"

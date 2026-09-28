@@ -112,6 +112,7 @@
       <span class="toolbar-label"><%= t('editor.toolbar.help') %></span>
     </button>
     <div class="h-5 w-px bg-[var(--theme-border)] mx-1 shrink-0"></div>
+    <%= render "notes/library_button" %>
     <span class="text-xs text-[var(--theme-text-faint)] hidden ml-auto min-w-0 max-w-56 truncate whitespace-nowrap overflow-hidden text-ellipsis text-right" data-app-target="tableHint">
       <%= t('editor.cursor_in_table') %>
     </span>
@@ -126,6 +127,9 @@
         </svg>
         <p class="text-sm"><%= t('editor.select_note_description') %></p>
         <p class="text-xs mt-1"><%= t('editor.select_note_hint') %></p>
+        <div class="mt-4">
+          <%= render "notes/library_button" %>
+        </div>
       </div>
     </div>
     <div class="h-full hidden relative" data-app-target="editor"

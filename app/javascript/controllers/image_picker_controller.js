@@ -290,7 +290,7 @@ export default class extends Controller {
       }
 
       this.hideLoading()
-      this.dispatch("image-selected", { detail: { markdown } })
+      this.dispatch("image-selected", { detail: { markdown, imageUrl, altText, linkUrl } })
       this.close()
     } catch (error) {
       console.error("Error inserting image:", error)

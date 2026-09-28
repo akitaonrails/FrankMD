@@ -34,6 +34,51 @@ function remapScopedPath(candidatePath, oldPath, newPath, type) {
     : candidatePath
 }
 
+function relativeMediaPath(notePath, mediaPath) {
+  if (typeof notePath !== "string" || typeof mediaPath !== "string") return null
+  const noteSegments = notePath.split("/")
+  const mediaSegments = mediaPath.split("/")
+  if (noteSegments.some((segment) => !segment || segment === "." || segment === ".." || segment.includes("\\"))) return null
+  if (mediaSegments.length < 2 || mediaSegments.some((segment) => !segment || segment === "." || segment === ".." || segment.includes("\\"))) return null
+  if (mediaSegments[0] !== "images" && mediaSegments[0] !== "videos") return null
+
+  const parentSegments = noteSegments.slice(0, -1)
+  let sharedSegments = 0
+  while (sharedSegments < parentSegments.length &&
+    sharedSegments < mediaSegments.length &&
+    parentSegments[sharedSegments] === mediaSegments[sharedSegments]) {
+    sharedSegments += 1
+  }
+
+  return [
+    ...Array(parentSegments.length - sharedSegments).fill(".."),
+    ...mediaSegments.slice(sharedSegments)
+  ].join("/")
+}
+
+function encodeRelativeMediaPath(path) {
+  return path.split("/").map((segment) => encodeURIComponent(segment)
+    .replace(/[!'()*]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)
+  ).join("/")
+}
+
+function escapeMarkdownAlt(value) {
+  const specialCharacters = new Set(["\\", "[", "]"])
+  return String(value).replace(/[\r\n]+/g, " ").split("").map((character) =>
+    specialCharacters.has(character) ? `\\${character}` : character
+  ).join("")
+}
+
+const VIDEO_MIME_TYPES = {
+  avi: "video/x-msvideo",
+  m4v: "video/x-m4v",
+  mkv: "video/x-matroska",
+  mov: "video/quicktime",
+  mp4: "video/mp4",
+  ogv: "video/ogg",
+  webm: "video/webm"
+}
+
 export default class extends Controller {
   static targets = [
     "fileTree",
@@ -198,6 +243,9 @@ export default class extends Controller {
     if (this.boundKeydownHandler) {
       document.removeEventListener("keydown", this.boundKeydownHandler)
     }
+    if (this.boundLibraryEscapeHandler) {
+      document.removeEventListener("keydown", this.boundLibraryEscapeHandler, true)
+    }
     if (this.boundRootRedoHandler) {
       document.removeEventListener("keydown", this.boundRootRedoHandler)
     }
@@ -339,6 +387,7 @@ export default class extends Controller {
     if (!this.prepareEditorTransition(generation)) return false
     if (!this.isCurrentNavigation(generation)) return false
 
+    this.showEditorWorkspace()
     this.currentFile = path
     const fileType = this.getFileType(path)
     const displayPath = fileType === "markdown" ? path.replace(/\.md$/, "") : path
@@ -355,6 +404,7 @@ export default class extends Controller {
     if (!this.prepareEditorTransition(generation)) return false
     if (!this.isCurrentNavigation(generation)) return false
 
+    this.showEditorWorkspace()
     this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
@@ -371,6 +421,7 @@ export default class extends Controller {
     if (!this.prepareEditorTransition(generation)) return false
     if (!this.isCurrentNavigation(generation)) return false
 
+    this.showEditorWorkspace()
     this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
@@ -744,6 +795,8 @@ export default class extends Controller {
 
   // === Preview Panel - Delegates to preview_controller ===
   togglePreview() {
+    if (this.libraryVisible) return false
+
     // Only allow preview for markdown files
     if (!this.isMarkdownFile()) {
       this.showTemporaryMessage("Preview is only available for markdown files")
@@ -887,8 +940,21 @@ export default class extends Controller {
       return
     }
 
-    const { markdown } = event.detail
+    const { imageUrl, altText, linkUrl } = event.detail
+    let { markdown } = event.detail
     if (!markdown) return
+
+    // Local uploads are saved under NOTES_PATH/images, so make their Markdown
+    // path relative to the open note just like media inserted from the Library.
+    if (typeof imageUrl === "string" && imageUrl.startsWith("images/")) {
+      const relativePath = relativeMediaPath(this.currentFile, imageUrl)
+      if (relativePath) {
+        const encodedPath = encodeRelativeMediaPath(relativePath)
+        const safeAltText = escapeMarkdownAlt(altText || "Image")
+        markdown = `![${safeAltText}](${encodedPath})`
+        if (linkUrl) markdown = `[${markdown}](${linkUrl})`
+      }
+    }
 
     const codemirrorController = this.getCodemirrorController()
     if (!codemirrorController) return
@@ -1117,6 +1183,130 @@ export default class extends Controller {
     }
   }
 
+  // === Library Workspace ===
+  toggleLibrary() {
+    if (this.libraryVisible) {
+      this.showEditorWorkspace()
+      return false
+    }
+
+    this.showLibraryWorkspace()
+    return true
+  }
+
+  showLibraryWorkspace() {
+    const root = this.context?.element
+    const editorPanel = root?.querySelector('[data-app-target~="editorPanel"]')
+    const previewPanel = root?.querySelector('[data-app-target~="previewPanel"]')
+    const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
+    const toggles = root?.querySelectorAll('[data-app-target~="libraryToggle"]')
+    if (!libraryPanel) return false
+
+    const openingLibrary = !this.libraryVisible
+    if (openingLibrary) {
+      const previewController = this.getPreviewController()
+      this._libraryPreviewWasVisible = previewController
+        ? previewController.isVisible
+        : Boolean(previewPanel && !previewPanel.classList.contains("hidden"))
+      if (this._libraryPreviewWasVisible && previewController) {
+        previewController.hide()
+      } else {
+        previewPanel?.classList.add("hidden")
+        previewPanel?.classList.remove("flex")
+      }
+    }
+    this.libraryVisible = true
+    editorPanel?.classList.add("hidden")
+    libraryPanel.classList.remove("hidden")
+    toggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "true"))
+    if (openingLibrary) {
+      const libraryController = this.application?.getControllerForElementAndIdentifier(libraryPanel, "library")
+      libraryController?.resetUsageForLibraryOpen()
+      libraryController?.load()
+    }
+    return true
+  }
+
+  showEditorWorkspace() {
+    const wasInLibrary = Boolean(this.libraryVisible)
+    const root = this.context?.element
+    const editorPanel = root?.querySelector('[data-app-target~="editorPanel"]')
+    const previewPanel = root?.querySelector('[data-app-target~="previewPanel"]')
+    const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
+    const toggles = root?.querySelectorAll('[data-app-target~="libraryToggle"]')
+
+    this.libraryVisible = false
+    libraryPanel?.classList.add("hidden")
+    editorPanel?.classList.remove("hidden")
+    if (wasInLibrary && previewPanel) {
+      const previewController = this.getPreviewController()
+      if (this._libraryPreviewWasVisible) {
+        if (previewController) previewController.show()
+        else {
+          previewPanel.classList.remove("hidden")
+          previewPanel.classList.add("flex")
+        }
+      } else {
+        previewPanel.classList.add("hidden")
+        previewPanel.classList.remove("flex")
+      }
+      this._libraryPreviewWasVisible = null
+    }
+    toggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "false"))
+    return true
+  }
+
+  insertLibraryMedia(event) {
+    const { item } = event.detail || {}
+    const reject = (status, messageKey) => {
+      event.detail.status = status
+      appAlert(window.t(messageKey))
+      return false
+    }
+
+    if (!this.currentFile) return reject("no_open_note", "library.no_open_note")
+    if (!this.isMarkdownFile()) return reject("markdown_note_required", "library.markdown_note_required")
+    if (!this.isValidLibraryMediaItem(item)) return reject("invalid_media", "library.insertion_failed")
+
+    const codemirror = this.getCodemirrorController()
+    if (!codemirror) return reject("editor_unavailable", "library.insertion_failed")
+
+    const relativePath = relativeMediaPath(this.currentFile, item.path)
+    if (!relativePath) return reject("invalid_media", "library.insertion_failed")
+    const encodedPath = encodeRelativeMediaPath(relativePath)
+
+    try {
+      if (item.type === "image") {
+        const markdown = `![${escapeMarkdownAlt(item.name)}](${encodedPath})`
+        insertImage(codemirror, markdown)
+      } else {
+        const extension = item.path.split("/").pop().split(".").pop().toLowerCase()
+        const mimeType = VIDEO_MIME_TYPES[extension]
+        const typeAttribute = mimeType ? ` type="${mimeType}"` : ""
+        const embed = `<video controls class="video-player">\n  <source src="${encodedPath}"${typeAttribute}>\n</video>`
+        insertVideoEmbed(codemirror, embed)
+      }
+
+      this.onEditorChange({ detail: { docChanged: true } })
+      this.showEditorWorkspace()
+      codemirror.focus()
+      event.detail.status = "inserted"
+      return true
+    } catch (error) {
+      console.error("Failed to insert Library media:", error)
+      return reject("failed", "library.insertion_failed")
+    }
+  }
+
+  isValidLibraryMediaItem(item) {
+    if (!item || typeof item.name !== "string" || typeof item.path !== "string") return false
+    if (item.type !== "image" && item.type !== "video") return false
+    const segments = item.path.split("/")
+    const expectedRoot = item.type === "image" ? "images" : "videos"
+    return segments[0] === expectedRoot && segments.length > 1 &&
+      segments.every((segment) => segment && segment !== "." && segment !== ".." && !segment.includes("\\"))
+  }
+
   // === Typewriter Mode - Delegates to typewriter_controller ===
 
   initializeTypewriterMode() {
@@ -1230,6 +1420,14 @@ export default class extends Controller {
   onFileSelected(event) {
     const { path } = event.detail
     this.openFileAndRevealInTree(path)
+  }
+
+  openLibraryNote(event) {
+    const path = event.detail?.path
+    if (typeof path !== "string" || path.startsWith("/") || !path.endsWith(".md")) return
+    if (path.split("/").some((segment) => !segment || segment === "." || segment === ".." || segment.includes("\\"))) return
+
+    return this.openFileAndRevealInTree(path)
   }
 
   async openFileAndRevealInTree(path) {
@@ -2097,9 +2295,44 @@ export default class extends Controller {
   setupKeyboardShortcuts() {
     // Merge default shortcuts with user customizations (future: load from config)
     const shortcuts = mergeShortcuts(DEFAULT_SHORTCUTS, this.userShortcuts)
+    this._libraryDeferredEscapeEvents = new WeakSet()
 
-    this.boundKeydownHandler = createKeyHandler(shortcuts, (action) => {
-      this.executeShortcutAction(action)
+    this.boundLibraryEscapeHandler = (event) => {
+      if (event.key !== "Escape" || !this.libraryVisible) return
+      if (document.querySelector("dialog[open]")) {
+        this._libraryDeferredEscapeEvents.add(event)
+        return
+      }
+
+      const root = this.context?.element
+      const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
+      const libraryController = libraryPanel && this.application.getControllerForElementAndIdentifier(libraryPanel, "library")
+
+      const otherDialog = Array.from(document.querySelectorAll('[role="dialog"], [role="alertdialog"]'))
+        .find((dialog) => dialog !== libraryController?.previewDialogTarget &&
+          (dialog.localName === "dialog" ? dialog.open : !dialog.classList.contains("hidden")))
+      if (otherDialog) {
+        this._libraryDeferredEscapeEvents.add(event)
+        return
+      }
+
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      if (libraryController?.hasPreviewDialogTarget && !libraryController.previewDialogTarget.classList.contains("hidden")) {
+        libraryController.closePreview()
+        return
+      }
+      if (this.hasContextMenuTarget && !this.contextMenuTarget.classList.contains("hidden")) {
+        this.contextMenuTarget.classList.add("hidden")
+        return
+      }
+      if (libraryController) libraryController.closeLibrary()
+      else this.showEditorWorkspace()
+    }
+    document.addEventListener("keydown", this.boundLibraryEscapeHandler, true)
+
+    this.boundKeydownHandler = createKeyHandler(shortcuts, (action, event) => {
+      this.executeShortcutAction(action, event)
     })
 
     document.addEventListener("keydown", this.boundKeydownHandler)
@@ -2108,7 +2341,7 @@ export default class extends Controller {
   }
 
   // Execute an action triggered by a keyboard shortcut
-  executeShortcutAction(action) {
+  executeShortcutAction(action, event) {
     const actions = {
       newNote: () => this.getFileOperationsController()?.newNote(),
       save: () => this.getAutosaveController()?.saveNow(),
@@ -2129,7 +2362,7 @@ export default class extends Controller {
       decreaseWidth: () => this.decreaseEditorWidth(),
       logViewer: () => this.openLogViewer(),
       help: () => this.openHelp(),
-      closeDialogs: () => this.closeAllDialogs()
+      closeDialogs: () => this.closeActiveWorkspaceOrDialogs(event)
     }
 
     const handler = actions[action]
@@ -2138,7 +2371,25 @@ export default class extends Controller {
     }
   }
 
-  // Close all open dialogs and menus
+  // Route Escape to the active workspace or open dialog.
+  closeActiveWorkspaceOrDialogs(event) {
+    if (event && this._libraryDeferredEscapeEvents.has(event)) return
+    if (event && document.querySelector("dialog[open]")) return
+
+    if (!this.libraryVisible) {
+      this.closeAllDialogs()
+      return
+    }
+
+    const root = this.context?.element
+    const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
+    const libraryController = libraryPanel && this.application.getControllerForElementAndIdentifier(libraryPanel, "library")
+
+    if (libraryController) libraryController.closeLibrary()
+    else this.showEditorWorkspace()
+  }
+
+  // Close all open dialogs and menus.
   closeAllDialogs() {
     // Close context menu
     if (this.hasContextMenuTarget) {

@@ -41,6 +41,8 @@ en:
     change_language: "Change Language"
     about_app: "About FrankMD"
     click_to_copy_path: "Click to copy path"
+    library: "Library"
+    open_library: "Open media Library"
 
   # Sidebar/Explorer section
   sidebar:
@@ -57,6 +59,38 @@ en:
     size: "Size"
     read_time: "Read time"
     line: "Line"
+
+  # Managed local media workspace
+  library:
+    title: "Media Library"
+    description: "Browse and preview images and videos stored with your notes."
+    categories: "Media categories"
+    images: "Images"
+    videos: "Videos"
+    loading: "Loading media..."
+    empty: "No media found."
+    load_failed: "Failed to load the media Library."
+    item_count: "%{count} items"
+    preview_item: "Preview %{name}"
+    insert: "Insert"
+    copy_path: "Copy relative path"
+    delete: "Delete"
+    copied: "Relative path copied."
+    copy_failed: "Could not copy the relative path."
+    delete_confirm: "Delete %{name}? Existing note references will stop working."
+    delete_failed: "Could not delete this media file."
+    media_not_found: "Media file not found."
+    usage_scan_failed: "Could not scan notes for media usage."
+    usage_checking: "Checking usage..."
+    usage_used: "Used in %{count} notes"
+    usage_unknown: "Usage unknown"
+    usage_dialog_title: "Notes associated"
+    usage_dialog_empty: "No matching notes were found."
+    usage_open_note: "Open note %{path}"
+    deleted: "Media file deleted."
+    no_open_note: "Open a Markdown note before inserting media."
+    markdown_note_required: "Media can only be inserted into an open Markdown note."
+    insertion_failed: "Could not insert media into the note."
 
   # Editor section
   editor:
