@@ -150,6 +150,7 @@ export default class extends Controller {
   }
 
   insertItemFor(item, event) {
+    if (event?.currentTarget && event.currentTarget.tagName !== "BUTTON") return
     event?.stopPropagation?.()
     if (!item) return
 
@@ -193,6 +194,7 @@ export default class extends Controller {
   }
 
   async deleteItemFor(item, event) {
+    if (event?.currentTarget && event.currentTarget.tagName !== "BUTTON") return
     event?.stopPropagation?.()
     if (!item) return
 
@@ -228,6 +230,12 @@ export default class extends Controller {
 
   closePreviewOnBackdrop(event) {
     if (event.target === this.previewDialogTarget) this.closePreview()
+  }
+
+  closeLibrary() {
+    if (this.element.classList.contains("hidden")) return
+    if (!this.previewDialogTarget.classList.contains("hidden")) this.closePreview()
+    this.dispatch("close")
   }
 
   itemForPath(path) {

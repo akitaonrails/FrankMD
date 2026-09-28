@@ -243,6 +243,9 @@ export default class extends Controller {
     if (this.boundKeydownHandler) {
       document.removeEventListener("keydown", this.boundKeydownHandler)
     }
+    if (this.boundLibraryEscapeHandler) {
+      document.removeEventListener("keydown", this.boundLibraryEscapeHandler, true)
+    }
     if (this.boundRootRedoHandler) {
       document.removeEventListener("keydown", this.boundRootRedoHandler)
     }
@@ -2265,9 +2268,44 @@ export default class extends Controller {
   setupKeyboardShortcuts() {
     // Merge default shortcuts with user customizations (future: load from config)
     const shortcuts = mergeShortcuts(DEFAULT_SHORTCUTS, this.userShortcuts)
+    this._libraryDeferredEscapeEvents = new WeakSet()
 
-    this.boundKeydownHandler = createKeyHandler(shortcuts, (action) => {
-      this.executeShortcutAction(action)
+    this.boundLibraryEscapeHandler = (event) => {
+      if (event.key !== "Escape" || !this.libraryVisible) return
+      if (document.querySelector("dialog[open]")) {
+        this._libraryDeferredEscapeEvents.add(event)
+        return
+      }
+
+      const root = this.context?.element
+      const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
+      const libraryController = libraryPanel && this.application.getControllerForElementAndIdentifier(libraryPanel, "library")
+
+      const otherDialog = Array.from(document.querySelectorAll('[role="dialog"], [role="alertdialog"]'))
+        .find((dialog) => dialog !== libraryController?.previewDialogTarget &&
+          (dialog.localName === "dialog" ? dialog.open : !dialog.classList.contains("hidden")))
+      if (otherDialog) {
+        this._libraryDeferredEscapeEvents.add(event)
+        return
+      }
+
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      if (libraryController?.hasPreviewDialogTarget && !libraryController.previewDialogTarget.classList.contains("hidden")) {
+        libraryController.closePreview()
+        return
+      }
+      if (this.hasContextMenuTarget && !this.contextMenuTarget.classList.contains("hidden")) {
+        this.contextMenuTarget.classList.add("hidden")
+        return
+      }
+      if (libraryController) libraryController.closeLibrary()
+      else this.showEditorWorkspace()
+    }
+    document.addEventListener("keydown", this.boundLibraryEscapeHandler, true)
+
+    this.boundKeydownHandler = createKeyHandler(shortcuts, (action, event) => {
+      this.executeShortcutAction(action, event)
     })
 
     document.addEventListener("keydown", this.boundKeydownHandler)
@@ -2276,7 +2314,7 @@ export default class extends Controller {
   }
 
   // Execute an action triggered by a keyboard shortcut
-  executeShortcutAction(action) {
+  executeShortcutAction(action, event) {
     const actions = {
       newNote: () => this.getFileOperationsController()?.newNote(),
       save: () => this.getAutosaveController()?.saveNow(),
@@ -2297,7 +2335,7 @@ export default class extends Controller {
       decreaseWidth: () => this.decreaseEditorWidth(),
       logViewer: () => this.openLogViewer(),
       help: () => this.openHelp(),
-      closeDialogs: () => this.closeAllDialogs()
+      closeDialogs: () => this.closeActiveWorkspaceOrDialogs(event)
     }
 
     const handler = actions[action]
@@ -2306,7 +2344,25 @@ export default class extends Controller {
     }
   }
 
-  // Close all open dialogs and menus
+  // Route Escape to the active workspace or open dialog.
+  closeActiveWorkspaceOrDialogs(event) {
+    if (event && this._libraryDeferredEscapeEvents.has(event)) return
+    if (event && document.querySelector("dialog[open]")) return
+
+    if (!this.libraryVisible) {
+      this.closeAllDialogs()
+      return
+    }
+
+    const root = this.context?.element
+    const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
+    const libraryController = libraryPanel && this.application.getControllerForElementAndIdentifier(libraryPanel, "library")
+
+    if (libraryController) libraryController.closeLibrary()
+    else this.showEditorWorkspace()
+  }
+
+  // Close all open dialogs and menus.
   closeAllDialogs() {
     // Close context menu
     if (this.hasContextMenuTarget) {
