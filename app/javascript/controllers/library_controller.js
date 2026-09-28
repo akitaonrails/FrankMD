@@ -114,7 +114,6 @@ export default class extends Controller {
           <p class="mt-1 text-xs text-[var(--theme-text-muted)]">${size} <span aria-hidden="true">·</span> ${date}</p>
           <div class="mt-2 flex flex-wrap gap-1.5">
             <button type="button" data-path="${path}" data-action="click->library#insertItem" class="rounded px-2 py-1 text-xs text-[var(--theme-accent)] hover:bg-[var(--theme-bg-hover)]">${escapeHtml(window.t("library.insert"))}</button>
-            <button type="button" data-path="${path}" data-action="click->library#copyRelativePath" class="rounded px-2 py-1 text-xs text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-hover)]" aria-label="${escapeHtml(window.t("library.copy_path"))}">${escapeHtml(window.t("library.copy_path"))}</button>
             <button type="button" data-path="${path}" data-action="click->library#deleteItem" class="rounded px-2 py-1 text-xs text-[var(--theme-error)] hover:bg-[var(--theme-bg-hover)]">${escapeHtml(window.t("library.delete"))}</button>
           </div>
         </div>
