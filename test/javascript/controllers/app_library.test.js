@@ -19,7 +19,7 @@ function makeWorkspaceApp() {
   `
   const app = Object.create(AppController.prototype)
   const libraryPanel = element.querySelector('[data-app-target="libraryPanel"]')
-  const libraryController = { resetUsageForLibraryOpen: vi.fn() }
+  const libraryController = { resetUsageForLibraryOpen: vi.fn(), load: vi.fn() }
   const application = {
     getControllerForElementAndIdentifier: vi.fn((candidate, identifier) =>
       candidate === libraryPanel && identifier === "library" ? libraryController : null
@@ -88,13 +88,14 @@ describe("AppController Library workspace", () => {
     expect(element.querySelector('[data-app-target="libraryToggle"]').getAttribute("aria-pressed")).toBe("false")
   })
 
-  it("resets media usage once each time Library opens", () => {
+  it("refreshes media and usage once each time Library opens", () => {
     const { app, element, application, libraryController } = makeWorkspaceApp()
     const library = element.querySelector('[data-app-target="libraryPanel"]')
 
     app.showLibraryWorkspace()
     app.showLibraryWorkspace()
     expect(libraryController.resetUsageForLibraryOpen).toHaveBeenCalledOnce()
+    expect(libraryController.load).toHaveBeenCalledOnce()
 
     app.showEditorWorkspace()
     app.showLibraryWorkspace()
@@ -102,6 +103,34 @@ describe("AppController Library workspace", () => {
     expect(application.getControllerForElementAndIdentifier)
       .toHaveBeenCalledWith(library, "library")
     expect(libraryController.resetUsageForLibraryOpen).toHaveBeenCalledTimes(2)
+    expect(libraryController.load).toHaveBeenCalledTimes(2)
+  })
+
+  it("inserts uploaded root images with a path relative to the current note", () => {
+    const { app } = makeWorkspaceApp()
+    const codemirror = {
+      getValue: () => "",
+      getSelection: () => ({ from: 0, to: 0 }),
+      getCursorPosition: () => ({ offset: 0 }),
+      insertAt: vi.fn(),
+      replaceRange: vi.fn(),
+      setSelection: vi.fn(),
+      focus: vi.fn()
+    }
+    app.currentFile = "my-posts/note.md"
+    app.currentFileType = "markdown"
+    app.getCodemirrorController = vi.fn(() => codemirror)
+    app.getPendingSlashInsertionRange = vi.fn(() => null)
+    app.isMarkdownFile = vi.fn(() => true)
+
+    app.onImageSelected({ detail: {
+      markdown: "![photo](images/photo.png)",
+      imageUrl: "images/photo.png",
+      altText: "photo",
+      linkUrl: ""
+    } })
+
+    expect(codemirror.replaceRange).toHaveBeenCalledWith("![photo](../images/photo.png)", 0, 0)
   })
 
   it("hides and restores a visible preview through its controller", () => {

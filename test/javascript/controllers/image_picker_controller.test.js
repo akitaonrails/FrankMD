@@ -24,6 +24,8 @@ describe("ImagePickerController#openWithFile", () => {
           <span data-image-picker-target="loadingText"></span>
         </div>
         <p data-image-picker-target="error" class="hidden"></p>
+        <input data-image-picker-target="alt" value="photo">
+        <input data-image-picker-target="link" value="">
         <button data-image-picker-target="insertBtn"></button>
       </div>
     `
@@ -97,5 +99,28 @@ describe("ImagePickerController#openWithFile", () => {
     expect(controller.errorTarget.textContent).toBe("dialogs.image_picker.insert_failed")
     expect(controller.errorTarget.classList.contains("hidden")).toBe(false)
     expect(global.alert).not.toHaveBeenCalled()
+  })
+
+  it("includes the uploaded image URL and Markdown options in its selection event", async () => {
+    controller.selectedSource = "drop-images"
+    controller.selectedImageData = { name: "photo.png" }
+    controller.getSourceController = vi.fn(() => ({
+      getImageUrl: vi.fn().mockResolvedValue("images/photo.png")
+    }))
+    controller.showLoading = vi.fn()
+    controller.hideLoading = vi.fn()
+    controller.close = vi.fn()
+    const dispatch = vi.spyOn(controller, "dispatch")
+
+    await controller.insertImage()
+
+    expect(dispatch).toHaveBeenCalledWith("image-selected", {
+      detail: {
+        markdown: "![photo](images/photo.png)",
+        imageUrl: "images/photo.png",
+        altText: "photo",
+        linkUrl: ""
+      }
+    })
   })
 })

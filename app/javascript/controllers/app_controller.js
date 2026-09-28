@@ -940,8 +940,21 @@ export default class extends Controller {
       return
     }
 
-    const { markdown } = event.detail
+    const { imageUrl, altText, linkUrl } = event.detail
+    let { markdown } = event.detail
     if (!markdown) return
+
+    // Local uploads are saved under NOTES_PATH/images, so make their Markdown
+    // path relative to the open note just like media inserted from the Library.
+    if (typeof imageUrl === "string" && imageUrl.startsWith("images/")) {
+      const relativePath = relativeMediaPath(this.currentFile, imageUrl)
+      if (relativePath) {
+        const encodedPath = encodeRelativeMediaPath(relativePath)
+        const safeAltText = escapeMarkdownAlt(altText || "Image")
+        markdown = `![${safeAltText}](${encodedPath})`
+        if (linkUrl) markdown = `[${markdown}](${linkUrl})`
+      }
+    }
 
     const codemirrorController = this.getCodemirrorController()
     if (!codemirrorController) return
@@ -1209,6 +1222,7 @@ export default class extends Controller {
     if (openingLibrary) {
       const libraryController = this.application?.getControllerForElementAndIdentifier(libraryPanel, "library")
       libraryController?.resetUsageForLibraryOpen()
+      libraryController?.load()
     }
     return true
   }
