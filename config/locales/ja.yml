@@ -40,6 +40,8 @@ ja:
     change_language: "言語変更"
     about_app: "FrankMDについて"
     click_to_copy_path: "クリックでパスをコピー"
+    library: "ライブラリ"
+    open_library: "メディアライブラリを開く"
 
   # Sidebar/Explorer section
   sidebar:
@@ -59,12 +61,35 @@ ja:
 
   # Media Library usage labels
   library:
+    title: "メディアライブラリ"
+    description: "ノートと一緒に保存されている画像や動画を閲覧・プレビューします。"
+    categories: "メディアカテゴリ"
+    images: "画像"
+    videos: "動画"
+    loading: "メディアを読み込み中..."
+    empty: "メディアが見つかりません。"
+    load_failed: "メディアライブラリを読み込めませんでした。"
+    item_count: "%{count} 件"
+    preview_item: "%{name} をプレビュー"
+    insert: "挿入"
+    copy_path: "相対パスをコピー"
+    delete: "削除"
+    copied: "相対パスをコピーしました。"
+    copy_failed: "相対パスをコピーできませんでした。"
+    delete_confirm: "%{name} を削除しますか？既存のノートの参照は機能しなくなります。"
+    delete_failed: "このメディアファイルを削除できませんでした。"
+    media_not_found: "メディアファイルが見つかりません。"
+    usage_scan_failed: "ノートからメディアの使用状況を確認できませんでした。"
     usage_checking: "使用状況を確認中..."
     usage_used: "%{count} 件のノートで使用中"
     usage_unknown: "使用状況は不明です"
     usage_dialog_title: "関連ノート"
     usage_dialog_empty: "該当するノートは見つかりませんでした。"
     usage_open_note: "ノート %{path} を開く"
+    deleted: "メディアファイルを削除しました。"
+    no_open_note: "メディアを挿入する前に Markdown ノートを開いてください。"
+    markdown_note_required: "メディアは開いている Markdown ノートにのみ挿入できます。"
+    insertion_failed: "メディアをノートに挿入できませんでした。"
 
   # Editor section
   editor:

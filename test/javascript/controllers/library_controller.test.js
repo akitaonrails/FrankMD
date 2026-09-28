@@ -107,8 +107,9 @@ describe("LibraryController", () => {
     application.register("library", LibraryController)
     await vi.waitFor(() => {
       controller = application.getControllerForElementAndIdentifier(element, "library")
-      expect(controller?.gridTarget.innerHTML).toContain("photo one.png")
+      expect(controller).toBeTruthy()
     })
+    await controller.load()
   })
 
   afterEach(() => {
@@ -117,6 +118,12 @@ describe("LibraryController", () => {
     delete window.t
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
+  })
+
+  it("does not fetch the Library on connect; the app loads it when the workspace opens", () => {
+    // Exactly one /library request: the explicit load() above. A connect-time
+    // fetch would waste a request per boot while the panel is hidden.
+    expect(get.mock.calls.filter(([path]) => path === "/library")).toHaveLength(1)
   })
 
   it("fetches the Library endpoint and renders image and video cards", () => {
@@ -281,6 +288,7 @@ describe("LibraryController", () => {
     expect(videoCard.dataset.path).toBe(clip.path)
     controller.openPreview({ currentTarget: videoCard })
     expect(controller.previewMediaTarget.querySelector("video").getAttribute("src")).toBe("/notes/videos/clip.mp4")
+    expect(controller.previewMediaTarget.querySelector("video").hasAttribute("muted")).toBe(true)
     expect(controller.previewUsageTarget.textContent).toBe("Used in 0 notes")
     expect(controller.previewUsageTarget.querySelector("button")).toBeNull()
   })
@@ -393,5 +401,51 @@ describe("LibraryController", () => {
 
     expect(controller.previewDialogTarget.classList.contains("hidden")).toBe(true)
     element.removeEventListener("library:insert-media", handleInsert)
+  })
+
+  describe("XSS pins for innerHTML sinks", () => {
+    const xssName = 'photo" onerror="alert(1)'
+    const xssPath = 'images/photo" onerror="alert(1).png'
+    const xssNotePath = 'notes/photo" onerror="alert(1).md'
+
+    it("renderCard escapes a quoted filename and path payload", async () => {
+      get.mockResolvedValueOnce(mediaResponse([{ ...photo, name: xssName, path: xssPath }], []))
+      await controller.load()
+
+      const img = controller.gridTarget.querySelector("img")
+      expect(img).toBeTruthy()
+      expect(img.hasAttribute("onerror")).toBe(false)
+      expect(img.getAttribute("alt")).toBe(xssName)
+
+      const card = controller.gridTarget.querySelector(".library-card")
+      expect(card.dataset.usagePath).toBe(xssPath)
+      expect(card.textContent).toContain(xssName)
+    })
+
+    it("updateUsageLabel escapes the usage path inside its button", async () => {
+      get.mockResolvedValueOnce(mediaResponse([{ ...photo, name: xssName, path: xssPath }], []))
+      await controller.load()
+
+      const card = controller.gridTarget.querySelector(".library-card")
+      controller.usageCounts = { [xssPath]: 2 }
+      controller.usageStatus = "loaded"
+      controller.updateUsageLabel(card)
+
+      const button = card.querySelector("[data-library-usage-label] button")
+      expect(button).toBeTruthy()
+      expect(button.hasAttribute("onerror")).toBe(false)
+      expect(button.dataset.path).toBe(xssPath)
+      expect(button.textContent).toBe("Used in 2 notes")
+    })
+
+    it("renderUsageNotes escapes quoted note paths", () => {
+      controller.renderUsageNotes([xssNotePath, "notes/second.md"])
+
+      const buttons = controller.usageNotesTarget.querySelectorAll("button[data-note-path]")
+      expect(buttons).toHaveLength(2)
+      expect(buttons[0].hasAttribute("onerror")).toBe(false)
+      expect(buttons[0].dataset.notePath).toBe(xssNotePath)
+      expect(buttons[0].textContent).toBe(xssNotePath)
+    })
   })
 })

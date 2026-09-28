@@ -86,7 +86,7 @@ class MediaLibraryService
 
   def safe_media_file(path)
     segments = path.to_s.split("/", -1)
-    return nil if segments.length < 2 || segments.any? { |segment| segment.blank? || segment == "." || segment == ".." || segment.include?("\\") }
+    return nil if segments.length < 2 || segments.any? { |segment| segment.blank? || segment == "." || segment == ".." || segment.include?("\\") || segment.include?("\0") }
 
     directory = segments.first
     media = MEDIA_DIRECTORIES[directory]

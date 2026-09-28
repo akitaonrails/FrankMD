@@ -35,4 +35,16 @@ class UploadCsrfTest < ActionDispatch::IntegrationTest
         "#{path} must enforce CSRF protection"
     end
   end
+
+  PROTECTED_DELETES = [
+    "/library/file/images/example.png"
+  ].freeze
+
+  PROTECTED_DELETES.each do |path|
+    test "#{path} rejects a DELETE without a CSRF token" do
+      delete path
+      assert_response :unprocessable_entity,
+        "#{path} must enforce CSRF protection"
+    end
+  end
 end

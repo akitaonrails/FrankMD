@@ -78,6 +78,15 @@ class MediaLibraryServiceTest < ActiveSupport::TestCase
     assert path.exist?
   end
 
+  test "delete resolves paths containing null bytes to not-found instead of raising" do
+    write_media("images/photo.png", "image")
+
+    refute @service.delete("images/a\0b.png")
+    refute @service.delete("images/nested/a\0b.png")
+    refute @service.delete("images/\0")
+    assert @test_notes_dir.join("images/photo.png").exist?
+  end
+
   test "delete rejects symlinks in nested directories and leaves their targets intact" do
     outside = @test_notes_dir.parent.join("library_symlink_target_#{SecureRandom.hex(6)}.png")
     File.write(outside, "outside")

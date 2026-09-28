@@ -28,7 +28,9 @@ export default class extends Controller {
     this.usageDialogPath = null
     this.usageDialogTrigger = null
     this.createUsageObserver()
-    this.load()
+    // No fetch here: the panel boots hidden in the DOM and the app controller
+    // calls load() every time the Library workspace opens (see
+    // showLibraryWorkspace), so a connect-time request would be wasted.
   }
 
   disconnect() {
@@ -401,7 +403,7 @@ export default class extends Controller {
     const url = escapeHtml(this.mediaUrl(item))
 
     if (item.type === "video") {
-      this.previewMediaTarget.innerHTML = `<video controls autoplay src="${url}" aria-label="${escapeHtml(item.name)}"></video>`
+      this.previewMediaTarget.innerHTML = `<video controls autoplay muted src="${url}" aria-label="${escapeHtml(item.name)}"></video>`
     } else {
       this.previewMediaTarget.innerHTML = `<img src="${url}" alt="${escapeHtml(item.name)}">`
       const image = this.previewMediaTarget.querySelector("img")

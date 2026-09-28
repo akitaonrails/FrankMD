@@ -40,6 +40,8 @@ he:
     change_language: "שנה שפה"
     about_app: "אודות FrankMD"
     click_to_copy_path: "לחץ להעתקת הנתיב"
+    library: "ספריית מדיה"
+    open_library: "פתח את ספריית המדיה"
 
   # אזור סרגל הצד/סייר
   sidebar:
@@ -58,12 +60,35 @@ he:
 
   # תוויות שימוש בספריית המדיה
   library:
+    title: "ספריית מדיה"
+    description: "עיין והצג תצוגה מקדימה של תמונות ווידאו השמורים עם הפתקים."
+    categories: "קטגוריות מדיה"
+    images: "תמונות"
+    videos: "וידאו"
+    loading: "טוען מדיה..."
+    empty: "לא נמצאו קבצי מדיה."
+    load_failed: "טעינת ספריית המדיה נכשלה."
+    item_count: "%{count} פריטים"
+    preview_item: "תצוגה מקדימה של %{name}"
+    insert: "הוסף"
+    copy_path: "העתק נתיב יחסי"
+    delete: "מחק"
+    copied: "הנתיב היחסי הועתק."
+    copy_failed: "לא ניתן להעתיק את הנתיב היחסי."
+    delete_confirm: "למחוק את %{name}? הפניות קיימות בפתקים יפסיקו לעבוד."
+    delete_failed: "לא ניתן למחוק קובץ מדיה זה."
+    media_not_found: "קובץ מדיה לא נמצא."
+    usage_scan_failed: "לא ניתן לסרוק את הפתקים לשימוש במדיה."
     usage_checking: "בודק שימוש..."
     usage_used: "מופיע ב־%{count} פתקים"
     usage_unknown: "השימוש אינו ידוע"
     usage_dialog_title: "פתקים קשורים"
     usage_dialog_empty: "לא נמצאו פתקים תואמים."
     usage_open_note: "פתיחת הפתק %{path}"
+    deleted: "קובץ המדיה נמחק."
+    no_open_note: "פתח פתק Markdown לפני הוספת מדיה."
+    markdown_note_required: "ניתן להוסיף מדיה רק לפתק Markdown פתוח."
+    insertion_failed: "לא ניתן להוסיף את המדיה לפתק."
 
   # אזור העורך
   editor:

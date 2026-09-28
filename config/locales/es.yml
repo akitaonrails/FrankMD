@@ -40,6 +40,8 @@ es:
     change_language: "Cambiar Idioma"
     about_app: "Acerca de FrankMD"
     click_to_copy_path: "Haga clic para copiar la ruta"
+    library: "Biblioteca"
+    open_library: "Abrir biblioteca de medios"
 
   # Sidebar/Explorer section
   sidebar:
@@ -59,12 +61,35 @@ es:
 
   # Media Library usage labels
   library:
+    title: "Biblioteca de medios"
+    description: "Explora y previsualiza imágenes y videos guardados con tus notas."
+    categories: "Categorías de medios"
+    images: "Imágenes"
+    videos: "Videos"
+    loading: "Cargando medios..."
+    empty: "No se encontraron medios."
+    load_failed: "No se pudo cargar la biblioteca de medios."
+    item_count: "%{count} elementos"
+    preview_item: "Previsualizar %{name}"
+    insert: "Insertar"
+    copy_path: "Copiar ruta relativa"
+    delete: "Eliminar"
+    copied: "Ruta relativa copiada."
+    copy_failed: "No se pudo copiar la ruta relativa."
+    delete_confirm: "¿Eliminar %{name}? Las referencias existentes en las notas dejarán de funcionar."
+    delete_failed: "No se pudo eliminar este archivo de medios."
+    media_not_found: "Archivo de medios no encontrado."
+    usage_scan_failed: "No se pudo comprobar el uso de medios en las notas."
     usage_checking: "Comprobando uso..."
     usage_used: "Usado en %{count} notas"
     usage_unknown: "Uso desconocido"
     usage_dialog_title: "Notas asociadas"
     usage_dialog_empty: "No se encontraron notas coincidentes."
     usage_open_note: "Abrir nota %{path}"
+    deleted: "Archivo de medios eliminado."
+    no_open_note: "Abre una nota Markdown antes de insertar medios."
+    markdown_note_required: "Los medios solo pueden insertarse en una nota Markdown abierta."
+    insertion_failed: "No se pudo insertar el medio en la nota."
 
   # Editor section
   editor:
