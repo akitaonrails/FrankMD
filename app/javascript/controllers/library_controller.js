@@ -15,11 +15,84 @@ export default class extends Controller {
     this.items = []
     this.previewItem = null
     this.requestGeneration = 0
+    this.usageGeneration = (this.usageGeneration || 0) + 1
+    this.usageCounts = null
+    this.usageStatus = "idle"
+    this.usageRequest = null
+    this.visibleUsageCards = new Set()
+    this.createUsageObserver()
     this.load()
   }
 
   disconnect() {
     this.requestGeneration += 1
+    this.usageGeneration += 1
+    this.usageObserver?.disconnect()
+    this.usageObserver = null
+    this.visibleUsageCards.clear()
+  }
+
+  createUsageObserver() {
+    if (typeof IntersectionObserver !== "function") return
+    this.usageObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          this.visibleUsageCards.add(entry.target)
+          this.updateUsageLabel(entry.target)
+          if (this.usageStatus === "idle") this.loadUsageCounts()
+        } else {
+          this.visibleUsageCards.delete(entry.target)
+        }
+      })
+    }, { root: this.element })
+  }
+
+  resetUsageForLibraryOpen() {
+    this.usageGeneration += 1
+    this.usageCounts = null
+    this.usageStatus = "idle"
+    this.usageRequest = null
+    this.visibleUsageCards.clear()
+    this.gridTarget.querySelectorAll(".library-card").forEach((card) => this.updateUsageLabel(card))
+    this.observeUsageCards()
+  }
+
+  observeUsageCards() {
+    if (!this.usageObserver) return
+    this.usageObserver.disconnect()
+    this.visibleUsageCards.clear()
+    this.gridTarget.querySelectorAll(".library-card").forEach((card) => this.usageObserver.observe(card))
+  }
+
+  async loadUsageCounts() {
+    if (this.usageRequest) return this.usageRequest
+
+    const generation = this.usageGeneration
+    this.usageStatus = "checking"
+    this.usageRequest = (async () => {
+      try {
+        const response = await get("/library/usage", { responseKind: "json" })
+        if (generation !== this.usageGeneration) return
+        if (!response.ok) throw new Error("Media usage request failed")
+
+        const data = await response.json
+        if (generation !== this.usageGeneration) return
+        if (!data?.usage_counts || typeof data.usage_counts !== "object" || Array.isArray(data.usage_counts)) {
+          throw new Error("Media usage response was invalid")
+        }
+        this.usageCounts = data.usage_counts
+        this.usageStatus = "loaded"
+      } catch (_error) {
+        if (generation !== this.usageGeneration) return
+        this.usageCounts = null
+        this.usageStatus = "unknown"
+      }
+
+      if (generation === this.usageGeneration) {
+        this.visibleUsageCards.forEach((card) => this.updateUsageLabel(card))
+      }
+    })()
+    return this.usageRequest
   }
 
   async load() {
@@ -68,6 +141,8 @@ export default class extends Controller {
   }
 
   render() {
+    this.usageObserver?.disconnect()
+    this.visibleUsageCards.clear()
     const query = this.hasSearchTarget ? this.searchTarget.value.trim().toLocaleLowerCase() : ""
     const sort = this.hasSortTarget ? this.sortTarget.value : "newest"
     const visible = this.items
@@ -84,6 +159,7 @@ export default class extends Controller {
     }
 
     this.gridTarget.innerHTML = visible.map((item) => this.renderCard(item)).join("")
+    this.observeUsageCards()
   }
 
   compareItems(first, second, sort) {
@@ -105,13 +181,14 @@ export default class extends Controller {
       : `<img src="${url}" alt="${name}" loading="lazy">`
 
     return `
-      <article class="library-card">
+      <article class="library-card" data-usage-path="${path}">
         <button type="button" class="library-card-preview" data-path="${path}" data-action="click->library#openPreview" aria-label="${escapeHtml(window.t("library.preview_item", { name: item.name }))}">
           ${preview}
         </button>
         <div class="library-card-details">
           <p class="truncate text-sm font-medium" title="${name}">${name}</p>
           <p class="mt-1 text-xs text-[var(--theme-text-muted)]">${size} <span aria-hidden="true">·</span> ${date}</p>
+          <p class="library-usage mt-1 text-xs text-[var(--theme-text-muted)]" data-library-usage-label data-usage-state="checking" aria-live="polite">${escapeHtml(window.t("library.usage_checking"))}</p>
           <div class="mt-2 flex flex-wrap justify-end gap-2">
             <button type="button" data-path="${path}" data-action="click->library#deleteItem" class="rounded-md border border-[var(--theme-error)] px-3 py-2 text-sm text-[var(--theme-error)] hover:bg-[var(--theme-bg-hover)]">${escapeHtml(window.t("library.delete"))}</button>
             <button type="button" data-path="${path}" data-action="click->library#insertItem" class="rounded-md bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-[var(--theme-accent-text)] hover:opacity-90">${escapeHtml(window.t("library.insert"))}</button>
@@ -119,6 +196,36 @@ export default class extends Controller {
         </div>
       </article>
     `
+  }
+
+  updateUsageLabel(card) {
+    const label = card.querySelector("[data-library-usage-label]")
+    if (!label) return
+
+    if (this.usageStatus === "unknown") {
+      label.textContent = window.t("library.usage_unknown")
+      label.dataset.usageState = "unknown"
+      return
+    }
+
+    if (this.usageStatus !== "loaded") {
+      label.textContent = window.t("library.usage_checking")
+      label.dataset.usageState = "checking"
+      return
+    }
+
+    const path = card.dataset.usagePath
+    if (Object.prototype.hasOwnProperty.call(this.usageCounts, path)) {
+      const count = Number(this.usageCounts[path])
+      if (Number.isFinite(count) && count > 0) {
+        label.textContent = window.t("library.usage_used", { count })
+        label.dataset.usageState = "used"
+        return
+      }
+    }
+
+    label.textContent = window.t("library.usage_unused")
+    label.dataset.usageState = "unused"
   }
 
   openPreview(event) {

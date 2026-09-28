@@ -18,6 +18,13 @@ function makeWorkspaceApp() {
     <button data-app-target="libraryToggle" aria-pressed="false"></button>
   `
   const app = Object.create(AppController.prototype)
+  const libraryPanel = element.querySelector('[data-app-target="libraryPanel"]')
+  const libraryController = { resetUsageForLibraryOpen: vi.fn() }
+  const application = {
+    getControllerForElementAndIdentifier: vi.fn((candidate, identifier) =>
+      candidate === libraryPanel && identifier === "library" ? libraryController : null
+    )
+  }
   Object.assign(app, {
     context: { element },
     libraryVisible: false,
@@ -32,7 +39,8 @@ function makeWorkspaceApp() {
     codemirrorOutlets: [],
     previewOutlets: []
   })
-  return { app, element }
+  Object.defineProperty(app, "application", { value: application })
+  return { app, element, application, libraryController }
 }
 
 describe("AppController Library workspace", () => {
@@ -78,6 +86,22 @@ describe("AppController Library workspace", () => {
     expect(preview.classList.contains("hidden")).toBe(true)
     expect(element.querySelector('[data-app-target="editorPanel"]').classList.contains("hidden")).toBe(false)
     expect(element.querySelector('[data-app-target="libraryToggle"]').getAttribute("aria-pressed")).toBe("false")
+  })
+
+  it("resets media usage once each time Library opens", () => {
+    const { app, element, application, libraryController } = makeWorkspaceApp()
+    const library = element.querySelector('[data-app-target="libraryPanel"]')
+
+    app.showLibraryWorkspace()
+    app.showLibraryWorkspace()
+    expect(libraryController.resetUsageForLibraryOpen).toHaveBeenCalledOnce()
+
+    app.showEditorWorkspace()
+    app.showLibraryWorkspace()
+
+    expect(application.getControllerForElementAndIdentifier)
+      .toHaveBeenCalledWith(library, "library")
+    expect(libraryController.resetUsageForLibraryOpen).toHaveBeenCalledTimes(2)
   })
 
   it("hides and restores a visible preview through its controller", () => {

@@ -57,6 +57,13 @@ ja:
     read_time: "読了時間"
     line: "行"
 
+  # Media Library usage labels
+  library:
+    usage_checking: "使用状況を確認中..."
+    usage_used: "%{count} 件のノートで使用中"
+    usage_unused: "未使用"
+    usage_unknown: "使用状況は不明です"
+
   # Editor section
   editor:
     select_note: "ノートを選択または作成"

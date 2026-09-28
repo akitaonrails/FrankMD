@@ -57,6 +57,13 @@ ko:
     read_time: "읽기"
     line: "줄"
 
+  # 미디어 라이브러리 사용량 레이블
+  library:
+    usage_checking: "사용 여부 확인 중..."
+    usage_used: "%{count}개 노트에서 사용 중"
+    usage_unused: "사용되지 않음"
+    usage_unknown: "사용 여부 알 수 없음"
+
   # 에디터 섹션
   editor:
     select_note: "노트를 선택하거나 생성하세요"

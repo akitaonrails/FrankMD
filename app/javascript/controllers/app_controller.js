@@ -1189,7 +1189,8 @@ export default class extends Controller {
     const toggles = root?.querySelectorAll('[data-app-target~="libraryToggle"]')
     if (!libraryPanel) return false
 
-    if (!this.libraryVisible) {
+    const openingLibrary = !this.libraryVisible
+    if (openingLibrary) {
       const previewController = this.getPreviewController()
       this._libraryPreviewWasVisible = previewController
         ? previewController.isVisible
@@ -1205,6 +1206,10 @@ export default class extends Controller {
     editorPanel?.classList.add("hidden")
     libraryPanel.classList.remove("hidden")
     toggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "true"))
+    if (openingLibrary) {
+      const libraryController = this.application?.getControllerForElementAndIdentifier(libraryPanel, "library")
+      libraryController?.resetUsageForLibraryOpen()
+    }
     return true
   }
 

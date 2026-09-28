@@ -28,6 +28,29 @@ const clip = {
   type: "video"
 }
 
+let intersectionObservers
+
+class MockIntersectionObserver {
+  constructor(callback, options) {
+    this.callback = callback
+    this.options = options
+    this.observed = new Set()
+    intersectionObservers.push(this)
+  }
+
+  observe(target) {
+    this.observed.add(target)
+  }
+
+  disconnect() {
+    this.observed.clear()
+  }
+
+  trigger(target, isIntersecting = true) {
+    this.callback([{ target, isIntersecting }])
+  }
+}
+
 function mediaResponse(images = [photo], videos = [clip]) {
   return { ok: true, json: Promise.resolve({ images, videos }) }
 }
@@ -40,6 +63,8 @@ describe("LibraryController", () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     vi.useRealTimers()
+    intersectionObservers = []
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver)
     window.t = (key, options = {}) => key.replace(/%\{(\w+)\}/g, (_match, name) => options[name] ?? `%{${name}}`)
     get.mockResolvedValue(mediaResponse())
     destroy.mockResolvedValue({ ok: true })
@@ -84,6 +109,7 @@ describe("LibraryController", () => {
     application?.stop()
     document.body.replaceChildren()
     delete window.t
+    vi.unstubAllGlobals()
     vi.restoreAllMocks()
   })
 
@@ -102,6 +128,78 @@ describe("LibraryController", () => {
     expect(controller.gridTarget.querySelector("video").getAttribute("src")).toBe("/notes/videos/clip.mp4")
     expect(controller.gridTarget.textContent).toContain("4 KB")
     expect(controller.gridTarget.querySelectorAll(".library-card-preview")).toHaveLength(1)
+  })
+
+  it("defers usage lookup until a visible card intersects and shares one request across scrolling", async () => {
+    const unusedPhoto = { ...photo, name: "unused.png", path: "images/unused.png" }
+    get.mockResolvedValueOnce(mediaResponse([photo, unusedPhoto], [clip]))
+    await controller.load()
+
+    const cards = controller.gridTarget.querySelectorAll(".library-card")
+    expect(cards).toHaveLength(2)
+    expect(controller.usageObserver.options.root).toBe(element)
+    expect(get.mock.calls.filter(([path]) => path === "/library/usage")).toHaveLength(0)
+
+    let resolveUsage
+    get.mockReturnValueOnce(new Promise((resolve) => { resolveUsage = resolve }))
+    controller.usageObserver.trigger(cards[0])
+    expect(cards[0].querySelector("[data-library-usage-label]").dataset.usageState).toBe("checking")
+
+    controller.usageObserver.trigger(cards[0], false)
+    controller.usageObserver.trigger(cards[1])
+    expect(get).toHaveBeenLastCalledWith("/library/usage", { responseKind: "json" })
+    expect(get.mock.calls.filter(([path]) => path === "/library/usage")).toHaveLength(1)
+
+    resolveUsage({ ok: true, json: Promise.resolve({ usage_counts: { [photo.path]: 2 } }) })
+    await vi.waitFor(() => {
+      expect(cards[1].querySelector("[data-library-usage-label]").dataset.usageState).toBe("unused")
+    })
+    expect(cards[1].querySelector("[data-library-usage-label]").textContent).toBe("library.usage_unused")
+
+    controller.showVideos()
+    const videoCard = controller.gridTarget.querySelector(".library-card")
+    controller.usageObserver.trigger(videoCard)
+    expect(videoCard.querySelector("[data-library-usage-label]").dataset.usageState).toBe("unused")
+    expect(get.mock.calls.filter(([path]) => path === "/library/usage")).toHaveLength(1)
+  })
+
+  it("shows used, unused, and unknown usage labels only after cards intersect", async () => {
+    const unusedPhoto = { ...photo, name: "unused.png", path: "images/unused.png" }
+    get.mockResolvedValueOnce(mediaResponse([photo, unusedPhoto], []))
+    await controller.load()
+    const [usedCard, unusedCard] = controller.gridTarget.querySelectorAll(".library-card")
+    get.mockResolvedValueOnce({
+      ok: true,
+      json: Promise.resolve({ usage_counts: { [photo.path]: 3 } })
+    })
+
+    controller.usageObserver.trigger(usedCard)
+    await vi.waitFor(() => expect(usedCard.querySelector("[data-library-usage-label]").dataset.usageState).toBe("used"))
+    expect(usedCard.querySelector("[data-library-usage-label]").textContent).toBe("library.usage_used")
+    expect(unusedCard.querySelector("[data-library-usage-label]").dataset.usageState).toBe("checking")
+
+    controller.usageObserver.trigger(unusedCard)
+    expect(unusedCard.querySelector("[data-library-usage-label]").dataset.usageState).toBe("unused")
+
+    controller.resetUsageForLibraryOpen()
+    get.mockResolvedValueOnce({ ok: false, json: Promise.resolve({}) })
+    controller.usageObserver.trigger(usedCard)
+    await vi.waitFor(() => expect(usedCard.querySelector("[data-library-usage-label]").dataset.usageState).toBe("unknown"))
+    expect(usedCard.querySelector("[data-library-usage-label]").textContent).toBe("library.usage_unknown")
+  })
+
+  it("refreshes the cached usage map when Library is reopened", async () => {
+    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({ usage_counts: { [photo.path]: 1 } }) })
+    const card = controller.gridTarget.querySelector(".library-card")
+    controller.usageObserver.trigger(card)
+    await vi.waitFor(() => expect(card.querySelector("[data-library-usage-label]").dataset.usageState).toBe("used"))
+
+    controller.resetUsageForLibraryOpen()
+    expect(card.querySelector("[data-library-usage-label]").dataset.usageState).toBe("checking")
+    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({ usage_counts: {} }) })
+    controller.usageObserver.trigger(card)
+    await vi.waitFor(() => expect(card.querySelector("[data-library-usage-label]").dataset.usageState).toBe("unused"))
+    expect(get.mock.calls.filter(([path]) => path === "/library/usage")).toHaveLength(2)
   })
 
   it("opens image and video previews with filename and metadata", () => {

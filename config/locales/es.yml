@@ -57,6 +57,13 @@ es:
     read_time: "Tiempo de lectura"
     line: "Línea"
 
+  # Media Library usage labels
+  library:
+    usage_checking: "Comprobando uso..."
+    usage_used: "Usado en %{count} notas"
+    usage_unused: "Sin uso"
+    usage_unknown: "Uso desconocido"
+
   # Editor section
   editor:
     select_note: "Selecciona o crea una nota"

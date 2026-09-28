@@ -56,6 +56,13 @@ he:
     size: "גודל"
     read_time: "קריאה"
 
+  # תוויות שימוש בספריית המדיה
+  library:
+    usage_checking: "בודק שימוש..."
+    usage_used: "מופיע ב־%{count} פתקים"
+    usage_unused: "לא בשימוש"
+    usage_unknown: "השימוש אינו ידוע"
+
   # אזור העורך
   editor:
     select_note: "בחר או צור הערה"
