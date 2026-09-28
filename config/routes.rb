@@ -38,6 +38,7 @@ Rails.application.routes.draw do
   post "media/upload", to: "media#upload"
 
   # Local media Library
+  get "library/usage", to: "library#usage"
   get "library", to: "library#index"
   delete "library/file/*path", to: "library#destroy", as: :library_file, format: false
 

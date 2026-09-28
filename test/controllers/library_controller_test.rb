@@ -47,6 +47,52 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     FileUtils.rm_f(outside) if outside
   end
 
+  test "usage returns distinct note counts and omits unused media after a successful scan" do
+    create_test_note(
+      "first.md",
+      "![first](images/photo.png)\n[again](images/photo.png)\n[clip](videos/clip.mp4)"
+    )
+    create_test_note("nested/second.md", "![photo](../images/photo.png)")
+    write_media("images/unused.png", "unused")
+
+    get "/library/usage", as: :json
+
+    assert_response :success
+    usage_counts = JSON.parse(response.body).fetch("usage_counts")
+    assert_equal 2, usage_counts.fetch("images/photo.png")
+    assert_equal 1, usage_counts.fetch("videos/clip.mp4")
+    refute usage_counts.key?("images/unused.png")
+  end
+
+  test "usage counts repeated references from one note once" do
+    create_test_note("repeated.md", "![first](images/photo.png)\n![second](images/photo.png)")
+
+    get "/library/usage", as: :json
+
+    assert_response :success
+    assert_equal({ "images/photo.png" => 1 }, JSON.parse(response.body).fetch("usage_counts"))
+  end
+
+  test "usage builds the index once per request" do
+    MediaUsageService.any_instance.expects(:build_index).once.returns({ "images/photo.png" => [ "note.md" ] })
+
+    get "/library/usage", as: :json
+
+    assert_response :success
+    assert_equal({ "images/photo.png" => 1 }, JSON.parse(response.body).fetch("usage_counts"))
+  end
+
+  test "usage returns no partial map and a localized error when the note scan fails" do
+    MediaUsageService.any_instance.expects(:build_index).once.raises(MediaUsageService::ScanError, "read failed")
+
+    get "/library/usage", as: :json
+
+    assert_response :service_unavailable
+    data = JSON.parse(response.body)
+    assert_equal I18n.t("library.usage_scan_failed"), data.fetch("error")
+    refute data.key?("usage_counts")
+  end
+
   test "destroy removes a supported media file" do
     path = write_media("images/photo.png", "image")
 

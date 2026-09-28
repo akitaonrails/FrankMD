@@ -6,6 +6,15 @@ class LibraryController < ApplicationController
     render json: MediaLibraryService.new.list
   end
 
+  # GET /library/usage
+  def usage
+    usage_counts = MediaUsageService.new.build_index.transform_values(&:length)
+    render json: { usage_counts: usage_counts }
+  rescue MediaUsageService::ScanError => e
+    Rails.logger.error "Library media usage scan failed: #{e.class} - #{e.message}"
+    render json: { error: t("library.usage_scan_failed") }, status: :service_unavailable
+  end
+
   # DELETE /library/file/*path
   def destroy
     if MediaLibraryService.new.delete(params[:path])

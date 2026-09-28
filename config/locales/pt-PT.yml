@@ -85,6 +85,7 @@ pt-PT:
     delete_confirm: "Eliminar %{name}? As referências existentes nas notas deixarão de funcionar."
     delete_failed: "Não foi possível eliminar este ficheiro multimédia."
     media_not_found: "Ficheiro multimédia não encontrado."
+    usage_scan_failed: "Não foi possível verificar a utilização de multimédia nas notas."
     deleted: "Ficheiro multimédia eliminado."
     no_open_note: "Abra uma nota Markdown antes de inserir multimédia."
     markdown_note_required: "Só é possível inserir multimédia numa nota Markdown aberta."

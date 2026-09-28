@@ -86,6 +86,7 @@ pt-BR:
     delete_confirm: "Excluir %{name}? As referências existentes nas notas deixarão de funcionar."
     delete_failed: "Não foi possível excluir este arquivo de mídia."
     media_not_found: "Arquivo de mídia não encontrado."
+    usage_scan_failed: "Não foi possível verificar o uso de mídia nas notas."
     deleted: "Arquivo de mídia excluído."
     no_open_note: "Abra uma nota Markdown antes de inserir mídia."
     markdown_note_required: "A mídia só pode ser inserida em uma nota Markdown aberta."

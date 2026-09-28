@@ -86,6 +86,7 @@ en:
     delete_confirm: "Delete %{name}? Existing note references will stop working."
     delete_failed: "Could not delete this media file."
     media_not_found: "Media file not found."
+    usage_scan_failed: "Could not scan notes for media usage."
     deleted: "Media file deleted."
     no_open_note: "Open a Markdown note before inserting media."
     markdown_note_required: "Media can only be inserted into an open Markdown note."
