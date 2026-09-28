@@ -57,6 +57,17 @@ class MediaUsageServiceTest < ActiveSupport::TestCase
     )
   end
 
+  test "unescapes Markdown punctuation while retaining path containment" do
+    create_test_note("references.md", <<~'MARKDOWN')
+      ![diagram](images/diagram\(draft\).png)
+      ![reference][diagram]
+      [diagram]: images/diagram\(draft\).png
+      ![outside](images/\.\./../../outside.png)
+    MARKDOWN
+
+    assert_equal({ "images/diagram(draft).png" => [ "references.md" ] }, @service.build_index)
+  end
+
   test "indexes full, collapsed, and shortcut references with normalized labels" do
     create_test_note(
       "references.md",
@@ -157,5 +168,23 @@ class MediaUsageServiceTest < ActiveSupport::TestCase
     error = assert_raises(MediaUsageService::ScanError) { @service.build_index }
 
     assert_match(/Could not read Markdown note/, error.message)
+  end
+
+  test "reuses an unchanged index without rereading Markdown" do
+    create_test_note("stable.md", "![photo](images/photo.png)")
+    expected = { "images/photo.png" => [ "stable.md" ] }
+    @service.expects(:build_index_from).once.returns(expected)
+
+    assert_equal expected, @service.build_index
+    assert_equal expected, @service.build_index
+  end
+
+  test "rebuilds the index after a note is edited" do
+    note_path = create_test_note("edited.md", "![photo](images/old.png)")
+    assert_equal({ "images/old.png" => [ "edited.md" ] }, @service.build_index)
+
+    File.write(note_path, "![photo](images/new.png)")
+
+    assert_equal({ "images/new.png" => [ "edited.md" ] }, @service.build_index)
   end
 end

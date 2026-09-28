@@ -7,6 +7,9 @@ require "uri"
 # Builds a reverse index of local Library media references in Markdown notes.
 class MediaUsageService
   MEDIA_ROOTS = %w[images videos].freeze
+  CACHE_LOCK = Mutex.new
+  INDEX_CACHE = {}
+  MAX_CACHED_ROOTS = 8
   MARKDOWN_DESTINATION = /(?<!\\)\[(?:\\.|[^\]\r\n])*\]\([ \t]*(?:<([^>\r\n]*)>|((?:\\.|[^)\s])+))/m
   REFERENCE_DEFINITION = /\A {0,3}\[([^\]\r\n]+)\]:[ \t]*(?:<([^>\r\n]*)>|([^\s]+))/
   REFERENCE_USE = /(?<!\\)!\[((?:\\.|[^\]\r\n])*)\](?:\[([^\]\r\n]*)\])?|(?<![\\!])\[((?:\\.|[^\]\r\n])*)\](?:\[([^\]\r\n]*)\])?/
@@ -19,12 +22,46 @@ class MediaUsageService
   end
 
   # Returns a sorted { "images/photo.png" => ["notes/example.md"] } index.
-  # Each Markdown note is read once. A read failure aborts the scan so callers
-  # cannot mistake a partial index for a complete one.
+  # Each Markdown note is read once when its filesystem signature changes. A
+  # read failure aborts the scan so callers cannot mistake a partial index for
+  # a complete one.
   def build_index
+    files = markdown_files
+    fingerprint = files.map do |file_path|
+      stat = file_path.stat
+      [ file_path.relative_path_from(@base_path).to_s, stat.dev, stat.ino, stat.size, stat.mtime.to_r, stat.ctime.to_r ]
+    end
+
+    self.class.cached_index(@base_path.to_s, fingerprint) do
+      build_index_from(files)
+    end
+  rescue SystemCallError, IOError => error
+    raise ScanError, "Could not inspect Markdown notes: #{error.message}", cause: error
+  end
+
+  def self.cached_index(root, fingerprint)
+    CACHE_LOCK.synchronize do
+      cached = INDEX_CACHE[root]
+      return cached[:index] if cached && cached[:fingerprint] == fingerprint
+
+      index = yield
+      index.each do |media_path, note_paths|
+        media_path.freeze
+        note_paths.freeze
+      end
+      index.freeze
+      INDEX_CACHE[root] = { fingerprint: fingerprint, index: index }
+      INDEX_CACHE.shift while INDEX_CACHE.size > MAX_CACHED_ROOTS
+      index
+    end
+  end
+
+  private
+
+  def build_index_from(files)
     usage = Hash.new { |index, media_path| index[media_path] = Set.new }
 
-    collect_markdown_files(@base_path) do |file_path|
+    files.each do |file_path|
       note_path = file_path.relative_path_from(@base_path).to_s
       begin
         content = file_path.read.force_encoding(Encoding::UTF_8).scrub
@@ -43,7 +80,11 @@ class MediaUsageService
     end
   end
 
-  private
+  def markdown_files
+    files = []
+    collect_markdown_files(@base_path) { |file_path| files << file_path }
+    files
+  end
 
   def collect_markdown_files(directory, &block)
     return unless directory.directory?
@@ -143,6 +184,7 @@ class MediaUsageService
 
   def canonical_media_path(reference, note_path)
     path = CGI.unescapeHTML(reference.to_s.strip)
+    path = path.gsub(/\\([[:punct:]])/) { Regexp.last_match(1) }
     return nil if path.empty? || path.match?(%r{\A(?:[a-z][a-z0-9+.-]*:|//)}i)
 
     path = path.split(/[?#]/, 2).first.to_s

@@ -47,7 +47,7 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     FileUtils.rm_f(outside) if outside
   end
 
-  test "usage returns distinct note counts and omits unused media after a successful scan" do
+  test "usage returns distinct counts without sending the reverse index" do
     create_test_note(
       "first.md",
       "![first](images/photo.png)\n[again](images/photo.png)\n[clip](videos/clip.mp4)"
@@ -63,10 +63,19 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, usage_counts.fetch("videos/clip.mp4")
     refute usage_counts.key?("images/unused.png")
 
-    usage_notes = JSON.parse(response.body).fetch("usage_notes")
-    assert_equal [ "first.md", "nested/second.md" ], usage_notes.fetch("images/photo.png")
-    assert_equal [ "first.md" ], usage_notes.fetch("videos/clip.mp4")
-    refute usage_notes.key?("images/unused.png")
+    refute JSON.parse(response.body).key?("usage_notes")
+  end
+
+  test "usage returns note paths only for the requested media item" do
+    create_test_note("first.md", "![photo](images/photo.png)\n[clip](videos/clip.mp4)")
+    create_test_note("second.md", "![photo](images/photo.png)")
+
+    get "/library/usage", params: { path: "images/photo.png" }, as: :json
+
+    assert_response :success
+    data = JSON.parse(response.body)
+    assert_equal [ "first.md", "second.md" ], data.fetch("usage_notes")
+    refute data.key?("usage_counts")
   end
 
   test "usage counts repeated references from one note once" do
@@ -77,7 +86,7 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     data = JSON.parse(response.body)
     assert_equal({ "images/photo.png" => 1 }, data.fetch("usage_counts"))
-    assert_equal({ "images/photo.png" => [ "repeated.md" ] }, data.fetch("usage_notes"))
+    refute data.key?("usage_notes")
   end
 
   test "usage builds the index once per request" do
@@ -88,7 +97,7 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     data = JSON.parse(response.body)
     assert_equal({ "images/photo.png" => 1 }, data.fetch("usage_counts"))
-    assert_equal({ "images/photo.png" => [ "note.md" ] }, data.fetch("usage_notes"))
+    refute data.key?("usage_notes")
   end
 
   test "usage returns no partial map and a localized error when the note scan fails" do

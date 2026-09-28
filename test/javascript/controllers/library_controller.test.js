@@ -82,20 +82,15 @@ describe("LibraryController", () => {
         <p class="hidden" data-library-target="error"></p>
         <p class="hidden" data-library-target="loading"></p>
         <p class="hidden" data-library-target="status"></p>
-        <input data-library-target="search" data-action="input->library#render">
-        <select data-library-target="sort" data-action="change->library#render">
-          <option value="newest" selected>Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="name">Name</option>
-        </select>
         <div data-library-target="grid"></div>
-        <div class="hidden" data-library-target="usageDialog" data-action="click->library#closeUsageDialogOnBackdrop keydown.esc->library#closeUsageDialog">
+        <div class="hidden" data-library-target="usageDialog" data-action="click->library#closeUsageDialogOnBackdrop keydown.esc->library#closeUsageDialog keydown->library#trapDialogFocus" role="dialog" tabindex="-1">
           <h2 data-library-target="usageDialogTitle"></h2>
           <ul data-library-target="usageNotes"></ul>
           <button data-library-target="usageDialogClose" data-action="click->library#closeUsageDialog"></button>
         </div>
-        <div class="hidden" data-library-target="previewDialog" data-action="click->library#closePreviewOnBackdrop">
+        <div class="hidden" data-library-target="previewDialog" data-action="click->library#closePreviewOnBackdrop keydown->library#trapDialogFocus" role="dialog" tabindex="-1">
           <h2 data-library-target="previewName"></h2>
+          <button data-library-target="previewDialogClose" data-action="click->library#closePreview"></button>
           <div>
             <p data-library-target="previewUsage"></p>
             <p data-library-target="previewMetadata"></p>
@@ -104,7 +99,6 @@ describe("LibraryController", () => {
           <button data-action="click->library#deletePreviewItem"></button>
           <button data-action="click->library#copyPreviewPath"></button>
           <button data-action="click->library#insertPreviewItem"></button>
-          <button data-action="click->library#closePreview"></button>
         </div>
       </div>
     `
@@ -162,10 +156,7 @@ describe("LibraryController", () => {
     expect(get).toHaveBeenLastCalledWith("/library/usage", { responseKind: "json" })
     expect(get.mock.calls.filter(([path]) => path === "/library/usage")).toHaveLength(1)
 
-    resolveUsage({ ok: true, json: Promise.resolve({
-      usage_counts: { [photo.path]: 2 },
-      usage_notes: { [photo.path]: ["first.md", "second.md"] }
-    }) })
+    resolveUsage({ ok: true, json: Promise.resolve({ usage_counts: { [photo.path]: 2 } }) })
     await vi.waitFor(() => {
       expect(cards[1].querySelector("[data-library-usage-label]").dataset.usageState).toBe("unused")
     })
@@ -186,10 +177,7 @@ describe("LibraryController", () => {
     const [usedCard, unusedCard] = controller.gridTarget.querySelectorAll(".library-card")
     get.mockResolvedValueOnce({
       ok: true,
-      json: Promise.resolve({
-        usage_counts: { [photo.path]: 3 },
-        usage_notes: { [photo.path]: ["first.md", "second.md", "third.md"] }
-      })
+      json: Promise.resolve({ usage_counts: { [photo.path]: 3 } })
     })
 
     controller.usageObserver.trigger(usedCard)
@@ -209,8 +197,7 @@ describe("LibraryController", () => {
 
   it("refreshes the cached usage map when Library is reopened", async () => {
     get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({
-      usage_counts: { [photo.path]: 1 },
-      usage_notes: { [photo.path]: ["note.md"] }
+      usage_counts: { [photo.path]: 1 }
     }) })
     const card = controller.gridTarget.querySelector(".library-card")
     controller.usageObserver.trigger(card)
@@ -218,31 +205,39 @@ describe("LibraryController", () => {
 
     controller.resetUsageForLibraryOpen()
     expect(card.querySelector("[data-library-usage-label]").dataset.usageState).toBe("checking")
-    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({ usage_counts: {}, usage_notes: {} }) })
+    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({ usage_counts: {} }) })
     controller.usageObserver.trigger(card)
     await vi.waitFor(() => expect(card.querySelector("[data-library-usage-label]").dataset.usageState).toBe("unused"))
     expect(get.mock.calls.filter(([path]) => path === "/library/usage")).toHaveLength(2)
   })
 
   it("opens usage paths in a dialog and dispatches the selected note", async () => {
-    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({
-      usage_counts: { [photo.path]: 2 },
-      usage_notes: { [photo.path]: ["notes/first note.md", "../outside.md", "notes/second.md"] }
-    }) })
+    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({ usage_counts: { [photo.path]: 2 } }) })
     const card = controller.gridTarget.querySelector(".library-card")
     controller.usageObserver.trigger(card)
     await vi.waitFor(() => expect(card.querySelector("[data-library-usage-label]").dataset.usageState).toBe("used"))
 
     const usageButton = card.querySelector("[data-library-usage-label] button")
     expect(usageButton.textContent).toBe("Used in 2 notes")
+    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({
+      usage_notes: ["notes/first note.md", "../outside.md", "notes/second.md"]
+    }) })
     usageButton.click()
 
     expect(controller.usageDialogTarget.classList.contains("hidden")).toBe(false)
+    expect(document.activeElement).toBe(controller.usageDialogCloseTarget)
     expect(controller.usageDialogTitleTarget.textContent).toBe("Notes associated")
     expect(controller.usageDialogTitleTarget.textContent).not.toContain(photo.name)
+    await vi.waitFor(() => expect(controller.usageNotesTarget.querySelectorAll("button[data-note-path]")).toHaveLength(2))
     const noteButtons = controller.usageNotesTarget.querySelectorAll("button[data-note-path]")
     expect(Array.from(noteButtons, (button) => button.dataset.notePath)).toEqual(["notes/first note.md", "notes/second.md"])
     expect(controller.usageNotesTarget.querySelector("img")).toBeNull()
+
+    noteButtons[0].focus()
+    controller.usageDialogTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true, cancelable: true }))
+    expect(document.activeElement).toBe(controller.usageDialogCloseTarget)
+    controller.usageDialogTarget.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }))
+    expect(document.activeElement).toBe(noteButtons[0])
 
     const openNote = vi.fn()
     element.addEventListener("library:open-note", openNote)
@@ -255,16 +250,12 @@ describe("LibraryController", () => {
   })
 
   it("opens image and video previews with metadata and clickable usage counts", async () => {
-    get.mockResolvedValueOnce({
-      ok: true,
-      json: Promise.resolve({
-        usage_counts: { [photo.path]: 2 },
-        usage_notes: { [photo.path]: ["notes/photo.md", "notes/second.md"] }
-      })
-    })
+    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({ usage_counts: { [photo.path]: 2 } }) })
+    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({ usage_notes: ["notes/photo.md", "notes/second.md"] }) })
     controller.gridTarget.querySelector(".library-card-preview").click()
 
     expect(controller.previewDialogTarget.classList.contains("hidden")).toBe(false)
+    expect(document.activeElement).toBe(controller.previewDialogCloseTarget)
     expect(controller.previewNameTarget.textContent).toBe(photo.name)
     expect(controller.previewMetadataTarget.textContent).toContain("2 KB")
     expect(controller.previewMetadataTarget.textContent).toMatch(/ · PNG$/)
@@ -282,6 +273,7 @@ describe("LibraryController", () => {
     usageButton.click()
     expect(controller.usageDialogTarget.classList.contains("hidden")).toBe(false)
     controller.closeUsageDialog()
+    expect(document.activeElement).toBe(usageButton)
 
     controller.closePreview()
     controller.showVideos()
@@ -291,6 +283,26 @@ describe("LibraryController", () => {
     expect(controller.previewMediaTarget.querySelector("video").getAttribute("src")).toBe("/notes/videos/clip.mp4")
     expect(controller.previewUsageTarget.textContent).toBe("Used in 0 notes")
     expect(controller.previewUsageTarget.querySelector("button")).toBeNull()
+  })
+
+  it("traps keyboard focus in the preview and restores its trigger on close", () => {
+    const trigger = controller.gridTarget.querySelector(".library-card-preview")
+    trigger.click()
+
+    expect(document.activeElement).toBe(controller.previewDialogCloseTarget)
+    const lastButton = controller.previewDialogTarget.querySelector('[data-action="click->library#insertPreviewItem"]')
+    const backwardTab = new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true, cancelable: true })
+    controller.previewDialogTarget.dispatchEvent(backwardTab)
+    expect(backwardTab.defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(lastButton)
+
+    const forwardTab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true })
+    controller.previewDialogTarget.dispatchEvent(forwardTab)
+    expect(forwardTab.defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(controller.previewDialogCloseTarget)
+
+    controller.closePreview()
+    expect(document.activeElement).toBe(trigger)
   })
 
   it("shows loading, empty, and failure states", async () => {
@@ -320,25 +332,15 @@ describe("LibraryController", () => {
     expect(controller.gridTarget.textContent).toBe("library.empty")
   })
 
-  it("searches and sorts media in each collection", async () => {
+  it("shows every item in the selected collection in the received order", async () => {
     const older = { ...photo, name: "zebra.png", path: "images/zebra.png", mtime: "2026-09-20T12:00:00Z" }
     get.mockResolvedValueOnce(mediaResponse([older, photo], [clip]))
     await controller.load()
 
-    controller.searchTarget.value = "zebra"
-    controller.render()
-    expect(controller.gridTarget.textContent).toContain("zebra.png")
-    expect(controller.gridTarget.textContent).not.toContain("photo one.png")
-
-    controller.searchTarget.value = ""
-    controller.sortTarget.value = "name"
-    controller.render()
     expect(Array.from(controller.gridTarget.querySelectorAll(".library-card-details > p:first-child"), (node) => node.textContent))
-      .toEqual(["photo one.png", "zebra.png"])
+      .toEqual(["zebra.png", "photo one.png"])
 
     controller.showVideos()
-    controller.searchTarget.value = "clip"
-    controller.render()
     expect(controller.gridTarget.textContent).toContain("clip.mp4")
   })
 

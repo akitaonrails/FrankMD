@@ -8,9 +8,13 @@ class LibraryController < ApplicationController
 
   # GET /library/usage
   def usage
-    usage_notes = MediaUsageService.new.build_index
-    usage_counts = usage_notes.transform_values(&:length)
-    render json: { usage_counts: usage_counts, usage_notes: usage_notes }
+    usage_index = MediaUsageService.new.build_index
+    if params[:path].is_a?(String)
+      render json: { usage_notes: usage_index.fetch(params[:path], []) }
+    else
+      usage_counts = usage_index.transform_values(&:length)
+      render json: { usage_counts: usage_counts }
+    end
   rescue MediaUsageService::ScanError, SystemCallError => e
     Rails.logger.error "Library media usage scan failed: #{e.class} - #{e.message}"
     render json: { error: t("library.usage_scan_failed") }, status: :service_unavailable
