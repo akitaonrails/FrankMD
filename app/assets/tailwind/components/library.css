@@ -10,12 +10,6 @@
   border: 1px solid var(--theme-border);
   border-radius: 0.625rem;
   background: var(--theme-bg-secondary);
-  transition: border-color 120ms ease, transform 120ms ease;
-}
-
-.library-card:hover {
-  border-color: var(--theme-accent);
-  transform: translateY(-1px);
 }
 
 .library-card-preview {
