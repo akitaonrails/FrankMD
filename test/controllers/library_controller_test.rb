@@ -93,6 +93,15 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     refute data.key?("usage_counts")
   end
 
+  test "usage returns a localized error when a notes directory cannot be scanned" do
+    MediaUsageService.any_instance.expects(:build_index).once.raises(Errno::EACCES)
+
+    get "/library/usage", as: :json
+
+    assert_response :service_unavailable
+    assert_equal I18n.t("library.usage_scan_failed"), JSON.parse(response.body).fetch("error")
+  end
+
   test "destroy removes a supported media file" do
     path = write_media("images/photo.png", "image")
 
