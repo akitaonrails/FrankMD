@@ -62,7 +62,7 @@ he:
     usage_used: "מופיע ב־%{count} פתקים"
     usage_unused: "לא בשימוש"
     usage_unknown: "השימוש אינו ידוע"
-    usage_dialog_title: "פתקים שמשתמשים ב־%{name}"
+    usage_dialog_title: "פתקים קשורים"
     usage_dialog_empty: "לא נמצאו פתקים תואמים."
     usage_open_note: "פתיחת הפתק %{path}"
 

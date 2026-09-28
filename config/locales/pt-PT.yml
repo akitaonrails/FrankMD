@@ -90,7 +90,7 @@ pt-PT:
     usage_used: "Utilizado em %{count} notas"
     usage_unused: "Não utilizado"
     usage_unknown: "Utilização desconhecida"
-    usage_dialog_title: "Notas que utilizam %{name}"
+    usage_dialog_title: "Notas associadas"
     usage_dialog_empty: "Não foram encontradas notas correspondentes."
     usage_open_note: "Abrir nota %{path}"
     deleted: "Ficheiro multimédia eliminado."

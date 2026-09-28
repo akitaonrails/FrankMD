@@ -65,7 +65,10 @@ describe("LibraryController", () => {
     vi.useRealTimers()
     intersectionObservers = []
     vi.stubGlobal("IntersectionObserver", MockIntersectionObserver)
-    window.t = (key, options = {}) => key.replace(/%\{(\w+)\}/g, (_match, name) => options[name] ?? `%{${name}}`)
+    window.t = (key, options = {}) => {
+      if (key === "library.usage_dialog_title") return "Notes associated"
+      return key.replace(/%\{(\w+)\}/g, (_match, name) => options[name] ?? `%{${name}}`)
+    }
     get.mockResolvedValue(mediaResponse())
     destroy.mockResolvedValue({ ok: true })
     appConfirm.mockResolvedValue(true)
@@ -230,7 +233,8 @@ describe("LibraryController", () => {
     usageButton.click()
 
     expect(controller.usageDialogTarget.classList.contains("hidden")).toBe(false)
-    expect(controller.usageDialogTitleTarget.textContent).toBe("library.usage_dialog_title")
+    expect(controller.usageDialogTitleTarget.textContent).toBe("Notes associated")
+    expect(controller.usageDialogTitleTarget.textContent).not.toContain(photo.name)
     const noteButtons = controller.usageNotesTarget.querySelectorAll("button[data-note-path]")
     expect(Array.from(noteButtons, (button) => button.dataset.notePath)).toEqual(["notes/first note.md", "notes/second.md"])
     expect(controller.usageNotesTarget.querySelector("img")).toBeNull()

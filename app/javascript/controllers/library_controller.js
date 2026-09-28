@@ -251,7 +251,7 @@ export default class extends Controller {
 
     this.usageDialogPath = path
     this.usageDialogTrigger = event.currentTarget
-    this.usageDialogTitleTarget.textContent = window.t("library.usage_dialog_title", { name: item.name })
+    this.usageDialogTitleTarget.textContent = window.t("library.usage_dialog_title")
     const safeNotePaths = [...new Set(notePaths)].filter((notePath) => this.isValidUsageNotePath(notePath))
     this.usageNotesTarget.innerHTML = safeNotePaths.length
       ? safeNotePaths.map((notePath) => {
