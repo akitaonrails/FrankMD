@@ -341,7 +341,7 @@ export default class extends Controller {
 
     this.previewItem = item
     this.previewNameTarget.textContent = item.name
-    this.previewMetadataTarget.textContent = `${this.formatBytes(item.size)} · ${this.formatDate(item.mtime)}`
+    this.previewMetadataTarget.textContent = this.formatPreviewMetadata(item)
     this.updatePreviewUsage()
     const url = escapeHtml(this.mediaUrl(item))
 
@@ -349,10 +349,38 @@ export default class extends Controller {
       this.previewMediaTarget.innerHTML = `<video controls autoplay src="${url}" aria-label="${escapeHtml(item.name)}"></video>`
     } else {
       this.previewMediaTarget.innerHTML = `<img src="${url}" alt="${escapeHtml(item.name)}">`
+      const image = this.previewMediaTarget.querySelector("img")
+      const updateRatio = () => {
+        if (this.previewItem?.path !== item.path) return
+
+        const ratio = this.imageAspectRatio(image.naturalWidth, image.naturalHeight)
+        if (ratio) this.previewMetadataTarget.textContent = this.formatPreviewMetadata(item, ratio)
+      }
+      image.addEventListener("load", updateRatio, { once: true })
+      if (image.complete && image.naturalWidth > 0) updateRatio()
     }
 
     this.previewDialogTarget.classList.remove("hidden")
     this.previewDialogTarget.classList.add("flex")
+  }
+
+  formatPreviewMetadata(item, ratio = null) {
+    const metadata = [this.formatBytes(item.size), this.formatDate(item.mtime)]
+    if (item.type === "image") {
+      if (ratio) metadata.push(ratio)
+      const format = item.name.match(/\.([a-z0-9]+)$/i)?.[1]
+      if (format) metadata.push(format.toUpperCase())
+    }
+    return metadata.join(" · ")
+  }
+
+  imageAspectRatio(width, height) {
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1) return null
+
+    let first = width
+    let second = height
+    while (second !== 0) [first, second] = [second, first % second]
+    return `${width / first}:${height / first}`
   }
 
   insertPreviewItem(event) {

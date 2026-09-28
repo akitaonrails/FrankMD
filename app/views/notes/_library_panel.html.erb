@@ -82,9 +82,10 @@
         <div class="flex items-start justify-between gap-4 border-b border-[var(--theme-border)] p-4 sm:p-5">
           <div class="min-w-0">
             <h2 id="library-preview-name" class="truncate text-base font-semibold" data-library-target="previewName"></h2>
-            <div class="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-[var(--theme-text-muted)]">
+            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--theme-text-muted)]">
               <p data-library-target="previewUsage"></p>
-              <p class="ml-auto text-right" data-library-target="previewMetadata"></p>
+              <span aria-hidden="true">·</span>
+              <p data-library-target="previewMetadata"></p>
             </div>
           </div>
           <button type="button" data-action="click->library#closePreview" class="rounded p-1.5 text-[var(--theme-text-muted)] hover:bg-[var(--theme-bg-hover)]" aria-label="<%= t('common.close') %>">
