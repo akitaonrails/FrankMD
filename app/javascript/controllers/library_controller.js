@@ -7,7 +7,7 @@ import { encodePath } from "lib/url_utils"
 export default class extends Controller {
   static targets = [
     "imagesTab", "videosTab", "count", "error", "loading", "status", "grid", "search", "sort",
-    "previewDialog", "previewName", "previewMetadata", "previewMedia", "usageDialog", "usageDialogTitle",
+    "previewDialog", "previewName", "previewUsage", "previewMetadata", "previewMedia", "usageDialog", "usageDialogTitle",
     "usageDialogClose", "usageNotes"
   ]
 
@@ -101,6 +101,7 @@ export default class extends Controller {
 
       if (generation === this.usageGeneration) {
         this.visibleUsageCards.forEach((card) => this.updateUsageLabel(card))
+        this.updatePreviewUsage()
       }
     })()
     return this.usageRequest
@@ -226,18 +227,58 @@ export default class extends Controller {
     }
 
     const path = card.dataset.usagePath
-    if (Object.prototype.hasOwnProperty.call(this.usageCounts, path)) {
-      const count = Number(this.usageCounts[path])
-      if (Number.isFinite(count) && count > 0) {
-        const text = escapeHtml(window.t("library.usage_used", { count }))
-        const safePath = escapeHtml(path)
-        label.innerHTML = `<button type="button" class="cursor-pointer text-[var(--theme-accent)] underline decoration-dotted underline-offset-2 hover:decoration-solid focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]" data-path="${safePath}" data-action="click->library#openUsage" aria-haspopup="dialog" aria-controls="library-usage-dialog">${text}</button>`
-        label.dataset.usageState = "used"
-        return
-      }
+    const count = Number(this.usageCounts[path])
+    if (Number.isFinite(count) && count > 0) {
+      const text = escapeHtml(window.t("library.usage_used", { count }))
+      const safePath = escapeHtml(path)
+      label.innerHTML = `<button type="button" class="cursor-pointer text-[var(--theme-accent)] underline decoration-dotted underline-offset-2 hover:decoration-solid focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]" data-path="${safePath}" data-action="click->library#openUsage" aria-haspopup="dialog" aria-controls="library-usage-dialog">${text}</button>`
+      label.dataset.usageState = "used"
+      return
     }
 
-    label.textContent = window.t("library.usage_unused")
+    label.textContent = window.t("library.usage_used", { count: 0 })
+    label.dataset.usageState = "unused"
+  }
+
+  updatePreviewUsage() {
+    const label = this.previewUsageTarget
+    const item = this.previewItem
+    if (!item) {
+      label.replaceChildren()
+      delete label.dataset.usageState
+      return
+    }
+
+    if (this.usageStatus === "idle") this.loadUsageIndex()
+
+    if (this.usageStatus === "unknown") {
+      label.textContent = window.t("library.usage_unknown")
+      label.dataset.usageState = "unknown"
+      return
+    }
+
+    if (this.usageStatus !== "loaded") {
+      label.textContent = window.t("library.usage_checking")
+      label.dataset.usageState = "checking"
+      return
+    }
+
+    const count = Number(this.usageCounts[item.path])
+    if (Number.isFinite(count) && count > 0) {
+      const button = document.createElement("button")
+      button.type = "button"
+      button.className = "cursor-pointer text-[var(--theme-accent)] underline decoration-dotted underline-offset-2 hover:decoration-solid focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
+      button.dataset.path = item.path
+      button.dataset.action = "click->library#openUsage"
+      button.setAttribute("aria-haspopup", "dialog")
+      button.setAttribute("aria-controls", "library-usage-dialog")
+      button.textContent = window.t("library.usage_used", { count })
+      label.replaceChildren(button)
+      label.dataset.usageState = "used"
+      return
+    }
+
+    label.textContent = window.t("library.usage_used", { count: 0 })
     label.dataset.usageState = "unused"
   }
 
@@ -301,6 +342,7 @@ export default class extends Controller {
     this.previewItem = item
     this.previewNameTarget.textContent = item.name
     this.previewMetadataTarget.textContent = `${this.formatBytes(item.size)} · ${this.formatDate(item.mtime)}`
+    this.updatePreviewUsage()
     const url = escapeHtml(this.mediaUrl(item))
 
     if (item.type === "video") {

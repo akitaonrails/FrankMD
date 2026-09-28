@@ -61,7 +61,6 @@ ja:
   library:
     usage_checking: "使用状況を確認中..."
     usage_used: "%{count} 件のノートで使用中"
-    usage_unused: "未使用"
     usage_unknown: "使用状況は不明です"
     usage_dialog_title: "関連ノート"
     usage_dialog_empty: "該当するノートは見つかりませんでした。"

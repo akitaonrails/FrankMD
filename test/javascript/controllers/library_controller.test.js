@@ -67,6 +67,7 @@ describe("LibraryController", () => {
     vi.stubGlobal("IntersectionObserver", MockIntersectionObserver)
     window.t = (key, options = {}) => {
       if (key === "library.usage_dialog_title") return "Notes associated"
+      if (key === "library.usage_used") return `Used in ${options.count} notes`
       return key.replace(/%\{(\w+)\}/g, (_match, name) => options[name] ?? `%{${name}}`)
     }
     get.mockResolvedValue(mediaResponse())
@@ -95,7 +96,10 @@ describe("LibraryController", () => {
         </div>
         <div class="hidden" data-library-target="previewDialog" data-action="click->library#closePreviewOnBackdrop">
           <h2 data-library-target="previewName"></h2>
-          <p data-library-target="previewMetadata"></p>
+          <div>
+            <p data-library-target="previewUsage"></p>
+            <p data-library-target="previewMetadata"></p>
+          </div>
           <div data-library-target="previewMedia"></div>
           <button data-action="click->library#deletePreviewItem"></button>
           <button data-action="click->library#copyPreviewPath"></button>
@@ -165,7 +169,8 @@ describe("LibraryController", () => {
     await vi.waitFor(() => {
       expect(cards[1].querySelector("[data-library-usage-label]").dataset.usageState).toBe("unused")
     })
-    expect(cards[1].querySelector("[data-library-usage-label]").textContent).toBe("library.usage_unused")
+    expect(cards[1].querySelector("[data-library-usage-label]").textContent).toBe("Used in 0 notes")
+    expect(cards[1].querySelector("[data-library-usage-label] button")).toBeNull()
 
     controller.showVideos()
     const videoCard = controller.gridTarget.querySelector(".library-card")
@@ -189,7 +194,7 @@ describe("LibraryController", () => {
 
     controller.usageObserver.trigger(usedCard)
     await vi.waitFor(() => expect(usedCard.querySelector("[data-library-usage-label]").dataset.usageState).toBe("used"))
-    expect(usedCard.querySelector("[data-library-usage-label]").textContent).toBe("library.usage_used")
+    expect(usedCard.querySelector("[data-library-usage-label]").textContent).toBe("Used in 3 notes")
     expect(unusedCard.querySelector("[data-library-usage-label]").dataset.usageState).toBe("checking")
 
     controller.usageObserver.trigger(unusedCard)
@@ -229,7 +234,7 @@ describe("LibraryController", () => {
     await vi.waitFor(() => expect(card.querySelector("[data-library-usage-label]").dataset.usageState).toBe("used"))
 
     const usageButton = card.querySelector("[data-library-usage-label] button")
-    expect(usageButton.textContent).toBe("library.usage_used")
+    expect(usageButton.textContent).toBe("Used in 2 notes")
     usageButton.click()
 
     expect(controller.usageDialogTarget.classList.contains("hidden")).toBe(false)
@@ -249,13 +254,28 @@ describe("LibraryController", () => {
     expect(controller.usageDialogTarget.classList.contains("hidden")).toBe(true)
   })
 
-  it("opens image and video previews with filename and metadata", () => {
+  it("opens image and video previews with metadata and clickable usage counts", async () => {
+    get.mockResolvedValueOnce({
+      ok: true,
+      json: Promise.resolve({
+        usage_counts: { [photo.path]: 2 },
+        usage_notes: { [photo.path]: ["notes/photo.md", "notes/second.md"] }
+      })
+    })
     controller.gridTarget.querySelector(".library-card-preview").click()
 
     expect(controller.previewDialogTarget.classList.contains("hidden")).toBe(false)
     expect(controller.previewNameTarget.textContent).toBe(photo.name)
     expect(controller.previewMetadataTarget.textContent).toContain("2 KB")
     expect(controller.previewMediaTarget.querySelector("img").getAttribute("src")).toBe("/notes/images/photo%20one.png")
+    await vi.waitFor(() => expect(controller.previewUsageTarget.dataset.usageState).toBe("used"))
+    const usageButton = controller.previewUsageTarget.querySelector("button")
+    expect(usageButton.textContent).toBe("Used in 2 notes")
+    expect(usageButton.dataset.path).toBe(photo.path)
+    expect(controller.previewUsageTarget.compareDocumentPosition(controller.previewMetadataTarget) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    usageButton.click()
+    expect(controller.usageDialogTarget.classList.contains("hidden")).toBe(false)
+    controller.closeUsageDialog()
 
     controller.closePreview()
     controller.showVideos()
@@ -263,6 +283,8 @@ describe("LibraryController", () => {
     expect(videoCard.dataset.path).toBe(clip.path)
     controller.openPreview({ currentTarget: videoCard })
     expect(controller.previewMediaTarget.querySelector("video").getAttribute("src")).toBe("/notes/videos/clip.mp4")
+    expect(controller.previewUsageTarget.textContent).toBe("Used in 0 notes")
+    expect(controller.previewUsageTarget.querySelector("button")).toBeNull()
   })
 
   it("shows loading, empty, and failure states", async () => {

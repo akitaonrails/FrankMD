@@ -88,7 +88,6 @@ pt-PT:
     usage_scan_failed: "Não foi possível verificar a utilização de multimédia nas notas."
     usage_checking: "A verificar a utilização..."
     usage_used: "Utilizado em %{count} notas"
-    usage_unused: "Não utilizado"
     usage_unknown: "Utilização desconhecida"
     usage_dialog_title: "Notas associadas"
     usage_dialog_empty: "Não foram encontradas notas correspondentes."

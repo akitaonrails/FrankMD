@@ -89,7 +89,6 @@ en:
     usage_scan_failed: "Could not scan notes for media usage."
     usage_checking: "Checking usage..."
     usage_used: "Used in %{count} notes"
-    usage_unused: "Unused"
     usage_unknown: "Usage unknown"
     usage_dialog_title: "Notes associated"
     usage_dialog_empty: "No matching notes were found."

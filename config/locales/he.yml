@@ -60,7 +60,6 @@ he:
   library:
     usage_checking: "בודק שימוש..."
     usage_used: "מופיע ב־%{count} פתקים"
-    usage_unused: "לא בשימוש"
     usage_unknown: "השימוש אינו ידוע"
     usage_dialog_title: "פתקים קשורים"
     usage_dialog_empty: "לא נמצאו פתקים תואמים."

@@ -61,7 +61,6 @@ es:
   library:
     usage_checking: "Comprobando uso..."
     usage_used: "Usado en %{count} notas"
-    usage_unused: "Sin uso"
     usage_unknown: "Uso desconocido"
     usage_dialog_title: "Notas asociadas"
     usage_dialog_empty: "No se encontraron notas coincidentes."
