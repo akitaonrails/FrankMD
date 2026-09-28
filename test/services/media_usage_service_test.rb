@@ -57,6 +57,51 @@ class MediaUsageServiceTest < ActiveSupport::TestCase
     )
   end
 
+  test "indexes full, collapsed, and shortcut references with normalized labels" do
+    create_test_note(
+      "references.md",
+      <<~MARKDOWN
+        ![cover][  PHOTO   IMAGE ]
+        ![video][]
+        [shortcut]
+        [ photo image ]: images/photo%20one.png
+        [video]: videos/clip.mp4
+        [shortcut]: images/shortcut.png
+        [unused]: images/unused.png
+      MARKDOWN
+    )
+
+    assert_equal(
+      {
+        "images/photo one.png" => [ "references.md" ],
+        "images/shortcut.png" => [ "references.md" ],
+        "videos/clip.mp4" => [ "references.md" ]
+      },
+      @service.build_index
+    )
+  end
+
+  test "does not count an unused reference definition" do
+    create_test_note("unused.md", "[photo]: images/photo.png\n")
+
+    assert_equal({}, @service.build_index)
+  end
+
+  test "counts duplicate reference uses once per note" do
+    create_test_note(
+      "duplicates.md",
+      <<~MARKDOWN
+        ![first][photo]
+        [second][  PHOTO ]
+        ![photo][]
+        [photo]
+        [photo]: images/photo.png
+      MARKDOWN
+    )
+
+    assert_equal({ "images/photo.png" => [ "duplicates.md" ] }, @service.build_index)
+  end
+
   test "ignores plain text, unrelated URL substrings, and references inside code" do
     content = <<~MARKDOWN
       Plain mention: images/mentioned.png
@@ -67,6 +112,8 @@ class MediaUsageServiceTest < ActiveSupport::TestCase
       #{ "\x60" * 3 }markdown
       ![fenced](images/fenced-code.png)
       <source src="videos/fenced-code.mp4">
+      ![fenced reference][fenced]
+      [fenced]: images/fenced-reference.png
       #{ "\x60" * 3 }
 
       <!-- <img src="images/commented-out.png"> -->

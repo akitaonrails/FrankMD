@@ -8,6 +8,8 @@ require "uri"
 class MediaUsageService
   MEDIA_ROOTS = %w[images videos].freeze
   MARKDOWN_DESTINATION = /(?<!\\)\[(?:\\.|[^\]\r\n])*\]\([ \t]*(?:<([^>\r\n]*)>|((?:\\.|[^)\s])+))/m
+  REFERENCE_DEFINITION = /\A {0,3}\[([^\]\r\n]+)\]:[ \t]*(?:<([^>\r\n]*)>|([^\s]+))/
+  REFERENCE_USE = /(?<!\\)!\[((?:\\.|[^\]\r\n])*)\](?:\[([^\]\r\n]*)\])?|(?<![\\!])\[((?:\\.|[^\]\r\n])*)\](?:\[([^\]\r\n]*)\])?/
   HTML_SOURCE = /<(?:img|video|audio|source|track|embed|object)\b[^>]*?\s+src\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/im
 
   class ScanError < StandardError; end
@@ -59,9 +61,48 @@ class MediaUsageService
 
   def references_in(content)
     source = markdown_without_code(content)
+    definitions, source = extract_reference_definitions(source)
     markdown_references = source.scan(MARKDOWN_DESTINATION).map { |angle, bare| angle || bare }
+    reference_references = reference_destinations(source, definitions)
     html_references = source.scan(HTML_SOURCE).map { |quoted, single_quoted, unquoted| quoted || single_quoted || unquoted }
-    markdown_references + html_references
+    markdown_references + reference_references + html_references
+  end
+
+  def extract_reference_definitions(content)
+    definitions = {}
+    content_without_definitions = content.lines.map do |line|
+      match = line.match(REFERENCE_DEFINITION)
+      unless match
+        next line
+      end
+
+      label = normalize_reference_label(match[1])
+      definitions[label] ||= match[2] || match[3]
+      mask_line(line)
+    end.join
+
+    [ definitions, content_without_definitions ]
+  end
+
+  def reference_destinations(content, definitions)
+    destinations = []
+    cursor = 0
+
+    while (match = REFERENCE_USE.match(content, cursor))
+      cursor = match.begin(0) + 1
+      first_label = match[1] || match[3]
+      second_label = match[2] || match[4]
+
+      if second_label.nil?
+        following_text = content[match.end(0)..]
+        next if following_text&.match?(/\A[ \t]*\(/)
+      end
+
+      label = second_label.nil? || second_label.empty? ? first_label : second_label
+      destinations << definitions[normalize_reference_label(label)]
+    end
+
+    destinations.compact
   end
 
   # Remove fenced code blocks, inline code, and HTML comments before scanning
@@ -90,6 +131,14 @@ class MediaUsageService
 
   def mask_line(line)
     line.gsub(/[^\r\n]/, " ")
+  end
+
+  def normalize_reference_label(label)
+    CGI.unescapeHTML(label.to_s)
+      .gsub(/\\([[:punct:]])/) { Regexp.last_match(1) }
+      .strip
+      .gsub(/[[:space:]]+/, " ")
+      .downcase
   end
 
   def canonical_media_path(reference, note_path)
