@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { Application } from "@hotwired/stimulus"
+import * as RailsRequest from "@rails/request.js"
 import { setupJsdomGlobals } from "../helpers/jsdom_globals.js"
 import ThemeController from "../../../app/javascript/controllers/theme_controller.js"
 
@@ -264,18 +265,15 @@ describe("ThemeController", () => {
     })
 
     it("debounces multiple calls", async () => {
-      // connect() runs an async Omarchy availability check before rendering;
-      // wait for it so its fetch cannot land after the mock is cleared below.
+      // connect() runs an async Omarchy availability check before rendering.
       await vi.waitFor(() => {
         expect(controller.menuTarget.querySelector("button")).not.toBeNull()
       })
 
+      const patch = vi.spyOn(RailsRequest, "patch").mockResolvedValue({ ok: true })
       vi.useFakeTimers()
 
       try {
-        // Clear any prior fetch calls (e.g. omarchy availability check)
-        fetch.mockClear()
-
         controller.saveThemeConfig("nord")
         controller.saveThemeConfig("gruvbox")
         controller.saveThemeConfig("tokyo-night")
@@ -283,14 +281,11 @@ describe("ThemeController", () => {
         vi.advanceTimersByTime(500)
         await vi.runAllTimersAsync()
 
-        const themeConfigRequests = fetch.mock.calls.filter(([url, options]) =>
-          url === "/config" && options?.method === "PATCH"
-        )
-
-        expect(themeConfigRequests).toHaveLength(1)
-        expect(themeConfigRequests[0][1]).toEqual(expect.objectContaining({
-          body: JSON.stringify({ theme: "tokyo-night" })
-        }))
+        expect(patch).toHaveBeenCalledTimes(1)
+        expect(patch).toHaveBeenCalledWith("/config", {
+          body: { theme: "tokyo-night" },
+          responseKind: "json"
+        })
       } finally {
         vi.useRealTimers()
       }

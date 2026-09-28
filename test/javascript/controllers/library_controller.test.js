@@ -64,6 +64,9 @@ describe("LibraryController", () => {
           <h2 data-library-target="previewName"></h2>
           <p data-library-target="previewMetadata"></p>
           <div data-library-target="previewMedia"></div>
+          <button data-action="click->library#deletePreviewItem"></button>
+          <button data-action="click->library#copyPreviewPath"></button>
+          <button data-action="click->library#insertPreviewItem"></button>
           <button data-action="click->library#closePreview"></button>
         </div>
       </div>
@@ -89,6 +92,8 @@ describe("LibraryController", () => {
     expect(controller.gridTarget.querySelectorAll(".library-card")).toHaveLength(1)
     expect(controller.gridTarget.querySelector("img").getAttribute("src")).toBe("/notes/images/photo%20one.png")
     expect(controller.gridTarget.textContent).toContain("2 KB")
+    expect(Array.from(controller.gridTarget.querySelectorAll(".library-card [data-action]"), (button) => button.dataset.action))
+      .toEqual(["click->library#openPreview", "click->library#deleteItem", "click->library#insertItem"])
 
     controller.videosTabTarget.click()
 
@@ -167,13 +172,16 @@ describe("LibraryController", () => {
   it("copies the stored relative media path and reports clipboard failures", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } })
+    const previewButton = controller.gridTarget.querySelector(".library-card-preview")
+    controller.openPreview({ currentTarget: previewButton })
+    const copyButton = controller.previewDialogTarget.querySelector('[data-action="click->library#copyPreviewPath"]')
 
-    controller.gridTarget.querySelector('[data-action="click->library#copyRelativePath"]').click()
+    copyButton.click()
     await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith("images/photo one.png"))
     expect(controller.statusTarget.textContent).toBe("library.copied")
 
     writeText.mockRejectedValueOnce(new Error("clipboard unavailable"))
-    controller.gridTarget.querySelector('[data-action="click->library#copyRelativePath"]').click()
+    copyButton.click()
     await vi.waitFor(() => expect(controller.errorTarget.textContent).toBe("clipboard unavailable"))
   })
 
