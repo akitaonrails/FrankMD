@@ -42,6 +42,24 @@ class NotesServiceTest < ActiveSupport::TestCase
     assert_equal "nested", folder[:children].first[:name]
   end
 
+  test "list_tree keeps root images/videos visible when they contain markdown" do
+    create_test_folder("images")
+    create_test_note("images/photo.png", "media")
+    create_test_folder("images/notes")
+    create_test_note("images/notes/guide.md")
+    create_test_folder("videos")
+    create_test_note("videos/clip.mp4", "media")
+
+    tree = @service.list_tree
+
+    images = tree.find { |item| item[:name] == "images" }
+    assert images, "root images/ containing markdown must stay in the tree"
+    guide = images[:children].flat_map { |child| child[:children] || [] }
+      .find { |item| item[:name] == "guide" }
+    assert guide, "nested markdown must be reachable through the tree"
+    refute tree.any? { |item| item[:name] == "videos" }
+  end
+
   test "list_tree hides only root managed media folders" do
     create_test_folder("images")
     create_test_folder("videos")

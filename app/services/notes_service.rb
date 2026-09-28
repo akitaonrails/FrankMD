@@ -417,8 +417,11 @@ class NotesService
 
       # These root-level folders are managed media storage, presented in the
       # Library workspace instead of the Markdown Explorer. Same-named folders
-      # below the root remain ordinary user folders.
-      if dir == @base_path && entry.directory? && %w[images videos].include?(basename)
+      # below the root remain ordinary user folders. A root folder that still
+      # contains Markdown anywhere beneath it is user content and stays
+      # visible (pre-existing note folders named images/ or videos/).
+      if dir == @base_path && entry.directory? && %w[images videos].include?(basename) &&
+         entry.glob("**/*.md").empty?
         next
       end
 
