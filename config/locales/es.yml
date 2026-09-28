@@ -63,6 +63,9 @@ es:
     usage_used: "Usado en %{count} notas"
     usage_unused: "Sin uso"
     usage_unknown: "Uso desconocido"
+    usage_dialog_title: "Notas que usan %{name}"
+    usage_dialog_empty: "No se encontraron notas coincidentes."
+    usage_open_note: "Abrir nota %{path}"
 
   # Editor section
   editor:

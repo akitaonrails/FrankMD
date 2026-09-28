@@ -1422,6 +1422,14 @@ export default class extends Controller {
     this.openFileAndRevealInTree(path)
   }
 
+  openLibraryNote(event) {
+    const path = event.detail?.path
+    if (typeof path !== "string" || path.startsWith("/") || !path.endsWith(".md")) return
+    if (path.split("/").some((segment) => !segment || segment === "." || segment === ".." || segment.includes("\\"))) return
+
+    return this.openFileAndRevealInTree(path)
+  }
+
   async openFileAndRevealInTree(path) {
     // Expand all parent folders in the tree
     const parts = path.split("/")

@@ -106,6 +106,19 @@ describe("AppController Library workspace", () => {
     expect(libraryController.load).toHaveBeenCalledTimes(2)
   })
 
+  it("opens valid Library usage note paths and rejects unsafe paths", () => {
+    const { app } = makeWorkspaceApp()
+    app.openFileAndRevealInTree = vi.fn()
+
+    app.openLibraryNote({ detail: { path: "folder/used note.md" } })
+    app.openLibraryNote({ detail: { path: "../outside.md" } })
+    app.openLibraryNote({ detail: { path: "/absolute/note.md" } })
+    app.openLibraryNote({ detail: { path: "folder/file.txt" } })
+
+    expect(app.openFileAndRevealInTree).toHaveBeenCalledOnce()
+    expect(app.openFileAndRevealInTree).toHaveBeenCalledWith("folder/used note.md")
+  })
+
   it("inserts uploaded root images with a path relative to the current note", () => {
     const { app } = makeWorkspaceApp()
     const codemirror = {

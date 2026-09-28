@@ -85,6 +85,11 @@ describe("LibraryController", () => {
           <option value="name">Name</option>
         </select>
         <div data-library-target="grid"></div>
+        <div class="hidden" data-library-target="usageDialog" data-action="click->library#closeUsageDialogOnBackdrop keydown.esc->library#closeUsageDialog">
+          <h2 data-library-target="usageDialogTitle"></h2>
+          <ul data-library-target="usageNotes"></ul>
+          <button data-library-target="usageDialogClose" data-action="click->library#closeUsageDialog"></button>
+        </div>
         <div class="hidden" data-library-target="previewDialog" data-action="click->library#closePreviewOnBackdrop">
           <h2 data-library-target="previewName"></h2>
           <p data-library-target="previewMetadata"></p>
@@ -150,7 +155,10 @@ describe("LibraryController", () => {
     expect(get).toHaveBeenLastCalledWith("/library/usage", { responseKind: "json" })
     expect(get.mock.calls.filter(([path]) => path === "/library/usage")).toHaveLength(1)
 
-    resolveUsage({ ok: true, json: Promise.resolve({ usage_counts: { [photo.path]: 2 } }) })
+    resolveUsage({ ok: true, json: Promise.resolve({
+      usage_counts: { [photo.path]: 2 },
+      usage_notes: { [photo.path]: ["first.md", "second.md"] }
+    }) })
     await vi.waitFor(() => {
       expect(cards[1].querySelector("[data-library-usage-label]").dataset.usageState).toBe("unused")
     })
@@ -170,7 +178,10 @@ describe("LibraryController", () => {
     const [usedCard, unusedCard] = controller.gridTarget.querySelectorAll(".library-card")
     get.mockResolvedValueOnce({
       ok: true,
-      json: Promise.resolve({ usage_counts: { [photo.path]: 3 } })
+      json: Promise.resolve({
+        usage_counts: { [photo.path]: 3 },
+        usage_notes: { [photo.path]: ["first.md", "second.md", "third.md"] }
+      })
     })
 
     controller.usageObserver.trigger(usedCard)
@@ -189,17 +200,49 @@ describe("LibraryController", () => {
   })
 
   it("refreshes the cached usage map when Library is reopened", async () => {
-    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({ usage_counts: { [photo.path]: 1 } }) })
+    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({
+      usage_counts: { [photo.path]: 1 },
+      usage_notes: { [photo.path]: ["note.md"] }
+    }) })
     const card = controller.gridTarget.querySelector(".library-card")
     controller.usageObserver.trigger(card)
     await vi.waitFor(() => expect(card.querySelector("[data-library-usage-label]").dataset.usageState).toBe("used"))
 
     controller.resetUsageForLibraryOpen()
     expect(card.querySelector("[data-library-usage-label]").dataset.usageState).toBe("checking")
-    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({ usage_counts: {} }) })
+    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({ usage_counts: {}, usage_notes: {} }) })
     controller.usageObserver.trigger(card)
     await vi.waitFor(() => expect(card.querySelector("[data-library-usage-label]").dataset.usageState).toBe("unused"))
     expect(get.mock.calls.filter(([path]) => path === "/library/usage")).toHaveLength(2)
+  })
+
+  it("opens usage paths in a dialog and dispatches the selected note", async () => {
+    get.mockResolvedValueOnce({ ok: true, json: Promise.resolve({
+      usage_counts: { [photo.path]: 2 },
+      usage_notes: { [photo.path]: ["notes/first note.md", "../outside.md", "notes/second.md"] }
+    }) })
+    const card = controller.gridTarget.querySelector(".library-card")
+    controller.usageObserver.trigger(card)
+    await vi.waitFor(() => expect(card.querySelector("[data-library-usage-label]").dataset.usageState).toBe("used"))
+
+    const usageButton = card.querySelector("[data-library-usage-label] button")
+    expect(usageButton.textContent).toBe("library.usage_used")
+    usageButton.click()
+
+    expect(controller.usageDialogTarget.classList.contains("hidden")).toBe(false)
+    expect(controller.usageDialogTitleTarget.textContent).toBe("library.usage_dialog_title")
+    const noteButtons = controller.usageNotesTarget.querySelectorAll("button[data-note-path]")
+    expect(Array.from(noteButtons, (button) => button.dataset.notePath)).toEqual(["notes/first note.md", "notes/second.md"])
+    expect(controller.usageNotesTarget.querySelector("img")).toBeNull()
+
+    const openNote = vi.fn()
+    element.addEventListener("library:open-note", openNote)
+    await vi.waitFor(() => {
+      noteButtons[0].click()
+      expect(openNote).toHaveBeenCalledOnce()
+    })
+    expect(openNote.mock.calls[0][0].detail).toEqual({ path: "notes/first note.md" })
+    expect(controller.usageDialogTarget.classList.contains("hidden")).toBe(true)
   })
 
   it("opens image and video previews with filename and metadata", () => {

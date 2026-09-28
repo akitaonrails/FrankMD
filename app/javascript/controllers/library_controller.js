@@ -7,7 +7,8 @@ import { encodePath } from "lib/url_utils"
 export default class extends Controller {
   static targets = [
     "imagesTab", "videosTab", "count", "error", "loading", "status", "grid", "search", "sort",
-    "previewDialog", "previewName", "previewMetadata", "previewMedia"
+    "previewDialog", "previewName", "previewMetadata", "previewMedia", "usageDialog", "usageDialogTitle",
+    "usageDialogClose", "usageNotes"
   ]
 
   connect() {
@@ -17,9 +18,12 @@ export default class extends Controller {
     this.requestGeneration = 0
     this.usageGeneration = (this.usageGeneration || 0) + 1
     this.usageCounts = null
+    this.usageNotes = null
     this.usageStatus = "idle"
     this.usageRequest = null
     this.visibleUsageCards = new Set()
+    this.usageDialogPath = null
+    this.usageDialogTrigger = null
     this.createUsageObserver()
     this.load()
   }
@@ -39,7 +43,7 @@ export default class extends Controller {
         if (entry.isIntersecting) {
           this.visibleUsageCards.add(entry.target)
           this.updateUsageLabel(entry.target)
-          if (this.usageStatus === "idle") this.loadUsageCounts()
+          if (this.usageStatus === "idle") this.loadUsageIndex()
         } else {
           this.visibleUsageCards.delete(entry.target)
         }
@@ -50,6 +54,7 @@ export default class extends Controller {
   resetUsageForLibraryOpen() {
     this.usageGeneration += 1
     this.usageCounts = null
+    this.usageNotes = null
     this.usageStatus = "idle"
     this.usageRequest = null
     this.visibleUsageCards.clear()
@@ -64,7 +69,7 @@ export default class extends Controller {
     this.gridTarget.querySelectorAll(".library-card").forEach((card) => this.usageObserver.observe(card))
   }
 
-  async loadUsageCounts() {
+  async loadUsageIndex() {
     if (this.usageRequest) return this.usageRequest
 
     const generation = this.usageGeneration
@@ -77,14 +82,20 @@ export default class extends Controller {
 
         const data = await response.json
         if (generation !== this.usageGeneration) return
-        if (!data?.usage_counts || typeof data.usage_counts !== "object" || Array.isArray(data.usage_counts)) {
+        const usageCounts = data?.usage_counts
+        const usageNotes = data?.usage_notes
+        if (!usageCounts || typeof usageCounts !== "object" || Array.isArray(usageCounts) ||
+          !usageNotes || typeof usageNotes !== "object" || Array.isArray(usageNotes) ||
+          Object.values(usageNotes).some((paths) => !Array.isArray(paths) || paths.some((path) => typeof path !== "string"))) {
           throw new Error("Media usage response was invalid")
         }
-        this.usageCounts = data.usage_counts
+        this.usageCounts = usageCounts
+        this.usageNotes = usageNotes
         this.usageStatus = "loaded"
       } catch (_error) {
         if (generation !== this.usageGeneration) return
         this.usageCounts = null
+        this.usageNotes = null
         this.usageStatus = "unknown"
       }
 
@@ -218,7 +229,9 @@ export default class extends Controller {
     if (Object.prototype.hasOwnProperty.call(this.usageCounts, path)) {
       const count = Number(this.usageCounts[path])
       if (Number.isFinite(count) && count > 0) {
-        label.textContent = window.t("library.usage_used", { count })
+        const text = escapeHtml(window.t("library.usage_used", { count }))
+        const safePath = escapeHtml(path)
+        label.innerHTML = `<button type="button" class="cursor-pointer text-[var(--theme-accent)] underline decoration-dotted underline-offset-2 hover:decoration-solid focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]" data-path="${safePath}" data-action="click->library#openUsage" aria-haspopup="dialog" aria-controls="library-usage-dialog">${text}</button>`
         label.dataset.usageState = "used"
         return
       }
@@ -226,6 +239,59 @@ export default class extends Controller {
 
     label.textContent = window.t("library.usage_unused")
     label.dataset.usageState = "unused"
+  }
+
+  openUsage(event) {
+    const path = event.currentTarget.dataset.path
+    const item = this.itemForPath(path)
+    if (!item || this.usageStatus !== "loaded") return
+
+    const notePaths = this.usageNotes?.[path]
+    if (!Array.isArray(notePaths)) return
+
+    this.usageDialogPath = path
+    this.usageDialogTrigger = event.currentTarget
+    this.usageDialogTitleTarget.textContent = window.t("library.usage_dialog_title", { name: item.name })
+    const safeNotePaths = [...new Set(notePaths)].filter((notePath) => this.isValidUsageNotePath(notePath))
+    this.usageNotesTarget.innerHTML = safeNotePaths.length
+      ? safeNotePaths.map((notePath) => {
+        const safePath = escapeHtml(notePath)
+        const label = escapeHtml(window.t("library.usage_open_note", { path: notePath }))
+        return `<li><button type="button" class="w-full rounded-md px-3 py-2 text-left text-sm text-[var(--theme-accent)] hover:bg-[var(--theme-bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]" data-note-path="${safePath}" data-action="click->library#openUsageNote" aria-label="${label}">${safePath}</button></li>`
+      }).join("")
+      : `<li class="px-3 py-2 text-sm text-[var(--theme-text-muted)]">${escapeHtml(window.t("library.usage_dialog_empty"))}</li>`
+    this.usageDialogTarget.classList.remove("hidden")
+    this.usageDialogTarget.classList.add("flex")
+    this.usageDialogCloseTarget.focus()
+  }
+
+  closeUsageDialog(event) {
+    event?.stopPropagation?.()
+    if (this.usageDialogTarget.classList.contains("hidden")) return
+
+    this.usageDialogTarget.classList.add("hidden")
+    this.usageDialogTarget.classList.remove("flex")
+    this.usageDialogPath = null
+    const trigger = this.usageDialogTrigger
+    this.usageDialogTrigger = null
+    trigger?.focus?.()
+  }
+
+  closeUsageDialogOnBackdrop(event) {
+    if (event.target === this.usageDialogTarget) this.closeUsageDialog(event)
+  }
+
+  openUsageNote(event) {
+    const path = event.currentTarget.dataset.notePath
+    if (!this.isValidUsageNotePath(path) || !this.usageNotes?.[this.usageDialogPath]?.includes(path)) return
+
+    this.closeUsageDialog()
+    this.dispatch("open-note", { detail: { path } })
+  }
+
+  isValidUsageNotePath(path) {
+    if (typeof path !== "string" || path.startsWith("/") || !path.endsWith(".md")) return false
+    return path.split("/").every((segment) => segment && segment !== "." && segment !== ".." && !segment.includes("\\"))
   }
 
   openPreview(event) {
@@ -341,6 +407,7 @@ export default class extends Controller {
   closeLibrary() {
     if (this.element.classList.contains("hidden")) return
     if (!this.previewDialogTarget.classList.contains("hidden")) this.closePreview()
+    if (!this.usageDialogTarget.classList.contains("hidden")) this.closeUsageDialog()
     this.dispatch("close")
   }
 

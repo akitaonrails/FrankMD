@@ -62,6 +62,11 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     assert_equal 2, usage_counts.fetch("images/photo.png")
     assert_equal 1, usage_counts.fetch("videos/clip.mp4")
     refute usage_counts.key?("images/unused.png")
+
+    usage_notes = JSON.parse(response.body).fetch("usage_notes")
+    assert_equal [ "first.md", "nested/second.md" ], usage_notes.fetch("images/photo.png")
+    assert_equal [ "first.md" ], usage_notes.fetch("videos/clip.mp4")
+    refute usage_notes.key?("images/unused.png")
   end
 
   test "usage counts repeated references from one note once" do
@@ -70,7 +75,9 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     get "/library/usage", as: :json
 
     assert_response :success
-    assert_equal({ "images/photo.png" => 1 }, JSON.parse(response.body).fetch("usage_counts"))
+    data = JSON.parse(response.body)
+    assert_equal({ "images/photo.png" => 1 }, data.fetch("usage_counts"))
+    assert_equal({ "images/photo.png" => [ "repeated.md" ] }, data.fetch("usage_notes"))
   end
 
   test "usage builds the index once per request" do
@@ -79,7 +86,9 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     get "/library/usage", as: :json
 
     assert_response :success
-    assert_equal({ "images/photo.png" => 1 }, JSON.parse(response.body).fetch("usage_counts"))
+    data = JSON.parse(response.body)
+    assert_equal({ "images/photo.png" => 1 }, data.fetch("usage_counts"))
+    assert_equal({ "images/photo.png" => [ "note.md" ] }, data.fetch("usage_notes"))
   end
 
   test "usage returns no partial map and a localized error when the note scan fails" do
@@ -91,6 +100,7 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     data = JSON.parse(response.body)
     assert_equal I18n.t("library.usage_scan_failed"), data.fetch("error")
     refute data.key?("usage_counts")
+    refute data.key?("usage_notes")
   end
 
   test "usage returns a localized error when a notes directory cannot be scanned" do

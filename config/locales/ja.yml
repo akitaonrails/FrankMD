@@ -63,6 +63,9 @@ ja:
     usage_used: "%{count} 件のノートで使用中"
     usage_unused: "未使用"
     usage_unknown: "使用状況は不明です"
+    usage_dialog_title: "%{name} を使用しているノート"
+    usage_dialog_empty: "該当するノートは見つかりませんでした。"
+    usage_open_note: "ノート %{path} を開く"
 
   # Editor section
   editor:
