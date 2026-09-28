@@ -113,8 +113,8 @@ export default class extends Controller {
           <p class="truncate text-sm font-medium" title="${name}">${name}</p>
           <p class="mt-1 text-xs text-[var(--theme-text-muted)]">${size} <span aria-hidden="true">·</span> ${date}</p>
           <div class="mt-2 flex flex-wrap justify-end gap-2">
-            <button type="button" data-path="${path}" data-action="click->library#insertItem" class="rounded-md bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-[var(--theme-accent-text)] hover:opacity-90">${escapeHtml(window.t("library.insert"))}</button>
             <button type="button" data-path="${path}" data-action="click->library#deleteItem" class="rounded-md border border-[var(--theme-error)] px-3 py-2 text-sm text-[var(--theme-error)] hover:bg-[var(--theme-bg-hover)]">${escapeHtml(window.t("library.delete"))}</button>
+            <button type="button" data-path="${path}" data-action="click->library#insertItem" class="rounded-md bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-[var(--theme-accent-text)] hover:opacity-90">${escapeHtml(window.t("library.insert"))}</button>
           </div>
         </div>
       </article>
