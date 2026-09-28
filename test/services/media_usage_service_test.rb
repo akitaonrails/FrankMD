@@ -60,12 +60,21 @@ class MediaUsageServiceTest < ActiveSupport::TestCase
   test "unescapes Markdown punctuation while retaining path containment" do
     create_test_note("references.md", <<~'MARKDOWN')
       ![diagram](images/diagram\(draft\).png)
+      ![hash](images/hash\#name.png)
+      ![question](images/question\?name.png)
       ![reference][diagram]
       [diagram]: images/diagram\(draft\).png
       ![outside](images/\.\./../../outside.png)
     MARKDOWN
 
-    assert_equal({ "images/diagram(draft).png" => [ "references.md" ] }, @service.build_index)
+    assert_equal(
+      {
+        "images/diagram(draft).png" => [ "references.md" ],
+        "images/hash#name.png" => [ "references.md" ],
+        "images/question?name.png" => [ "references.md" ]
+      },
+      @service.build_index
+    )
   end
 
   test "indexes full, collapsed, and shortcut references with normalized labels" do

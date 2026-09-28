@@ -184,10 +184,10 @@ class MediaUsageService
 
   def canonical_media_path(reference, note_path)
     path = CGI.unescapeHTML(reference.to_s.strip)
+    path = strip_unescaped_url_suffix(path)
     path = path.gsub(/\\([[:punct:]])/) { Regexp.last_match(1) }
     return nil if path.empty? || path.match?(%r{\A(?:[a-z][a-z0-9+.-]*:|//)}i)
 
-    path = path.split(/[?#]/, 2).first.to_s
     absolute = path.start_with?("/")
     raw_segments = path.split("/")
     raw_segments.shift if absolute
@@ -221,5 +221,19 @@ class MediaUsageService
     segments.join("/")
   rescue ArgumentError, EncodingError
     nil
+  end
+
+  def strip_unescaped_url_suffix(path)
+    prefix = +""
+    escaped = false
+
+    path.each_char do |character|
+      break if [ "?", "#" ].include?(character) && !escaped
+
+      prefix << character
+      escaped = character == "\\" ? !escaped : false
+    end
+
+    prefix
   end
 end
