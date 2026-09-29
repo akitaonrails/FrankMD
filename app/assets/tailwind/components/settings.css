@@ -1,0 +1,127 @@
+/* Settings workspace */
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-nav-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--theme-text-muted);
+  text-align: left;
+}
+
+.settings-nav-button:hover {
+  background: var(--theme-bg-hover);
+  color: var(--theme-text-primary);
+}
+
+.settings-nav-button[aria-pressed="true"] {
+  background: var(--theme-bg-hover);
+  color: var(--theme-accent);
+}
+
+.settings-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--theme-text-faint);
+  margin-bottom: 0.75rem;
+}
+
+.settings-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 0.5rem;
+  background: var(--theme-bg-secondary);
+}
+
+.settings-card + .settings-card {
+  margin-top: 0.5rem;
+}
+
+/* Pill switch driven purely by aria-pressed (no JS class juggling) */
+.settings-switch {
+  position: relative;
+  width: 2.5rem;
+  height: 1.375rem;
+  border-radius: 9999px;
+  border: 1px solid var(--theme-border);
+  background: var(--theme-bg-tertiary);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.settings-switch-knob {
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: var(--theme-text-secondary);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.settings-switch:hover {
+  border-color: var(--theme-accent);
+}
+
+.settings-switch[aria-pressed="true"] {
+  background: var(--theme-accent);
+  border-color: var(--theme-accent);
+}
+
+.settings-switch[aria-pressed="true"] .settings-switch-knob {
+  transform: translateX(1.0625rem);
+  background: var(--theme-accent-text);
+}
+
+/* Range slider (editor width) */
+.settings-range {
+  height: 0.25rem;
+  appearance: none;
+  border-radius: 9999px;
+  background: var(--theme-bg-tertiary);
+  outline: none;
+}
+
+.settings-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: var(--theme-accent);
+  border: 2px solid var(--theme-bg-secondary);
+  cursor: pointer;
+}
+
+.settings-range::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: var(--theme-accent);
+  border: 2px solid var(--theme-bg-secondary);
+  cursor: pointer;
+}
+
+.settings-range:focus-visible {
+  box-shadow: 0 0 0 2px var(--theme-accent);
+}
+
+/* Header toggle active state (mirrors .library-toggle) */
+.settings-toggle[aria-pressed="true"] {
+  color: var(--theme-accent);
+}

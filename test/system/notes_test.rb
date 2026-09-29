@@ -205,6 +205,10 @@ class NotesTest < ApplicationSystemTestCase
   test "theme picker can change theme" do
     visit root_url
 
+    # Open the Settings workspace (theme picker lives there now)
+    find("button[title='Open Settings']").click
+    assert_selector "[data-app-target='settingsPanel']:not(.hidden)", wait: 2
+
     # Get initial theme text
     initial_theme = find("[data-theme-target='currentTheme']").text
 

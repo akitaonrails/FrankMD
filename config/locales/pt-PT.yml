@@ -33,8 +33,6 @@ pt-PT:
   # Secção do cabeçalho
   header:
     toggle_explorer: "Alternar Explorador (Ctrl+E)"
-    toggle_typewriter: "Alternar Modo Máquina de Escrever (Ctrl+B)"
-    toggle_vim: "Alternar Modo Vim"
     toggle_preview: "Alternar Pré-visualização (Ctrl+Shift+P)"
     change_theme: "Alterar Tema"
     change_language: "Alterar Idioma"
@@ -42,6 +40,8 @@ pt-PT:
     click_to_copy_path: "Clique para copiar o caminho"
     library: "Biblioteca"
     open_library: "Abrir biblioteca de multimédia"
+    settings: "Configurações"
+    open_settings: "Abrir Configurações"
 
   # Secção da barra lateral/explorador
   sidebar:
@@ -91,6 +91,41 @@ pt-PT:
     markdown_note_required: "Só é possível inserir multimédia numa nota Markdown aberta."
     insertion_failed: "Não foi possível inserir multimédia na nota."
 
+  # Espaço de trabalho de configurações
+  settings:
+    title: "Configurações"
+    description: "As preferências são aplicadas de imediato e guardadas no seu ficheiro de configuração."
+    categories: "Categorias de configurações"
+    general: "Geral"
+    editor: "Editor"
+    writing: "Escrita"
+    preview: "Pré-visualização"
+    theme: "Tema"
+    theme_description: "Paleta de cores da aplicação"
+    language: "Idioma"
+    language_description: "Idioma da interface (recarrega a aplicação)"
+    font: "Tipo de letra"
+    font_size: "Tamanho da letra"
+    font_preview: "Pré-visualização"
+    font_preview_line: "A rápida raposa castanha"
+    editor_width: "Largura do editor"
+    editor_width_description: "Largura máxima da coluna de texto"
+    line_numbers: "Números de linha"
+    line_numbers_off: "Desativados"
+    line_numbers_absolute: "Absolutos"
+    line_numbers_relative: "Relativos"
+    indent: "Indentação"
+    indent_description: "Espaços por nível de indentação"
+    indent_spaces: "%{count} espaços"
+    typewriter: "Modo máquina de escrever"
+    typewriter_description: "Centra o cursor para escrita sem distrações"
+    vim: "Modo Vim"
+    vim_description: "Atalhos Vim no editor"
+    scroll_sync: "Sincronização de rolagem"
+    scroll_sync_description: "Rola a pré-visualização junto com o editor"
+    preview_zoom: "Zoom da pré-visualização"
+    preview_zoom_description: "Nível de zoom da pré-visualização renderizada"
+    save_failed: "Falha ao guardar a configuração"
   # Secção do editor
   editor:
     select_note: "Selecione ou crie uma nota"
@@ -125,8 +160,6 @@ pt-PT:
       video_title: "Inserir Vídeo"
       code: "Código"
       code_title: "Inserir/Editar Bloco de Código"
-      font: "Tipo de Letra"
-      font_title: "Definições do Editor"
       ai: "IA"
       ai_title: "Verificação Gramatical com IA"
       emoji: "Emoji"
@@ -454,13 +487,6 @@ pt-PT:
         switch_tabs: "Trocar separadores (com separador focado)"
         navigate_items: "Navegar itens"
         select_confirm: "Selecionar/confirmar"
-
-    # Diálogo de personalização (definições do editor)
-    customize:
-      title: "Definições do Editor"
-      font_family: "Família do Tipo de Letra"
-      font_size: "Tamanho do Tipo de Letra"
-      preview: "Pré-visualização"
 
     # Diálogo acerca
     about:

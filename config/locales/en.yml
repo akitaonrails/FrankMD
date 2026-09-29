@@ -33,9 +33,6 @@ en:
   # Header section
   header:
     toggle_explorer: "Toggle Explorer (Ctrl+E)"
-    toggle_typewriter: "Toggle Typewriter Mode (Ctrl+B)"
-    toggle_vim: "Toggle Vim Mode"
-    toggle_scroll_sync: "Toggle Scroll Sync (Ctrl+Shift+\\)"
     toggle_preview: "Toggle Preview (Ctrl+Shift+P)"
     change_theme: "Change Theme"
     change_language: "Change Language"
@@ -43,6 +40,8 @@ en:
     click_to_copy_path: "Click to copy path"
     library: "Library"
     open_library: "Open media Library"
+    settings: "Settings"
+    open_settings: "Open Settings"
 
   # Sidebar/Explorer section
   sidebar:
@@ -92,6 +91,42 @@ en:
     markdown_note_required: "Media can only be inserted into an open Markdown note."
     insertion_failed: "Could not insert media into the note."
 
+  # Settings workspace
+  settings:
+    title: "Settings"
+    description: "Preferences apply immediately and are saved to your config file."
+    categories: "Settings categories"
+    general: "General"
+    editor: "Editor"
+    writing: "Writing"
+    preview: "Preview"
+    theme: "Theme"
+    theme_description: "Color palette for the whole app"
+    language: "Language"
+    language_description: "Interface language (reloads the app)"
+    font: "Font family"
+    font_size: "Font size"
+    font_preview: "Preview"
+    font_preview_line: "The quick brown fox"
+    editor_width: "Editor width"
+    editor_width_description: "Maximum text column width"
+    line_numbers: "Line numbers"
+    line_numbers_off: "Off"
+    line_numbers_absolute: "Absolute"
+    line_numbers_relative: "Relative"
+    indent: "Indentation"
+    indent_description: "Spaces per indent level"
+    indent_spaces: "%{count} spaces"
+    typewriter: "Typewriter mode"
+    typewriter_description: "Center the cursor for distraction-free writing"
+    vim: "Vim mode"
+    vim_description: "Vim keybindings in the editor"
+    scroll_sync: "Scroll sync"
+    scroll_sync_description: "Scroll the preview with the editor"
+    preview_zoom: "Preview zoom"
+    preview_zoom_description: "Zoom level for the rendered preview"
+    save_failed: "Failed to save setting"
+
   # Editor section
   editor:
     select_note: "Select or create a note"
@@ -126,8 +161,6 @@ en:
       video_title: "Insert Video"
       code: "Code"
       code_title: "Insert/Edit Code Block"
-      font: "Font"
-      font_title: "Editor Settings"
       ai: "AI"
       ai_title: "AI Grammar Check"
       emoji: "Emoji"
@@ -465,13 +498,6 @@ en:
         switch_tabs: "Switch tabs (when tab focused)"
         navigate_items: "Navigate items"
         select_confirm: "Select/confirm"
-
-    # Customize dialog (editor settings)
-    customize:
-      title: "Editor Settings"
-      font_family: "Font Family"
-      font_size: "Font Size"
-      preview: "Preview"
 
     # About dialog
     about:

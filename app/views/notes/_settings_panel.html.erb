@@ -1,0 +1,358 @@
+<section
+  class="flex-1 min-w-0 hidden overflow-y-auto bg-[var(--theme-bg-primary)]"
+  data-app-target="settingsPanel"
+  data-controller="settings"
+  data-settings-codemirror-outlet='[data-controller~="codemirror"]'
+  data-settings-preview-outlet='[data-controller~="preview"]'
+  data-settings-font-value="<%= @config_obj.get('editor_font') || 'cascadia-code' %>"
+  data-settings-font-size-value="<%= @config_obj.get('editor_font_size') || 14 %>"
+  data-settings-editor-width-value="<%= [40, [(@config_obj.get('editor_width') || 72).to_i, 200].min].max %>"
+  data-settings-preview-zoom-value="<%= @config_obj.get('preview_zoom') || 100 %>"
+  data-settings-line-numbers-value="<%= @config_obj.get('editor_line_numbers') || 0 %>"
+  data-settings-typewriter-mode-value="<%= @config_obj.get('typewriter_mode') || false %>"
+  data-settings-vim-mode-value="<%= @config_obj.get('vim_mode') || false %>"
+  data-settings-scroll-sync-value="<%= @config_obj.get('scroll_sync') %>"
+  data-settings-indent-value="<%= @config_obj.get('editor_indent') || 2 %>"
+  data-settings-theme-value="<%= @config_obj.get('theme') || '' %>"
+  aria-labelledby="settings-title"
+>
+  <div class="settings-workspace mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 id="settings-title" class="text-xl font-semibold"><%= t('settings.title') %></h1>
+        <p class="mt-1 text-sm text-[var(--theme-text-muted)]"><%= t('settings.description') %></p>
+      </div>
+      <button
+        type="button"
+        data-action="click->settings#closeSettings"
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--theme-border)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-hover)]"
+        aria-label="<%= t('common.close') %>"
+        title="<%= t('common.close') %>"
+      >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="mt-6 flex flex-col gap-6 sm:flex-row">
+      <!-- Left: category nav -->
+      <nav class="settings-nav shrink-0 sm:w-44" aria-label="<%= t('settings.categories') %>">
+        <button
+          type="button"
+          class="settings-nav-button"
+          data-settings-target="navButton"
+          data-category="general"
+          data-action="click->settings#showCategory"
+          aria-pressed="true"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <%= t('settings.general') %>
+        </button>
+        <button
+          type="button"
+          class="settings-nav-button"
+          data-settings-target="navButton"
+          data-category="editor"
+          data-action="click->settings#showCategory"
+          aria-pressed="false"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          <%= t('settings.editor') %>
+        </button>
+        <button
+          type="button"
+          class="settings-nav-button"
+          data-settings-target="navButton"
+          data-category="writing"
+          data-action="click->settings#showCategory"
+          aria-pressed="false"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" aria-hidden="true">
+            <rect x="3" y="14" width="18" height="7" rx="1" />
+            <rect x="5" y="7" width="14" height="7" rx="1" />
+            <circle cx="8" cy="17" r="1" fill="currentColor" />
+            <circle cx="12" cy="17" r="1" fill="currentColor" />
+            <circle cx="16" cy="17" r="1" fill="currentColor" />
+            <path d="M9 4h6" stroke-linecap="round" />
+            <path d="M12 4v3" stroke-linecap="round" />
+          </svg>
+          <%= t('settings.writing') %>
+        </button>
+        <button
+          type="button"
+          class="settings-nav-button"
+          data-settings-target="navButton"
+          data-category="preview"
+          data-action="click->settings#showCategory"
+          aria-pressed="false"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          <%= t('settings.preview') %>
+        </button>
+      </nav>
+
+      <!-- Right: category sections -->
+      <div class="min-w-0 flex-1">
+        <!-- General -->
+        <div class="settings-section" data-settings-target="section" data-category="general">
+          <h2 class="settings-section-title"><%= t('settings.general') %></h2>
+
+          <div class="settings-card">
+            <div class="min-w-0">
+              <p class="text-sm font-medium"><%= t('settings.theme') %></p>
+              <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.theme_description') %></p>
+            </div>
+            <div class="relative shrink-0" data-controller="theme" data-theme-initial-value="<%= @config&.dig(:settings, 'theme') %>">
+              <button
+                type="button"
+                data-action="click->theme#toggle"
+                class="flex w-40 items-center justify-between gap-2 rounded-md border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-2 text-sm text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-hover)]"
+                title="<%= t('header.change_theme') %>"
+              >
+                <span class="truncate" data-theme-target="currentTheme">Light</span>
+                <svg class="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div
+                class="hidden frankmd-menu absolute right-0 mt-1 w-48 rounded-lg shadow-lg bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] py-1 z-50"
+                data-theme-target="menu"
+              >
+                <!-- Menu items rendered by JavaScript -->
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <div class="min-w-0">
+              <p class="text-sm font-medium"><%= t('settings.language') %></p>
+              <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.language_description') %></p>
+            </div>
+            <div class="relative shrink-0" data-controller="locale" data-locale-initial-value="<%= @config&.dig(:settings, 'locale') || I18n.locale %>">
+              <button
+                type="button"
+                data-action="click->locale#toggle"
+                class="flex w-40 items-center justify-between gap-2 rounded-md border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-2 text-sm text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-hover)]"
+                title="<%= t('header.change_language') %>"
+              >
+                <span class="truncate" data-locale-target="currentLocale"><%= I18n.locale == :'pt-BR' ? 'Portugues' : 'English' %></span>
+                <svg class="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div
+                class="hidden frankmd-menu absolute right-0 mt-1 w-48 rounded-lg shadow-lg bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] py-1 z-50"
+                data-locale-target="menu"
+              >
+                <!-- Menu items rendered by JavaScript -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Editor -->
+        <div class="settings-section hidden" data-settings-target="section" data-category="editor">
+          <h2 class="settings-section-title"><%= t('settings.editor') %></h2>
+
+          <div class="settings-card flex-col gap-3">
+            <div class="flex items-center justify-between gap-4">
+              <p class="text-sm font-medium"><%= t('settings.font') %></p>
+              <select
+                data-settings-target="fontSelect"
+                data-action="change->settings#onFontChange"
+                class="w-48 px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+              >
+                <% [
+                  ["cascadia-code", "Cascadia Code", "'Cascadia Code', monospace"],
+                  ["consolas", "Consolas", "Consolas, monospace"],
+                  ["dejavu-mono", "DejaVu Sans Mono", "'DejaVu Mono', monospace"],
+                  ["fira-code", "Fira Code", "'Fira Code', monospace"],
+                  ["hack", "Hack", "Hack, monospace"],
+                  ["jetbrains-mono", "JetBrains Mono", "'JetBrains Mono', monospace"],
+                  ["roboto-mono", "Roboto Mono", "'Roboto Mono', monospace"],
+                  ["source-code-pro", "Source Code Pro", "Source Code Pro, monospace"],
+                  ["ubuntu-mono", "Ubuntu Mono", "Ubuntu Mono, monospace"]
+                ].each do |id, name, family| %>
+                  <option value="<%= id %>" style="font-family: <%= family %>" <%= 'selected' if (@config_obj.get('editor_font') || 'cascadia-code') == id %>><%= name %></option>
+                <% end %>
+              </select>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+              <p class="text-sm font-medium"><%= t('settings.font_size') %></p>
+              <select
+                data-settings-target="fontSizeSelect"
+                data-action="change->settings#onFontSizeChange"
+                class="w-48 px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+              >
+                <% [12, 13, 14, 15, 16, 18, 20, 22, 24].each do |size| %>
+                  <option value="<%= size %>" <%= 'selected' if (@config_obj.get('editor_font_size') || 14).to_i == size %>><%= size %>px</option>
+                <% end %>
+              </select>
+            </div>
+            <div>
+              <p class="mb-1.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.font_preview') %></p>
+              <div
+                data-settings-target="fontPreview"
+                class="rounded-md border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] p-3 text-[var(--theme-text-primary)]"
+                style="font-family: <%= ({
+                  'cascadia-code' => "'Cascadia Code', monospace",
+                  'consolas' => 'Consolas, monospace',
+                  'dejavu-mono' => "'DejaVu Mono', monospace",
+                  'fira-code' => "'Fira Code', monospace",
+                  'hack' => 'Hack, monospace',
+                  'jetbrains-mono' => "'JetBrains Mono', monospace",
+                  'roboto-mono' => "'Roboto Mono', monospace",
+                  'source-code-pro' => 'Source Code Pro, monospace',
+                  'ubuntu-mono' => 'Ubuntu Mono, monospace'
+                })[@config_obj.get('editor_font')] || "'Cascadia Code', monospace" %>; font-size: <%= @config_obj.get('editor_font_size') || 14 %>px; line-height: 1.6;"
+              >
+                <div>// <%= t('settings.font_preview_line') %></div>
+                <div>function hello() {</div>
+                <div>&nbsp;&nbsp;return "Hello, World!";</div>
+                <div>}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <div class="min-w-0">
+              <p class="text-sm font-medium"><%= t('settings.editor_width') %></p>
+              <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.editor_width_description') %></p>
+            </div>
+            <div class="flex shrink-0 items-center gap-3">
+              <input
+                type="range"
+                min="40"
+                max="200"
+                step="8"
+                value="<%= [40, [(@config_obj.get('editor_width') || 72).to_i, 200].min].max %>"
+                data-settings-target="widthInput"
+                data-action="input->settings#onWidthInput"
+                class="settings-range w-44"
+                aria-label="<%= t('settings.editor_width') %>"
+              >
+              <span class="w-12 text-right text-sm tabular-nums text-[var(--theme-text-muted)]" data-settings-target="widthLabel"><%= [40, [(@config_obj.get('editor_width') || 72).to_i, 200].min].max %>ch</span>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <p class="text-sm font-medium"><%= t('settings.line_numbers') %></p>
+            <select
+              data-settings-target="lineNumbersSelect"
+              data-action="change->settings#onLineNumbersChange"
+              class="w-48 shrink-0 px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+            >
+              <option value="0" <%= 'selected' if (@config_obj.get('editor_line_numbers') || 0).to_i == 0 %>><%= t('settings.line_numbers_off') %></option>
+              <option value="1" <%= 'selected' if (@config_obj.get('editor_line_numbers') || 0).to_i == 1 %>><%= t('settings.line_numbers_absolute') %></option>
+              <option value="2" <%= 'selected' if (@config_obj.get('editor_line_numbers') || 0).to_i == 2 %>><%= t('settings.line_numbers_relative') %></option>
+            </select>
+          </div>
+
+          <div class="settings-card">
+            <div class="min-w-0">
+              <p class="text-sm font-medium"><%= t('settings.indent') %></p>
+              <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.indent_description') %></p>
+            </div>
+            <select
+              data-settings-target="indentSelect"
+              data-action="change->settings#onIndentChange"
+              class="w-48 shrink-0 px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+            >
+              <% [2, 4, 8].each do |spaces| %>
+                <option value="<%= spaces %>" <%= 'selected' if (@config_obj.get('editor_indent') || 2).to_i == spaces %>><%= t('settings.indent_spaces', count: spaces) %></option>
+              <% end %>
+            </select>
+          </div>
+        </div>
+
+        <!-- Writing -->
+        <div class="settings-section hidden" data-settings-target="section" data-category="writing">
+          <h2 class="settings-section-title"><%= t('settings.writing') %></h2>
+
+          <div class="settings-card">
+            <div class="min-w-0">
+              <p class="text-sm font-medium"><%= t('settings.typewriter') %></p>
+              <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.typewriter_description') %></p>
+            </div>
+            <button
+              type="button"
+              data-app-target="typewriterToggle"
+              data-action="click->app#toggleTypewriterButton"
+              aria-pressed="<%= @config_obj.get('typewriter_mode') ? 'true' : 'false' %>"
+              class="settings-switch shrink-0"
+              title="<%= t('settings.typewriter') %>"
+            >
+              <span class="settings-switch-knob" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <div class="settings-card">
+            <div class="min-w-0">
+              <p class="text-sm font-medium"><%= t('settings.vim') %></p>
+              <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.vim_description') %></p>
+            </div>
+            <button
+              type="button"
+              data-app-target="vimToggle"
+              data-action="click->app#toggleVimMode"
+              aria-pressed="<%= @config_obj.get('vim_mode') ? 'true' : 'false' %>"
+              class="settings-switch shrink-0"
+              title="<%= t('settings.vim') %>"
+            >
+              <span class="settings-switch-knob" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <div class="settings-card">
+            <div class="min-w-0">
+              <p class="text-sm font-medium"><%= t('settings.scroll_sync') %></p>
+              <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.scroll_sync_description') %></p>
+            </div>
+            <button
+              type="button"
+              data-app-target="scrollSyncToggle"
+              data-action="click->app#toggleScrollSync"
+              aria-pressed="<%= @config_obj.get('scroll_sync') == false ? 'false' : 'true' %>"
+              class="settings-switch shrink-0"
+              title="<%= t('settings.scroll_sync') %>"
+            >
+              <span class="settings-switch-knob" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="settings-section hidden" data-settings-target="section" data-category="preview">
+          <h2 class="settings-section-title"><%= t('settings.preview') %></h2>
+
+          <div class="settings-card">
+            <div class="min-w-0">
+              <p class="text-sm font-medium"><%= t('settings.preview_zoom') %></p>
+              <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.preview_zoom_description') %></p>
+            </div>
+            <select
+              data-settings-target="zoomSelect"
+              data-action="change->settings#onZoomChange"
+              class="w-48 shrink-0 px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+            >
+              <% [50, 75, 90, 100, 110, 125, 150, 175, 200].each do |level| %>
+                <option value="<%= level %>" <%= 'selected' if (@config_obj.get('preview_zoom') || 100).to_i == level %>><%= level %>%</option>
+              <% end %>
+            </select>
+          </div>
+        </div>
+
+        <p class="hidden mt-4 text-sm text-[var(--theme-text-muted)]" data-settings-target="status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,6 +1,6 @@
 <div class="h-screen w-full flex flex-col bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)]"
      data-controller="app autosave scroll-sync connection-monitor typewriter"
-     data-action="connection-monitor:offline->autosave#onConnectionLost connection-monitor:online->autosave#onConnectionRestored autosave:config-saved->app#onAutosaveConfigSaved autosave:offline-changed->app#onAutosaveOfflineChanged typewriter:toggled->app#onTypewriterToggled typewriter:toggled->scroll-sync#onTypewriterToggled library:insert-media->app#insertLibraryMedia library:open-note->app#openLibraryNote library:close->app#showEditorWorkspace"
+     data-action="connection-monitor:offline->autosave#onConnectionLost connection-monitor:online->autosave#onConnectionRestored autosave:config-saved->app#onAutosaveConfigSaved autosave:offline-changed->app#onAutosaveOfflineChanged typewriter:toggled->app#onTypewriterToggled typewriter:toggled->scroll-sync#onTypewriterToggled library:insert-media->app#insertLibraryMedia library:open-note->app#openLibraryNote library:close->app#showEditorWorkspace settings:close->app#showEditorWorkspace"
      data-app-initial-path-value="<%= @initial_path %>"
      data-app-initial-note-value="<%= (@initial_note || {}).to_json %>"
      data-app-codemirror-outlet='[data-controller~="codemirror"]'
@@ -16,7 +16,7 @@
      data-app-recovery-diff-outlet='[data-controller~="recovery-diff"]'
      data-app-autosave-outlet='[data-controller~="autosave"]'
      data-app-scroll-sync-outlet='[data-controller~="scroll-sync"]'
-     data-app-editor-config-outlet='[data-controller~="editor-config"]'
+     data-app-settings-outlet='[data-controller~="settings"]'
      data-app-image-picker-outlet='[data-controller~="image-picker"]'
      data-app-file-finder-outlet='[data-controller~="file-finder"]'
      data-app-find-replace-outlet='[data-controller~="find-replace"]'
@@ -26,15 +26,12 @@
      data-app-video-dialog-outlet='[data-controller~="video-dialog"]'
      data-app-log-viewer-outlet='[data-controller~="log-viewer"]'
      data-app-code-dialog-outlet='[data-controller~="code-dialog"]'
-     data-app-customize-outlet='[data-controller~="customize"]'
      data-app-drag-drop-outlet='[data-controller~="drag-drop"]'
      data-autosave-codemirror-outlet='[data-controller~="codemirror"]'
      data-autosave-offline-backup-outlet='[data-controller~="offline-backup"]'
      data-autosave-recovery-diff-outlet='[data-controller~="recovery-diff"]'
      data-scroll-sync-codemirror-outlet='[data-controller~="codemirror"]'
      data-scroll-sync-preview-outlet='[data-controller~="preview"]'>
-
-  <%= render "config/editor_config" %>
 
   <!-- Connection Lost Banner -->
   <%= render "shared/warning_banner",
@@ -62,6 +59,7 @@
     <%= render "notes/editor_panel" %>
     <%= render "notes/preview_panel" %>
     <%= render "notes/library_panel" %>
+    <%= render "notes/settings_panel" %>
   </div>
 
   <!-- File Operations (context menu + dialogs) -->

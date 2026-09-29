@@ -33,8 +33,6 @@ ja:
   # Header section
   header:
     toggle_explorer: "エクスプローラー切替 (Ctrl+E)"
-    toggle_typewriter: "タイプライターモード切替 (Ctrl+B)"
-    toggle_vim: "Vimモード切替"
     toggle_preview: "プレビュー切替 (Ctrl+Shift+P)"
     change_theme: "テーマ変更"
     change_language: "言語変更"
@@ -42,6 +40,8 @@ ja:
     click_to_copy_path: "クリックでパスをコピー"
     library: "ライブラリ"
     open_library: "メディアライブラリを開く"
+    settings: "設定"
+    open_settings: "設定を開く"
 
   # Sidebar/Explorer section
   sidebar:
@@ -91,6 +91,41 @@ ja:
     markdown_note_required: "メディアは開いている Markdown ノートにのみ挿入できます。"
     insertion_failed: "メディアをノートに挿入できませんでした。"
 
+  # 設定ワークスペース
+  settings:
+    title: "設定"
+    description: "設定はすぐに適用され、設定ファイルに保存されます。"
+    categories: "設定カテゴリ"
+    general: "全般"
+    editor: "エディター"
+    writing: "執筆"
+    preview: "プレビュー"
+    theme: "テーマ"
+    theme_description: "アプリ全体のカラーパレット"
+    language: "言語"
+    language_description: "インターフェースの言語（アプリを再読み込みします）"
+    font: "フォント"
+    font_size: "フォントサイズ"
+    font_preview: "プレビュー"
+    font_preview_line: "素早い茶色のキツネ"
+    editor_width: "エディターの幅"
+    editor_width_description: "テキスト列の最大幅"
+    line_numbers: "行番号"
+    line_numbers_off: "オフ"
+    line_numbers_absolute: "絶対"
+    line_numbers_relative: "相対"
+    indent: "インデント"
+    indent_description: "インデントレベルごとのスペース数"
+    indent_spaces: "%{count} スペース"
+    typewriter: "タイプライターモード"
+    typewriter_description: "集中して書けるようカーソルを中央に固定"
+    vim: "Vimモード"
+    vim_description: "エディターでVimキーバインドを使用"
+    scroll_sync: "スクロール同期"
+    scroll_sync_description: "エディターに合わせてプレビューをスクロール"
+    preview_zoom: "プレビューズーム"
+    preview_zoom_description: "レンダリングされたプレビューのズームレベル"
+    save_failed: "設定の保存に失敗しました"
   # Editor section
   editor:
     select_note: "ノートを選択または作成"
@@ -125,8 +160,6 @@ ja:
       video_title: "動画挿入"
       code: "コード"
       code_title: "コードブロック挿入/編集"
-      font: "フォント"
-      font_title: "エディタ設定"
       ai: "AI"
       ai_title: "AI文法チェック"
       emoji: "絵文字"
@@ -454,13 +487,6 @@ ja:
         switch_tabs: "タブ切替（タブにフォーカス時）"
         navigate_items: "項目を移動"
         select_confirm: "選択/確定"
-
-    # Customize dialog (editor settings)
-    customize:
-      title: "エディタ設定"
-      font_family: "フォントファミリー"
-      font_size: "フォントサイズ"
-      preview: "プレビュー"
 
     # About dialog
     about:

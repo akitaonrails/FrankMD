@@ -33,8 +33,6 @@ he:
   # אזור הכותרת
   header:
     toggle_explorer: "הצג/הסתר סייר (Ctrl+E)"
-    toggle_typewriter: "הצג/הסתר מצב מכונת כתיבה (Ctrl+B)"
-    toggle_vim: "הצג/הסתר מצב Vim"
     toggle_preview: "הצג/הסתר תצוגה מקדימה (Ctrl+Shift+P)"
     change_theme: "שנה ערכת נושא"
     change_language: "שנה שפה"
@@ -42,6 +40,8 @@ he:
     click_to_copy_path: "לחץ להעתקת הנתיב"
     library: "ספריית מדיה"
     open_library: "פתח את ספריית המדיה"
+    settings: "הגדרות"
+    open_settings: "פתיחת הגדרות"
 
   # אזור סרגל הצד/סייר
   sidebar:
@@ -90,6 +90,41 @@ he:
     markdown_note_required: "ניתן להוסיף מדיה רק לפתק Markdown פתוח."
     insertion_failed: "לא ניתן להוסיף את המדיה לפתק."
 
+  # סביבת ההגדרות
+  settings:
+    title: "הגדרות"
+    description: "ההעדפות חלות מיד ונשמרות בקובץ התצורה שלך."
+    categories: "קטגוריות הגדרות"
+    general: "כללי"
+    editor: "עורך"
+    writing: "כתיבה"
+    preview: "תצוגה מקדימה"
+    theme: "ערכת נושא"
+    theme_description: "לוח הצבעים של האפליקציה"
+    language: "שפה"
+    language_description: "שפת הממשק (טוען מחדש את האפליקציה)"
+    font: "גופן"
+    font_size: "גודל גופן"
+    font_preview: "תצוגה מקדימה"
+    font_preview_line: "השועל החום המהיר"
+    editor_width: "רוחב העורך"
+    editor_width_description: "רוחב מקסימלי של עמודת הטקסט"
+    line_numbers: "מספרי שורות"
+    line_numbers_off: "כבוי"
+    line_numbers_absolute: "מוחלט"
+    line_numbers_relative: "יחסי"
+    indent: "הזחה"
+    indent_description: "רווחים לכל רמת הזחה"
+    indent_spaces: "%{count} רווחים"
+    typewriter: "מצב מכונת כתיבה"
+    typewriter_description: "ממרכז את הסמן לכתיבה ממוקדת"
+    vim: "מצב Vim"
+    vim_description: "קיצורי מקלדת Vim בעורך"
+    scroll_sync: "סנכרון גלילה"
+    scroll_sync_description: "גולל את התצוגה המקדימה יחד עם העורך"
+    preview_zoom: "זום תצוגה מקדימה"
+    preview_zoom_description: "רמת זום של התצוגה המקדימה"
+    save_failed: "שמירת ההגדרה נכשלה"
   # אזור העורך
   editor:
     select_note: "בחר או צור הערה"
@@ -124,8 +159,6 @@ he:
       video_title: "הוסף סרטון"
       code: "קוד"
       code_title: "הוסף/ערוך בלוק קוד"
-      font: "גופן"
-      font_title: "הגדרות עורך"
       ai: "AI"
       ai_title: "בדיקת דקדוק עם AI"
       emoji: "אימוג'י"
@@ -451,13 +484,6 @@ he:
         switch_tabs: "החלף לשוניות (כאשר לשונית בפוקוס)"
         navigate_items: "נווט פריטים"
         select_confirm: "בחר/אשר"
-
-    # דיאלוג התאמה אישית (הגדרות עורך)
-    customize:
-      title: "הגדרות עורך"
-      font_family: "משפחת גופנים"
-      font_size: "גודל גופן"
-      preview: "תצוגה מקדימה"
 
     # דיאלוג אודות
     about:
