@@ -33,8 +33,6 @@ ko:
   # 헤더 섹션
   header:
     toggle_explorer: "탐색기 전환 (Ctrl+E)"
-    toggle_typewriter: "타자기 모드 전환 (Ctrl+B)"
-    toggle_vim: "Vim 모드 전환"
     toggle_preview: "미리보기 전환 (Ctrl+Shift+P)"
     change_theme: "테마 변경"
     change_language: "언어 변경"
@@ -42,6 +40,8 @@ ko:
     click_to_copy_path: "클릭하여 경로 복사"
     library: "라이브러리"
     open_library: "미디어 라이브러리 열기"
+    settings: "설정"
+    open_settings: "설정 열기"
 
   # 사이드바/탐색기 섹션
   sidebar:
@@ -91,6 +91,41 @@ ko:
     markdown_note_required: "미디어는 열려 있는 Markdown 노트에만 삽입할 수 있습니다."
     insertion_failed: "미디어를 노트에 삽입할 수 없습니다."
 
+  # 설정 워크스페이스
+  settings:
+    title: "설정"
+    description: "설정은 즉시 적용되며 구성 파일에 저장됩니다."
+    categories: "설정 카테고리"
+    general: "일반"
+    editor: "에디터"
+    writing: "글쓰기"
+    preview: "미리보기"
+    theme: "테마"
+    theme_description: "앱 전체 색상 팔레트"
+    language: "언어"
+    language_description: "인터페이스 언어 (앱을 다시 로드함)"
+    font: "글꼴"
+    font_size: "글꼴 크기"
+    font_preview: "미리보기"
+    font_preview_line: "빠른 갈색 여우"
+    editor_width: "에디터 너비"
+    editor_width_description: "텍스트 열의 최대 너비"
+    line_numbers: "줄 번호"
+    line_numbers_off: "끄기"
+    line_numbers_absolute: "절대"
+    line_numbers_relative: "상대"
+    indent: "들여쓰기"
+    indent_description: "들여쓰기 수준당 공백 수"
+    indent_spaces: "%{count} 공백"
+    typewriter: "타이프라이터 모드"
+    typewriter_description: "집중 글쓰기를 위해 커서를 중앙에 고정"
+    vim: "Vim 모드"
+    vim_description: "에디터에서 Vim 키 바인딩 사용"
+    scroll_sync: "스크롤 동기화"
+    scroll_sync_description: "에디터에 맞춰 미리보기 스크롤"
+    preview_zoom: "미리보기 확대"
+    preview_zoom_description: "렌더링된 미리보기의 확대 수준"
+    save_failed: "설정을 저장하지 못했습니다"
   # 에디터 섹션
   editor:
     select_note: "노트를 선택하거나 생성하세요"
@@ -125,8 +160,6 @@ ko:
       video_title: "동영상 삽입"
       code: "코드"
       code_title: "코드 블록 삽입/편집"
-      font: "글꼴"
-      font_title: "에디터 설정"
       ai: "AI"
       ai_title: "AI 문법 검사"
       emoji: "이모지"
@@ -454,13 +487,6 @@ ko:
         switch_tabs: "탭 전환 (탭에 포커스 시)"
         navigate_items: "항목 탐색"
         select_confirm: "선택/확인"
-
-    # 사용자 정의 다이얼로그 (에디터 설정)
-    customize:
-      title: "에디터 설정"
-      font_family: "글꼴 패밀리"
-      font_size: "글꼴 크기"
-      preview: "미리보기"
 
     # 정보 다이얼로그
     about:

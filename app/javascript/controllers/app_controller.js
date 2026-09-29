@@ -97,6 +97,7 @@ export default class extends Controller {
     "vimToggle",
     "vimStatus",
     "scrollSyncToggle",
+    "typewriterToggle",
     "aiButton",
     "editorWrapper",
     "editorBody"
@@ -106,10 +107,10 @@ export default class extends Controller {
     "codemirror", "preview", "typewriter", "stats-panel",
     "path-display", "text-format", "help", "file-operations",
     "emoji-picker", "offline-backup", "recovery-diff",
-    "autosave", "scroll-sync", "editor-config",
+    "autosave", "scroll-sync", "settings",
     "image-picker", "file-finder", "find-replace", "jump-to-line",
     "content-search", "ai-grammar", "video-dialog", "log-viewer",
-    "code-dialog", "customize", "drag-drop"
+    "code-dialog", "drag-drop"
   ]
 
   static values = {
@@ -136,6 +137,11 @@ export default class extends Controller {
     // Sidebar/Explorer visibility - always start visible
     // (don't persist closed state across sessions)
     this.sidebarVisible = true
+
+    // Workspace panes (Library, Settings) both start hidden; the panels boot
+    // hidden in the DOM so their controllers stay connected.
+    this.libraryVisible = false
+    this.settingsVisible = false
 
     // Track pending config saves to debounce
     this.configSaveTimeout = null
@@ -243,8 +249,8 @@ export default class extends Controller {
     if (this.boundKeydownHandler) {
       document.removeEventListener("keydown", this.boundKeydownHandler)
     }
-    if (this.boundLibraryEscapeHandler) {
-      document.removeEventListener("keydown", this.boundLibraryEscapeHandler, true)
+    if (this.boundWorkspaceEscapeHandler) {
+      document.removeEventListener("keydown", this.boundWorkspaceEscapeHandler, true)
     }
     if (this.boundRootRedoHandler) {
       document.removeEventListener("keydown", this.boundRootRedoHandler)
@@ -292,7 +298,7 @@ export default class extends Controller {
   getRecoveryDiffController() { return this.recoveryDiffOutlets[0] ?? null }
   getAutosaveController() { return this.autosaveOutlets[0] ?? null }
   getScrollSyncController() { return this.scrollSyncOutlets[0] ?? null }
-  getEditorConfigController() { return this.editorConfigOutlets[0] ?? null }
+  getSettingsController() { return this.settingsOutlets[0] ?? null }
 
   // === URL Management for Bookmarkable URLs ===
 
@@ -708,7 +714,7 @@ export default class extends Controller {
       this.checkTableAtCursor()
 
       // Typewriter scroll centering works regardless of preview
-      const configCtrl = this.getEditorConfigController()
+      const configCtrl = this.getSettingsController()
       if (configCtrl && configCtrl.typewriterModeEnabled) {
         this.maintainTypewriterScroll()
       }
@@ -782,7 +788,7 @@ export default class extends Controller {
 
   // Reload configuration from server and apply changes
   async reloadConfig() {
-    const configCtrl = this.getEditorConfigController()
+    const configCtrl = this.getSettingsController()
     if (configCtrl) {
       await configCtrl.reload()
       const autosaveCtrl = this.getAutosaveController()
@@ -795,7 +801,7 @@ export default class extends Controller {
 
   // === Preview Panel - Delegates to preview_controller ===
   togglePreview() {
-    if (this.libraryVisible) return false
+    if (this.libraryVisible || this.settingsVisible) return false
 
     // Only allow preview for markdown files
     if (!this.isMarkdownFile()) {
@@ -982,36 +988,11 @@ export default class extends Controller {
     if (file && this.hasImagePickerOutlet) this.imagePickerOutlet.openWithFile(file)
   }
 
-  // === Editor Customization - Delegates to customize_controller ===
-  openCustomize() {
-    if (this.hasCustomizeOutlet) {
-      const configCtrl = this.getEditorConfigController()
-      const font = configCtrl ? configCtrl.currentFont : "cascadia-code"
-      const fontSize = configCtrl ? configCtrl.currentFontSize : 14
-      this.customizeOutlet.open(font, fontSize)
-    }
-  }
-
-  // Handle customize:applied event from customize_controller
-  onCustomizeApplied(event) {
-    const { font, fontSize } = event.detail
-
-    // Save to server config (will trigger reload)
-    this.saveConfig({
-      editor_font: font,
-      editor_font_size: fontSize
-    })
-
-    // Apply immediately via config controller
-    const configCtrl = this.getEditorConfigController()
-    if (configCtrl) {
-      configCtrl.fontValue = font
-      configCtrl.fontSizeValue = fontSize
-    }
-  }
+  // Font/size now live in the Settings workspace (settings_controller) and
+  // apply live on change, so no dialog delegation is needed here anymore.
 
   applyEditorSettings() {
-    const configCtrl = this.getEditorConfigController()
+    const configCtrl = this.getSettingsController()
     if (configCtrl) {
       configCtrl.applyFont()
       configCtrl.applyEditorWidth()
@@ -1029,7 +1010,7 @@ export default class extends Controller {
   increaseEditorWidth() {
     const maxWidth = this.constructor.MAX_EDITOR_WIDTH
     const step = this.constructor.EDITOR_WIDTH_STEP
-    const configCtrl = this.getEditorConfigController()
+    const configCtrl = this.getSettingsController()
     const currentWidth = configCtrl ? configCtrl.editorWidth : 72
 
     if (currentWidth >= maxWidth) {
@@ -1046,7 +1027,7 @@ export default class extends Controller {
   decreaseEditorWidth() {
     const minWidth = this.constructor.MIN_EDITOR_WIDTH
     const step = this.constructor.EDITOR_WIDTH_STEP
-    const configCtrl = this.getEditorConfigController()
+    const configCtrl = this.getSettingsController()
     const currentWidth = configCtrl ? configCtrl.editorWidth : 72
 
     if (currentWidth <= minWidth) {
@@ -1066,7 +1047,7 @@ export default class extends Controller {
     const codemirrorController = this.getCodemirrorController()
     if (codemirrorController) {
       const newMode = codemirrorController.toggleLineNumberMode()
-      const configCtrl = this.getEditorConfigController()
+      const configCtrl = this.getSettingsController()
       if (configCtrl) configCtrl.lineNumbersValue = newMode
       this.saveConfig({ editor_line_numbers: newMode })
     }
@@ -1204,15 +1185,23 @@ export default class extends Controller {
 
     const openingLibrary = !this.libraryVisible
     if (openingLibrary) {
-      const previewController = this.getPreviewController()
-      this._libraryPreviewWasVisible = previewController
-        ? previewController.isVisible
-        : Boolean(previewPanel && !previewPanel.classList.contains("hidden"))
-      if (this._libraryPreviewWasVisible && previewController) {
-        previewController.hide()
+      if (this.settingsVisible) {
+        // Direct workspace switch: the Settings workspace already stashed the
+        // preview state (and hid the preview) — inherit it so returning to
+        // the editor restores it.
+        this._libraryPreviewWasVisible = this._settingsPreviewWasVisible ?? false
+        this.closeSettingsWorkspace()
       } else {
-        previewPanel?.classList.add("hidden")
-        previewPanel?.classList.remove("flex")
+        const previewController = this.getPreviewController()
+        this._libraryPreviewWasVisible = previewController
+          ? previewController.isVisible
+          : Boolean(previewPanel && !previewPanel.classList.contains("hidden"))
+        if (this._libraryPreviewWasVisible && previewController) {
+          previewController.hide()
+        } else {
+          previewPanel?.classList.add("hidden")
+          previewPanel?.classList.remove("flex")
+        }
       }
     }
     this.libraryVisible = true
@@ -1227,20 +1216,104 @@ export default class extends Controller {
     return true
   }
 
+  // === Settings Workspace ===
+  toggleSettings() {
+    if (this.settingsVisible) {
+      this.showEditorWorkspace()
+      return false
+    }
+
+    this.showSettingsWorkspace()
+    return true
+  }
+
+  showSettingsWorkspace() {
+    const root = this.context?.element
+    const editorPanel = root?.querySelector('[data-app-target~="editorPanel"]')
+    const previewPanel = root?.querySelector('[data-app-target~="previewPanel"]')
+    const settingsPanel = root?.querySelector('[data-app-target~="settingsPanel"]')
+    const toggles = root?.querySelectorAll('[data-app-target~="settingsToggle"]')
+    if (!settingsPanel) return false
+
+    const openingSettings = !this.settingsVisible
+    if (openingSettings) {
+      if (this.libraryVisible) {
+        // Direct workspace switch: the Library workspace already stashed the
+        // preview state (and hid the preview) — inherit it so returning to
+        // the editor restores it.
+        this._settingsPreviewWasVisible = this._libraryPreviewWasVisible ?? false
+        this.closeLibraryWorkspace()
+      } else {
+        const previewController = this.getPreviewController()
+        this._settingsPreviewWasVisible = previewController
+          ? previewController.isVisible
+          : Boolean(previewPanel && !previewPanel.classList.contains("hidden"))
+        if (this._settingsPreviewWasVisible && previewController) {
+          previewController.hide()
+        } else {
+          previewPanel?.classList.add("hidden")
+          previewPanel?.classList.remove("flex")
+        }
+      }
+    }
+    this.settingsVisible = true
+    editorPanel?.classList.add("hidden")
+    settingsPanel.classList.remove("hidden")
+    toggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "true"))
+    if (openingSettings) {
+      const settingsController = this.application?.getControllerForElementAndIdentifier(settingsPanel, "settings")
+      settingsController?.onWorkspaceOpen()
+      settingsController?.navButtonTargets?.[0]?.focus()
+    }
+    return true
+  }
+
+  // Hide the Settings pane without touching the stashed preview state (used
+  // when switching straight to the Library workspace).
+  closeSettingsWorkspace() {
+    const root = this.context?.element
+    const settingsPanel = root?.querySelector('[data-app-target~="settingsPanel"]')
+    const toggles = root?.querySelectorAll('[data-app-target~="settingsToggle"]')
+    this.settingsVisible = false
+    settingsPanel?.classList.add("hidden")
+    toggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "false"))
+  }
+
+  // Hide the Library pane without touching the stashed preview state (used
+  // when switching straight to the Settings workspace).
+  closeLibraryWorkspace() {
+    const root = this.context?.element
+    const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
+    const toggles = root?.querySelectorAll('[data-app-target~="libraryToggle"]')
+    this.libraryVisible = false
+    libraryPanel?.classList.add("hidden")
+    toggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "false"))
+  }
+
   showEditorWorkspace() {
     const wasInLibrary = Boolean(this.libraryVisible)
+    const wasInSettings = Boolean(this.settingsVisible)
     const root = this.context?.element
     const editorPanel = root?.querySelector('[data-app-target~="editorPanel"]')
     const previewPanel = root?.querySelector('[data-app-target~="previewPanel"]')
     const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
-    const toggles = root?.querySelectorAll('[data-app-target~="libraryToggle"]')
+    const settingsPanel = root?.querySelector('[data-app-target~="settingsPanel"]')
+    const libraryToggles = root?.querySelectorAll('[data-app-target~="libraryToggle"]')
+    const settingsToggles = root?.querySelectorAll('[data-app-target~="settingsToggle"]')
 
     this.libraryVisible = false
+    this.settingsVisible = false
     libraryPanel?.classList.add("hidden")
+    settingsPanel?.classList.add("hidden")
     editorPanel?.classList.remove("hidden")
-    if (wasInLibrary && previewPanel) {
+
+    const previewWasVisible = wasInLibrary
+      ? this._libraryPreviewWasVisible
+      : (wasInSettings ? this._settingsPreviewWasVisible : null)
+
+    if ((wasInLibrary || wasInSettings) && previewPanel) {
       const previewController = this.getPreviewController()
-      if (this._libraryPreviewWasVisible) {
+      if (previewWasVisible) {
         if (previewController) previewController.show()
         else {
           previewPanel.classList.remove("hidden")
@@ -1250,9 +1323,17 @@ export default class extends Controller {
         previewPanel.classList.add("hidden")
         previewPanel.classList.remove("flex")
       }
-      this._libraryPreviewWasVisible = null
     }
-    toggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "false"))
+    this._libraryPreviewWasVisible = null
+    this._settingsPreviewWasVisible = null
+
+    libraryToggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "false"))
+    settingsToggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "false"))
+
+    // Returning from Settings: restore focus to the header toggle (trigger).
+    if (wasInSettings && !wasInLibrary) {
+      root?.querySelector('[data-app-target~="settingsToggle"]')?.focus()
+    }
     return true
   }
 
@@ -1312,9 +1393,10 @@ export default class extends Controller {
   initializeTypewriterMode() {
     const typewriterController = this.getTypewriterController()
     if (typewriterController) {
-      const configCtrl = this.getEditorConfigController()
+      const configCtrl = this.getSettingsController()
       const enabled = configCtrl ? configCtrl.typewriterModeEnabled : false
       typewriterController.setEnabled(enabled)
+      this.updateTypewriterToggleButton(enabled)
     }
   }
 
@@ -1331,10 +1413,18 @@ export default class extends Controller {
     }
   }
 
+  // Settings switch: same behavior as the old header button — toggle straight
+  // through the typewriter controller (no markdown-file guard), letting the
+  // typewriter:toggled event drive persistence and UI coordination.
+  toggleTypewriterButton() {
+    this.getTypewriterController()?.toggle()
+  }
+
   // Handle typewriter:toggled event
   onTypewriterToggled(event) {
     const { enabled } = event.detail
     this.saveConfig({ typewriter_mode: enabled })
+    this.updateTypewriterToggleButton(enabled)
 
     // Toggle typewriter mode on preview controller
     const previewController = this.getPreviewController()
@@ -1734,7 +1824,7 @@ export default class extends Controller {
   // Handle preview zoom changed event - save to config
   onPreviewZoomChanged(event) {
     const { zoom } = event.detail
-    const configCtrl = this.getEditorConfigController()
+    const configCtrl = this.getSettingsController()
     if (configCtrl) configCtrl.previewZoomValue = zoom
     this.saveConfig({ preview_zoom: zoom })
   }
@@ -2295,41 +2385,62 @@ export default class extends Controller {
   setupKeyboardShortcuts() {
     // Merge default shortcuts with user customizations (future: load from config)
     const shortcuts = mergeShortcuts(DEFAULT_SHORTCUTS, this.userShortcuts)
-    this._libraryDeferredEscapeEvents = new WeakSet()
+    this._workspaceDeferredEscapeEvents = new WeakSet()
 
-    this.boundLibraryEscapeHandler = (event) => {
-      if (event.key !== "Escape" || !this.libraryVisible) return
+    this.boundWorkspaceEscapeHandler = (event) => {
+      if (event.key !== "Escape") return
+      const inWorkspace = this.libraryVisible || this.settingsVisible
+      if (!inWorkspace) return
       if (document.querySelector("dialog[open]")) {
-        this._libraryDeferredEscapeEvents.add(event)
+        this._workspaceDeferredEscapeEvents.add(event)
         return
       }
 
       const root = this.context?.element
       const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
       const libraryController = libraryPanel && this.application.getControllerForElementAndIdentifier(libraryPanel, "library")
+      const settingsPanel = root?.querySelector('[data-app-target~="settingsPanel"]')
+      const settingsController = settingsPanel && this.application.getControllerForElementAndIdentifier(settingsPanel, "settings")
 
       const otherDialog = Array.from(document.querySelectorAll('[role="dialog"], [role="alertdialog"]'))
         .find((dialog) => dialog !== libraryController?.previewDialogTarget &&
           (dialog.localName === "dialog" ? dialog.open : !dialog.classList.contains("hidden")))
       if (otherDialog) {
-        this._libraryDeferredEscapeEvents.add(event)
+        this._workspaceDeferredEscapeEvents.add(event)
         return
       }
 
       event.preventDefault()
       event.stopImmediatePropagation()
-      if (libraryController?.hasPreviewDialogTarget && !libraryController.previewDialogTarget.classList.contains("hidden")) {
-        libraryController.closePreview()
+
+      if (this.libraryVisible) {
+        if (libraryController?.hasPreviewDialogTarget && !libraryController.previewDialogTarget.classList.contains("hidden")) {
+          libraryController.closePreview()
+          return
+        }
+        if (this.hasContextMenuTarget && !this.contextMenuTarget.classList.contains("hidden")) {
+          this.contextMenuTarget.classList.add("hidden")
+          return
+        }
+        if (libraryController) libraryController.closeLibrary()
+        else this.showEditorWorkspace()
+        return
+      }
+
+      // Settings workspace: dismiss open dropdown menus first, then close.
+      const openMenus = settingsPanel?.querySelectorAll(".frankmd-menu:not(.hidden)") || []
+      if (openMenus.length > 0) {
+        openMenus.forEach((menu) => menu.classList.add("hidden"))
         return
       }
       if (this.hasContextMenuTarget && !this.contextMenuTarget.classList.contains("hidden")) {
         this.contextMenuTarget.classList.add("hidden")
         return
       }
-      if (libraryController) libraryController.closeLibrary()
+      if (settingsController) settingsController.closeSettings()
       else this.showEditorWorkspace()
     }
-    document.addEventListener("keydown", this.boundLibraryEscapeHandler, true)
+    document.addEventListener("keydown", this.boundWorkspaceEscapeHandler, true)
 
     this.boundKeydownHandler = createKeyHandler(shortcuts, (action, event) => {
       this.executeShortcutAction(action, event)
@@ -2373,19 +2484,27 @@ export default class extends Controller {
 
   // Route Escape to the active workspace or open dialog.
   closeActiveWorkspaceOrDialogs(event) {
-    if (event && this._libraryDeferredEscapeEvents.has(event)) return
+    if (event && this._workspaceDeferredEscapeEvents.has(event)) return
     if (event && document.querySelector("dialog[open]")) return
 
-    if (!this.libraryVisible) {
+    if (!this.libraryVisible && !this.settingsVisible) {
       this.closeAllDialogs()
       return
     }
 
     const root = this.context?.element
-    const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
-    const libraryController = libraryPanel && this.application.getControllerForElementAndIdentifier(libraryPanel, "library")
 
-    if (libraryController) libraryController.closeLibrary()
+    if (this.libraryVisible) {
+      const libraryPanel = root?.querySelector('[data-app-target~="libraryPanel"]')
+      const libraryController = libraryPanel && this.application.getControllerForElementAndIdentifier(libraryPanel, "library")
+      if (libraryController) libraryController.closeLibrary()
+      else this.showEditorWorkspace()
+      return
+    }
+
+    const settingsPanel = root?.querySelector('[data-app-target~="settingsPanel"]')
+    const settingsController = settingsPanel && this.application.getControllerForElementAndIdentifier(settingsPanel, "settings")
+    if (settingsController) settingsController.closeSettings()
     else this.showEditorWorkspace()
   }
 
@@ -2404,7 +2523,7 @@ export default class extends Controller {
 
   // === Vim Mode ===
 
-  // Header button: flip vim mode, apply it live, and persist the preference.
+  // Settings switch: flip vim mode, apply it live, and persist the preference.
   toggleVimMode() {
     const codemirror = this.getCodemirrorController()
     if (!codemirror) return
@@ -2421,12 +2540,18 @@ export default class extends Controller {
     }
   }
 
+  updateTypewriterToggleButton(enabled) {
+    if (this.hasTypewriterToggleTarget) {
+      this.typewriterToggleTarget.setAttribute("aria-pressed", String(enabled))
+    }
+  }
+
   // === Scroll Sync ===
 
-  // Header button / Ctrl+Shift+\\: flip editor-preview scroll sync, apply it
+  // Settings switch / Ctrl+Shift+\\: flip editor-preview scroll sync, apply it
   // live via the preview controller's guarded entry points, and persist it.
   toggleScrollSync() {
-    const configCtrl = this.getEditorConfigController()
+    const configCtrl = this.getSettingsController()
     const enabled = configCtrl ? !configCtrl.scrollSyncEnabled : true
 
     if (configCtrl) configCtrl.scrollSyncValue = enabled
@@ -2493,7 +2618,7 @@ export default class extends Controller {
 
   // Get the current indent string
   getIndentString() {
-    const configCtrl = this.getEditorConfigController()
+    const configCtrl = this.getSettingsController()
     return (configCtrl ? configCtrl.editorIndent : 2) || "  "
   }
 

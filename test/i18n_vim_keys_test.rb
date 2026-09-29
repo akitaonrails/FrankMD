@@ -2,14 +2,14 @@
 
 require "test_helper"
 
-# The vim-mode UI (header toggle, status, and the :help panel) is JS-facing, so a
+# The vim-mode UI (settings switch, status, and the :help panel) is JS-facing, so a
 # key missing from a locale renders as the raw key string rather than falling
 # back. Every vim key must exist in all seven locales.
 class I18nVimKeysTest < ActiveSupport::TestCase
   LOCALES = %w[en es he ja ko pt-BR pt-PT].freeze
 
   REQUIRED_KEYS = [
-    "header.toggle_vim",
+    "settings.vim",
     "dialogs.help.tab_vim",
     "dialogs.help.vim.intro",
     "dialogs.help.vim.modes_title",

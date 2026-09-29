@@ -33,8 +33,6 @@ es:
   # Header section
   header:
     toggle_explorer: "Alternar Explorador (Ctrl+E)"
-    toggle_typewriter: "Alternar Modo Máquina de Escribir (Ctrl+B)"
-    toggle_vim: "Alternar Modo Vim"
     toggle_preview: "Alternar Vista Previa (Ctrl+Shift+P)"
     change_theme: "Cambiar Tema"
     change_language: "Cambiar Idioma"
@@ -42,6 +40,8 @@ es:
     click_to_copy_path: "Haga clic para copiar la ruta"
     library: "Biblioteca"
     open_library: "Abrir biblioteca de medios"
+    settings: "Configuración"
+    open_settings: "Abrir Configuración"
 
   # Sidebar/Explorer section
   sidebar:
@@ -91,6 +91,41 @@ es:
     markdown_note_required: "Los medios solo pueden insertarse en una nota Markdown abierta."
     insertion_failed: "No se pudo insertar el medio en la nota."
 
+  # Espacio de trabajo de configuración
+  settings:
+    title: "Configuración"
+    description: "Las preferencias se aplican de inmediato y se guardan en tu archivo de configuración."
+    categories: "Categorías de configuración"
+    general: "General"
+    editor: "Editor"
+    writing: "Escritura"
+    preview: "Vista previa"
+    theme: "Tema"
+    theme_description: "Paleta de colores de la aplicación"
+    language: "Idioma"
+    language_description: "Idioma de la interfaz (recarga la aplicación)"
+    font: "Fuente"
+    font_size: "Tamaño de fuente"
+    font_preview: "Vista previa"
+    font_preview_line: "El veloz zorro marrón"
+    editor_width: "Ancho del editor"
+    editor_width_description: "Ancho máximo de la columna de texto"
+    line_numbers: "Números de línea"
+    line_numbers_off: "Desactivados"
+    line_numbers_absolute: "Absolutos"
+    line_numbers_relative: "Relativos"
+    indent: "Sangría"
+    indent_description: "Espacios por nivel de sangría"
+    indent_spaces: "%{count} espacios"
+    typewriter: "Modo máquina de escribir"
+    typewriter_description: "Centra el cursor para escribir sin distracciones"
+    vim: "Modo Vim"
+    vim_description: "Atajos de Vim en el editor"
+    scroll_sync: "Sincronización de desplazamiento"
+    scroll_sync_description: "Desplaza la vista previa junto con el editor"
+    preview_zoom: "Zoom de la vista previa"
+    preview_zoom_description: "Nivel de zoom de la vista previa renderizada"
+    save_failed: "Error al guardar la configuración"
   # Editor section
   editor:
     select_note: "Selecciona o crea una nota"
@@ -125,8 +160,6 @@ es:
       video_title: "Insertar Video"
       code: "Código"
       code_title: "Insertar/Editar Bloque de Código"
-      font: "Fuente"
-      font_title: "Configuración del Editor"
       ai: "IA"
       ai_title: "Revisión Gramatical con IA"
       emoji: "Emoji"
@@ -454,13 +487,6 @@ es:
         switch_tabs: "Cambiar pestañas (con pestaña enfocada)"
         navigate_items: "Navegar elementos"
         select_confirm: "Seleccionar/confirmar"
-
-    # Customize dialog (editor settings)
-    customize:
-      title: "Configuración del Editor"
-      font_family: "Familia de Fuente"
-      font_size: "Tamaño de Fuente"
-      preview: "Vista Previa"
 
     # About dialog
     about:
