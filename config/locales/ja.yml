@@ -210,6 +210,12 @@ ja:
     save_anyway: "そのまま保存"
     offline_backup_saved: "ローカルにバックアップしました"
 
+  # Connection status
+  connection:
+    offline_message: "接続が失われました。接続が回復するまで編集は無効です。"
+    disconnected: "切断"
+    retry: "再試行"
+
   # Dialog titles and content
   dialogs:
     confirm:
@@ -458,6 +464,9 @@ ja:
         new_note: "新規ノート"
         file_finder: "ファイル検索"
         search_files: "ファイル内検索"
+        find: "ファイル内を検索"
+        replace: "検索と置換"
+        go_to_line: "行へ移動"
         editor: "エディター"
         toggle_sidebar: "サイドバー切替"
         toggle_preview: "プレビュー切替"
@@ -625,6 +634,7 @@ ja:
 
   # Error messages
   errors:
+    title_required: "タイトルは必須です"
     note_not_found: "ノートが見つかりません"
     note_changed_since_loaded: "このノートは読み込み後に変更されています。削除する前に再読み込みしてください。"
     note_already_exists: "ノートは既に存在します"
@@ -632,6 +642,10 @@ ja:
     folder_not_found: "フォルダが見つかりません"
     folder_already_exists: "フォルダは既に存在します"
     file_not_found: "このファイルは存在しないか、削除されました。"
+    permission_denied: "アクセスが拒否されました。このファイルまたはフォルダにアクセスできない可能性があります。"
+    file_no_longer_exists: "このファイルはもう存在しません。移動または削除された可能性があります。"
+    folder_no_longer_exists: "このフォルダはもう存在しません。移動または削除された可能性があります。"
+    parent_folder_not_found: "親フォルダが見つかりません。移動または削除された可能性があります。"
     no_file_open: "ファイルが開かれていません"
     no_text_to_check: "チェックするテキストがありません"
     no_file_provided: "ファイルパスが指定されていません"

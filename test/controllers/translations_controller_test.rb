@@ -297,22 +297,20 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "en", data["locale"]
   end
 
-  # === English Fallback for Missing Keys ===
+  # === Locale-Specific Values ===
 
-  test "locale missing a key fills it from English instead of rendering a dotted key" do
-    # es has an errors section but no errors.title_required entry
+  test "completed Spanish entries remain localized in the endpoint" do
     ENV["FRANKMD_LOCALE"] = "es"
 
     get translations_url, as: :json
     assert_response :success
 
     translations = JSON.parse(response.body)["translations"]
-    assert_equal "Title is required", translations["errors"]["title_required"]
-    assert_equal "Permission denied. You may not have access to this file or folder.",
+    assert_equal "El título es obligatorio", translations["errors"]["title_required"]
+    assert_equal "Permiso denegado. Es posible que no tengas acceso a este archivo o carpeta.",
                  translations["errors"]["permission_denied"]
 
-    # Whole missing sections fall back too
-    assert_equal "Connection lost. Editing disabled until connection is restored.",
+    assert_equal "Se perdió la conexión. La edición está desactivada hasta que se restablezca.",
                  translations.dig("connection", "offline_message")
   end
 

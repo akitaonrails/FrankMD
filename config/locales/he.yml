@@ -57,6 +57,7 @@ he:
     characters: "תווים"
     size: "גודל"
     read_time: "קריאה"
+    line: "שורה"
 
   # תוויות שימוש בספריית המדיה
   library:
@@ -163,6 +164,8 @@ he:
       ai_title: "בדיקת דקדוק עם AI"
       emoji: "אימוג'י"
       emoji_title: "הוסף אימוג'י (Ctrl+Shift+E)"
+      find: "חיפוש"
+      find_title: "חיפוש והחלפה (Ctrl+F)"
     # שכבת עיבוד AI
     processing_with: "מעבד עם"
     press_esc_to_cancel: "לחץ ESC לביטול"
@@ -206,6 +209,12 @@ he:
     undo: "בטל"
     save_anyway: "שמור בכל זאת"
     offline_backup_saved: "גיבוי מקומי נשמר"
+
+  # מצב חיבור
+  connection:
+    offline_message: "החיבור נותק. העריכה מושבתת עד לחידוש החיבור."
+    disconnected: "מנותק"
+    retry: "נסה שוב"
 
   # כותרות ותוכן דיאלוגים
   dialogs:
@@ -455,6 +464,9 @@ he:
         new_note: "הערה חדשה"
         file_finder: "חפש קובץ"
         search_files: "חפש בקבצים"
+        find: "חיפוש בקובץ"
+        replace: "חיפוש והחלפה"
+        go_to_line: "מעבר לשורה"
         editor: "עורך"
         toggle_sidebar: "הצג/הסתר סרגל צד"
         toggle_preview: "הצג/הסתר תצוגה מקדימה"
@@ -515,6 +527,31 @@ he:
       corrected: "מתוקן"
       additions_hint: "(הוספות בירוק)"
       accept_changes: "קבל שינויים"
+
+    jump_to_line:
+      title: "מעבר לשורה"
+      placeholder: "לדוגמה: 10, +5, -5, -1"
+      hint: "מספר שורה, או ‎+N/-N‎ למעבר יחסי; ‎-1‎ לסוף"
+      go: "עבור"
+
+    find_replace:
+      tab_find: "חיפוש"
+      tab_replace: "החלפה"
+      find_placeholder: "חיפוש..."
+      replace_placeholder: "החלפה ב..."
+      previous: "הקודם"
+      next: "הבא"
+      replace: "החלף"
+      replace_all: "הכל"
+      replace_one_title: "החלפת התוצאה הנוכחית"
+      replace_all_title: "החלפת כל התוצאות"
+      skip: "דלג"
+      case_sensitive: "התאמה לאותיות גדולות וקטנות (Aa)"
+      use_regex: "שימוש בביטוי רגולרי (.*)"
+      no_results: "לא נמצאו תוצאות"
+      match_count: "%{current} מתוך %{total}"
+      replaced_count: "הוחלפו %{count}"
+      open_dialog: "פתיחת חלון חיפוש"
 
     # דיאלוג מוצא קבצים
     file_finder:
@@ -597,6 +634,7 @@ he:
 
   # הודעות שגיאה
   errors:
+    title_required: "נדרשת כותרת"
     note_not_found: "ההערה לא נמצאה"
     note_changed_since_loaded: "הפתק השתנה מאז שנטען. יש לטעון אותו מחדש לפני המחיקה."
     note_already_exists: "ההערה כבר קיימת"
@@ -604,6 +642,10 @@ he:
     folder_not_found: "התיקייה לא נמצאה"
     folder_already_exists: "התיקייה כבר קיימת"
     file_not_found: "קובץ זה כבר לא קיים או נמחק."
+    permission_denied: "הגישה נדחתה. ייתכן שאין לך הרשאה לקובץ או לתיקייה האלה."
+    file_no_longer_exists: "הקובץ הזה כבר לא קיים. ייתכן שהוא הועבר או נמחק."
+    folder_no_longer_exists: "התיקייה הזו כבר לא קיימת. ייתכן שהיא הועברה או נמחקה."
+    parent_folder_not_found: "תיקיית האב לא נמצאה. ייתכן שהיא הועברה או נמחקה."
     no_file_open: "אין קובץ פתוח"
     no_text_to_check: "אין טקסט לבדיקה"
     no_file_provided: "לא סופק נתיב לקובץ"
