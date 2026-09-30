@@ -86,6 +86,26 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Guardado", translations["status"]["saved"]
   end
 
+  test "show fills missing locale keys from English translations" do
+    ENV["FRANKMD_LOCALE"] = "es"
+    original_locale = I18n.locale
+
+    # Simulate an incomplete locale section while leaving the shared backend intact.
+    english_common = I18n.t("common", locale: :en, default: {})
+    I18n.stubs(:t).returns({})
+    I18n.stubs(:t).with("common", locale: :en, default: {}).returns(english_common)
+    I18n.stubs(:t).with("common", locale: :es, default: {}).returns(save: "Guardar")
+
+    get translations_url, as: :json
+    assert_response :success
+
+    translations = JSON.parse(response.body)["translations"]
+    assert_equal "Guardar", translations.dig("common", "save")
+    assert_equal "Cancel", translations.dig("common", "cancel")
+  ensure
+    I18n.locale = original_locale if original_locale
+  end
+
   test "show returns Japanese translations when ENV locale is ja" do
     ENV["FRANKMD_LOCALE"] = "ja"
 
@@ -297,22 +317,20 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "en", data["locale"]
   end
 
-  # === English Fallback for Missing Keys ===
+  # === Locale-Specific Values ===
 
-  test "locale missing a key fills it from English instead of rendering a dotted key" do
-    # es has an errors section but no errors.title_required entry
+  test "completed Spanish entries remain localized in the endpoint" do
     ENV["FRANKMD_LOCALE"] = "es"
 
     get translations_url, as: :json
     assert_response :success
 
     translations = JSON.parse(response.body)["translations"]
-    assert_equal "Title is required", translations["errors"]["title_required"]
-    assert_equal "Permission denied. You may not have access to this file or folder.",
+    assert_equal "El título es obligatorio", translations["errors"]["title_required"]
+    assert_equal "Permiso denegado. Es posible que no tengas acceso a este archivo o carpeta.",
                  translations["errors"]["permission_denied"]
 
-    # Whole missing sections fall back too
-    assert_equal "Connection lost. Editing disabled until connection is restored.",
+    assert_equal "Se perdió la conexión. La edición está desactivada hasta que se restablezca.",
                  translations.dig("connection", "offline_message")
   end
 

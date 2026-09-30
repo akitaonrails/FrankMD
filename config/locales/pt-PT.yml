@@ -210,6 +210,12 @@ pt-PT:
     save_anyway: "Guardar Mesmo Assim"
     offline_backup_saved: "Cópia de segurança local guardada"
 
+  # Estado da ligação
+  connection:
+    offline_message: "A ligação foi perdida. A edição está desativada até ser restabelecida."
+    disconnected: "Desligado"
+    retry: "Tentar novamente"
+
   # Títulos e conteúdo dos diálogos
   dialogs:
     confirm:
@@ -458,6 +464,9 @@ pt-PT:
         new_note: "Nova nota"
         file_finder: "Procurar ficheiro"
         search_files: "Pesquisar em ficheiros"
+        find: "Localizar no ficheiro"
+        replace: "Localizar e substituir"
+        go_to_line: "Ir para linha"
         editor: "Editor"
         toggle_sidebar: "Alternar barra lateral"
         toggle_preview: "Alternar pré-visualização"
@@ -625,6 +634,7 @@ pt-PT:
 
   # Mensagens de erro
   errors:
+    title_required: "O título é obrigatório"
     note_not_found: "Nota não encontrada"
     note_changed_since_loaded: "Esta nota foi alterada desde que foi carregada. Volte a carregá-la antes de a eliminar."
     note_already_exists: "A nota já existe"
@@ -632,6 +642,10 @@ pt-PT:
     folder_not_found: "Pasta não encontrada"
     folder_already_exists: "A pasta já existe"
     file_not_found: "Este ficheiro já não existe ou foi eliminado."
+    permission_denied: "Permissão negada. Pode não ter acesso a este ficheiro ou pasta."
+    file_no_longer_exists: "Este ficheiro já não existe. Pode ter sido movido ou eliminado."
+    folder_no_longer_exists: "Esta pasta já não existe. Pode ter sido movida ou eliminada."
+    parent_folder_not_found: "Pasta principal não encontrada. Pode ter sido movida ou eliminada."
     no_file_open: "Nenhum ficheiro aberto"
     no_text_to_check: "Nenhum texto para verificar"
     no_file_provided: "Nenhum caminho de ficheiro fornecido"

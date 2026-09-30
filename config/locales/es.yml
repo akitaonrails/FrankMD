@@ -210,6 +210,12 @@ es:
     save_anyway: "Guardar de Todos Modos"
     offline_backup_saved: "Copia de seguridad local guardada"
 
+  # Connection status
+  connection:
+    offline_message: "Se perdió la conexión. La edición está desactivada hasta que se restablezca."
+    disconnected: "Desconectado"
+    retry: "Reintentar"
+
   # Dialog titles and content
   dialogs:
     confirm:
@@ -458,6 +464,9 @@ es:
         new_note: "Nueva nota"
         file_finder: "Buscar archivo"
         search_files: "Buscar en archivos"
+        find: "Buscar en el archivo"
+        replace: "Buscar y reemplazar"
+        go_to_line: "Ir a la línea"
         editor: "Editor"
         toggle_sidebar: "Alternar barra lateral"
         toggle_preview: "Alternar vista previa"
@@ -625,6 +634,7 @@ es:
 
   # Error messages
   errors:
+    title_required: "El título es obligatorio"
     note_not_found: "Nota no encontrada"
     note_changed_since_loaded: "Esta nota cambió desde que se cargó. Vuelve a cargarla antes de eliminarla."
     note_already_exists: "La nota ya existe"
@@ -632,6 +642,10 @@ es:
     folder_not_found: "Carpeta no encontrada"
     folder_already_exists: "La carpeta ya existe"
     file_not_found: "Este archivo ya no existe o fue eliminado."
+    permission_denied: "Permiso denegado. Es posible que no tengas acceso a este archivo o carpeta."
+    file_no_longer_exists: "Este archivo ya no existe. Es posible que se haya movido o eliminado."
+    folder_no_longer_exists: "Esta carpeta ya no existe. Es posible que se haya movido o eliminado."
+    parent_folder_not_found: "No se encontró la carpeta principal. Es posible que se haya movido o eliminado."
     no_file_open: "Ningún archivo abierto"
     no_text_to_check: "No hay texto para revisar"
     no_file_provided: "No se proporcionó ruta de archivo"
