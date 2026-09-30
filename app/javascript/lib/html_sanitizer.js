@@ -26,8 +26,12 @@ const SANITIZE_CONFIG = {
   ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "referrerpolicy"],
   // Notes never legitimately contain interactive form controls; DOMPurify keeps
   // them by default, which would let a synced/shared note render a phishing form
-  // or a UI-redress button in the preview. Strip them.
-  FORBID_TAGS: ["form", "input", "button", "textarea", "select", "option", "style"],
+  // or a UI-redress button in the preview. Strip them. The one exception is
+  // <input>: GFM task lists render as inert, always-disabled checkboxes, so
+  // "input" is not forbidden here — the element hook below keeps ONLY the exact
+  // inert checkbox shape (type="checkbox" + disabled) and removes every other
+  // input, preserving the form-control ban for anything interactive.
+  FORBID_TAGS: ["form", "button", "textarea", "select", "option", "style"],
   FORBID_ATTR: ["style"]
 }
 
@@ -41,6 +45,21 @@ function getPurifier() {
   purifier = DOMPurify(globalThis.window)
 
   purifier.addHook("uponSanitizeElement", (node, data) => {
+    if (data.tagName === "input") {
+      const inertCheckbox = node.getAttribute("type") === "checkbox" && node.hasAttribute("disabled")
+      if (!inertCheckbox) {
+        node.parentNode?.removeChild(node)
+        return
+      }
+      // Keep only the attributes GFM task lists emit; DOMPurify already drops
+      // event handlers, and this whitelist removes anything else an attacker
+      // might have smuggled onto a kept checkbox.
+      for (const attr of Array.from(node.attributes)) {
+        if (!["type", "checked", "disabled"].includes(attr.name)) node.removeAttribute(attr.name)
+      }
+      return
+    }
+
     if (data.tagName !== "iframe") return
 
     let allowed = false

@@ -4,7 +4,9 @@ require "test_helper"
 require "yaml"
 
 class TranslationCoverageTest < ActiveSupport::TestCase
-  LOCALES = %w[pt-BR pt-PT es he ja ko].freeze
+  # Derived from the app's configured locales so a newly added locale is
+  # automatically held to full coverage instead of silently escaping it.
+  LOCALES = (Rails.application.config.i18n.available_locales.map(&:to_s) - %w[en]).sort.freeze
 
   test "all supported locales cover every English translation leaf" do
     english = load_translations("en")

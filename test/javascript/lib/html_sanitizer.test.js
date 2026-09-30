@@ -5,6 +5,44 @@ import { describe, it, expect } from "vitest"
 import { sanitizeHtml } from "../../../app/javascript/lib/html_sanitizer.js"
 
 describe("sanitizeHtml", () => {
+  describe("GFM task list checkboxes (issue #202)", () => {
+    const TASK_LIST = '<ul>\n<li><input disabled="" type="checkbox"> open task</li>\n<li><input checked="" disabled="" type="checkbox"> done task</li>\n</ul>\n'
+
+    it("keeps inert, disabled task checkboxes inside list items", () => {
+      const out = sanitizeHtml(TASK_LIST)
+      expect(out).toContain("<li>")
+      expect(out).toMatch(/<input[^>]*type="checkbox"/)
+      expect(out).toMatch(/<input[^>]*disabled/)
+    })
+
+    it("preserves the checked state of completed tasks", () => {
+      const out = sanitizeHtml(TASK_LIST)
+      expect(out).toMatch(/<input[^>]*checked/)
+    })
+
+    it("removes inputs that are not inert checkboxes", () => {
+      expect(sanitizeHtml('<input type="text" value="x">')).not.toContain("<input")
+      expect(sanitizeHtml('<input type="checkbox">')).not.toContain("<input")
+      expect(sanitizeHtml('<input type="submit">')).not.toContain("<input")
+      expect(sanitizeHtml("<input>")).not.toContain("<input")
+    })
+
+    it("strips smuggled attributes from a kept checkbox", () => {
+      const out = sanitizeHtml('<input checked="" disabled="" type="checkbox" name="evil" value="1" class="x">')
+      expect(out).toMatch(/<input[^>]*type="checkbox"/)
+      expect(out).not.toContain("name=")
+      expect(out).not.toContain("value=")
+      expect(out).not.toContain("class=")
+    })
+
+    it("still forbids every other form control", () => {
+      expect(sanitizeHtml("<form><button>go</button></form>")).not.toContain("<form")
+      expect(sanitizeHtml("<button>go</button>")).not.toContain("<button")
+      expect(sanitizeHtml("<textarea>x</textarea>")).not.toContain("<textarea")
+      expect(sanitizeHtml("<select><option>1</option></select>")).not.toContain("<select")
+    })
+  })
+
   describe("strips script execution vectors", () => {
     it("removes script tags", () => {
       const out = sanitizeHtml("<p>hi</p><script>alert(1)</script>")
