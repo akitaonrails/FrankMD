@@ -475,6 +475,7 @@ ja:
         toggle_sidebar: "サイドバー切替"
         toggle_preview: "プレビュー切替"
         typewriter_mode: "タイプライターモード"
+        toggle_task: "タスクの切替 / 追加"
         toggle_line_numbers: "行番号切替"
         increase_width: "エディタ幅を広げる"
         decrease_width: "エディタ幅を狭める"

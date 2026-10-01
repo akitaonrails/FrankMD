@@ -27,10 +27,12 @@ const SANITIZE_CONFIG = {
   // Notes never legitimately contain interactive form controls; DOMPurify keeps
   // them by default, which would let a synced/shared note render a phishing form
   // or a UI-redress button in the preview. Strip them. The one exception is
-  // <input>: GFM task lists render as inert, always-disabled checkboxes, so
-  // "input" is not forbidden here — the element hook below keeps ONLY the exact
-  // inert checkbox shape (type="checkbox" + disabled) and removes every other
-  // input, preserving the form-control ban for anything interactive.
+  // <input>: GFM task lists render as checkboxes, so "input" is not forbidden
+  // here — the element hook below keeps ONLY type="checkbox" (disabled or not)
+  // and strips every other input, preserving the form-control ban for anything
+  // interactive. A kept checkbox is a form-less orphan whose only attributes are
+  // type/checked: it cannot submit or redress anything, while remaining
+  // clickable so the preview's delegated handler can toggle tasks (#203).
   FORBID_TAGS: ["form", "button", "textarea", "select", "option", "style"],
   FORBID_ATTR: ["style"]
 }
@@ -46,16 +48,18 @@ function getPurifier() {
 
   purifier.addHook("uponSanitizeElement", (node, data) => {
     if (data.tagName === "input") {
-      const inertCheckbox = node.getAttribute("type") === "checkbox" && node.hasAttribute("disabled")
-      if (!inertCheckbox) {
+      if (node.getAttribute("type") !== "checkbox") {
         node.parentNode?.removeChild(node)
         return
       }
-      // Keep only the attributes GFM task lists emit; DOMPurify already drops
-      // event handlers, and this whitelist removes anything else an attacker
-      // might have smuggled onto a kept checkbox.
+      // Keep the orphan checkbox whatever its source disabled state, but strip
+      // everything except type/checked — DOMPurify already drops event
+      // handlers, and this whitelist removes anything else an attacker might
+      // have smuggled onto it, including the disabled attribute itself:
+      // disabled controls swallow click events, and the preview's delegated
+      // click handler owns the task-list interaction (#203).
       for (const attr of Array.from(node.attributes)) {
-        if (!["type", "checked", "disabled"].includes(attr.name)) node.removeAttribute(attr.name)
+        if (!["type", "checked"].includes(attr.name)) node.removeAttribute(attr.name)
       }
       return
     }

@@ -78,6 +78,108 @@ describe("parseWithLineNumbers", () => {
     }
   })
 
+  describe("per-item list annotation (#203)", () => {
+    const renderTaskList = (markdown) => {
+      const lexer = vi.spyOn(marked, "lexer").mockImplementation(() => {
+        // Hand-built token tree matching real marked's list shape for
+        // "- [ ] a\n- plain\n- parent\n  - [x] child\n"
+        const raw = markdown.replace(/^# Intro\n\n/, "")
+        return [
+          { type: "paragraph", raw: "# Intro\n\n" },
+          {
+            type: "list",
+            raw,
+            items: [
+              { type: "list_item", raw: "- [ ] a\n", tokens: [] },
+              { type: "list_item", raw: "- plain\n", tokens: [] },
+              {
+                type: "list_item",
+                raw: "- parent\n  - [x] child\n",
+                tokens: [
+                  {
+                    type: "list",
+                    raw: "  - [x] child\n",
+                    items: [{ type: "list_item", raw: "  - [x] child\n", tokens: [] }]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      })
+      const parse = vi.spyOn(marked, "parse").mockReturnValue(
+        '<h1>Intro</h1>\n' +
+        "<ul>\n" +
+        '<li><input disabled="" type="checkbox"> a</li>\n' +
+        "<li>plain</li>\n" +
+        '<li>parent<ul>\n<li><input checked="" disabled="" type="checkbox"> child</li>\n</ul>\n</li>\n' +
+        "</ul>\n"
+      )
+
+      try {
+        return parseWithLineNumbers(markdown)
+      } finally {
+        lexer.mockRestore()
+        parse.mockRestore()
+      }
+    }
+
+    it("annotates each li with its own source line, including nested items", () => {
+      const html = renderTaskList("# Intro\n\n- [ ] a\n- plain\n- parent\n  - [x] child\n")
+
+      // Items live on lines 3, 4, 5 and the nested child on line 6
+      expect(html).toMatch(/<li data-source-line="3"[^>]*><input[^>]*type="checkbox"/)
+      expect(html).toMatch(/<li data-source-line="4">plain<\/li>/)
+      expect(html).toMatch(/<li data-source-line="5"[^>]*>parent<ul>/)
+      expect(html).toMatch(/<li data-source-line="6"[^>]*><input[^>]*checked/)
+    })
+
+    it("shifts li lines by the frontmatter offset", () => {
+      const markdown = "- [ ] a\n- plain\n- parent\n  - [x] child\n"
+      const lexer = vi.spyOn(marked, "lexer").mockReturnValue([
+        {
+          type: "list",
+          raw: markdown,
+          items: [
+            { type: "list_item", raw: "- [ ] a\n", tokens: [] },
+            { type: "list_item", raw: "- plain\n", tokens: [] },
+            {
+              type: "list_item",
+              raw: "- parent\n  - [x] child\n",
+              tokens: [
+                {
+                  type: "list",
+                  raw: "  - [x] child\n",
+                  items: [{ type: "list_item", raw: "  - [x] child\n", tokens: [] }]
+                }
+              ]
+            }
+          ]
+        }
+      ])
+      const parse = vi.spyOn(marked, "parse").mockReturnValue(
+        "<ul>\n" +
+        '<li><input disabled="" type="checkbox"> a</li>\n' +
+        "<li>plain</li>\n" +
+        '<li>parent<ul>\n<li><input checked="" disabled="" type="checkbox"> child</li>\n</ul>\n</li>\n' +
+        "</ul>\n"
+      )
+
+      try {
+        // Frontmatter of 3 stripped lines: body starts at source line 4
+        const html = parseWithLineNumbers(markdown, 3)
+
+        expect(html).toMatch(/<li data-source-line="4"/)
+        expect(html).toMatch(/<li data-source-line="5">plain/)
+        expect(html).toMatch(/<li data-source-line="6"/)
+        expect(html).toMatch(/<li data-source-line="7"/)
+      } finally {
+        lexer.mockRestore()
+        parse.mockRestore()
+      }
+    })
+  })
+
   it("returns empty string for empty input", () => {
     expect(parseWithLineNumbers("")).toBe("")
   })

@@ -156,6 +156,20 @@ describe("DEFAULT_SHORTCUTS", () => {
       ctrl: true
     })
   })
+
+  it("includes toggleTask on Ctrl+Enter", () => {
+    expect(DEFAULT_SHORTCUTS.toggleTask).toEqual({
+      key: "Enter",
+      ctrl: true
+    })
+  })
+
+  it("binds every chord at most once (no collisions)", () => {
+    const signatures = Object.values(DEFAULT_SHORTCUTS).map((shortcut) =>
+      [shortcut.key, !!shortcut.ctrl, !!shortcut.shift, !!shortcut.alt].join("|")
+    )
+    expect(new Set(signatures).size).toBe(signatures.length)
+  })
 })
 
 describe("findMatchingAction", () => {
@@ -190,6 +204,14 @@ describe("findMatchingAction", () => {
 
     const withoutShift = createEvent("\\", { ctrl: true })
     expect(findMatchingAction(withoutShift, DEFAULT_SHORTCUTS)).toBe("typewriterMode")
+  })
+
+  it("matches Ctrl+Enter as toggleTask", () => {
+    const event = createEvent("Enter", { ctrl: true })
+    expect(findMatchingAction(event, DEFAULT_SHORTCUTS)).toBe("toggleTask")
+
+    // Plain Enter (typed in the editor) matches nothing
+    expect(findMatchingAction(createEvent("Enter"), DEFAULT_SHORTCUTS)).toBeNull()
   })
 
   it("matches Escape key", () => {

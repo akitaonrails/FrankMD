@@ -475,6 +475,7 @@ he:
         toggle_sidebar: "הצג/הסתר סרגל צד"
         toggle_preview: "הצג/הסתר תצוגה מקדימה"
         typewriter_mode: "מצב מכונת כתיבה"
+        toggle_task: "החלפת מצב משימה / הוספת משימה"
         toggle_line_numbers: "הצג/הסתר מספרי שורות"
         increase_width: "הגדל רוחב עורך"
         decrease_width: "הקטן רוחב עורך"

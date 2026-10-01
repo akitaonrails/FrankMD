@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { Application } from "@hotwired/stimulus"
+import { marked } from "marked"
 import PreviewController from "../../../app/javascript/controllers/preview_controller.js"
 
 describe("PreviewController", () => {
@@ -13,7 +14,7 @@ describe("PreviewController", () => {
       <div data-controller="preview" data-preview-zoom-value="100">
         <aside data-preview-target="panel" class="hidden">
           <span data-preview-target="zoomLevel">100%</span>
-          <div data-preview-target="content"></div>
+          <div data-preview-target="content" data-action="scroll->preview#onPreviewScroll click->preview#onContentClick"></div>
         </aside>
       </div>
     `
@@ -1000,6 +1001,118 @@ describe("PreviewController", () => {
       controller.syncToTypewriter(5, 10)
 
       expect(controller.contentTarget.scrollTo).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("click-to-toggle task checkboxes (#203)", () => {
+    const TASK_MARKDOWN = "# Title\n\n- [ ] open\n- [x] done\n"
+
+    // Spy marked so the render pipeline produces a real task list: lexer
+    // returns a list token shaped like real marked's, parse returns matching
+    // li/checkbox HTML (with the disabled attr real marked emits).
+    function renderTaskList(markdown = TASK_MARKDOWN, listHtml = null) {
+      const listRaw = markdown.replace(/^# Title\n\n/, "")
+      const items = listRaw.split("\n").filter(Boolean).map((line) => ({
+        type: "list_item", raw: `${line}\n`, tokens: []
+      }))
+      const html = listHtml ||
+        `<h1>Title</h1>\n<ul>\n${
+          listRaw.split("\n").filter(Boolean).map((line) => {
+            const text = line.replace(/^- /, "")
+            const task = text.match(/^\[([ xX])\]\s(.*)$/)
+            if (!task) return `<li>${text}</li>`
+            const checked = task[1] !== " " ? ' checked=""' : ""
+            return `<li><input${checked} disabled="" type="checkbox"> ${task[2]}</li>`
+          }).join("\n")
+        }\n</ul>\n`
+
+      const lexer = vi.spyOn(marked, "lexer").mockReturnValue([
+        { type: "paragraph", raw: "# Title\n\n" },
+        { type: "list", raw: listRaw, items }
+      ])
+      const parse = vi.spyOn(marked, "parse").mockReturnValue(html)
+      try {
+        controller.render(markdown)
+      } finally {
+        lexer.mockRestore()
+        parse.mockRestore()
+      }
+    }
+
+    beforeEach(() => {
+      controller.show()
+    })
+
+    it("renders task checkboxes enabled with per-item source lines", () => {
+      renderTaskList()
+
+      const checkboxes = controller.contentTarget.querySelectorAll('input[type="checkbox"]')
+      expect(checkboxes).toHaveLength(2)
+      // The sanitizer keeps the orphan checkbox but strips disabled so the
+      // delegated click handler can own the interaction
+      expect(checkboxes[0].hasAttribute("disabled")).toBe(false)
+      expect(checkboxes[1].checked).toBe(true)
+
+      const items = controller.contentTarget.querySelectorAll("li[data-source-line]")
+      expect(items[0].dataset.sourceLine).toBe("3")
+      expect(items[1].dataset.sourceLine).toBe("4")
+    })
+
+    it("dispatches preview:toggle-task with the item's line and reverts the visual toggle", () => {
+      renderTaskList()
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+      const open = controller.contentTarget.querySelectorAll('input[type="checkbox"]')[0]
+      open.click()
+
+      expect(dispatchSpy).toHaveBeenCalledWith("toggle-task", { detail: { line: 3 } })
+      // The click's visual toggle is reverted: the editor is the source of
+      // truth and the preview re-renders once the change flows back
+      expect(open.checked).toBe(false)
+
+      const done = controller.contentTarget.querySelectorAll('input[type="checkbox"]')[1]
+      done.click()
+
+      expect(dispatchSpy).toHaveBeenCalledWith("toggle-task", { detail: { line: 4 } })
+      expect(done.checked).toBe(true)
+    })
+
+    it("ignores clicks on checkboxes outside an annotated list item", () => {
+      renderTaskList(
+        TASK_MARKDOWN,
+        '<h1>Title</h1>\n<p><input checked="" disabled="" type="checkbox"> stray</p>\n'
+      )
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+      const stray = controller.contentTarget.querySelector('input[type="checkbox"]')
+      expect(stray).toBeTruthy()
+      stray.click()
+
+      expect(dispatchSpy).not.toHaveBeenCalledWith("toggle-task", expect.anything())
+    })
+
+    it("ignores checkbox clicks when the li carries no source line", () => {
+      // No list token from the lexer -> no per-li annotations, so even a
+      // rendered checkbox cannot be mapped back to a source line
+      const lexer = vi.spyOn(marked, "lexer").mockReturnValue([
+        { type: "paragraph", raw: TASK_MARKDOWN }
+      ])
+      const parse = vi.spyOn(marked, "parse").mockReturnValue(
+        '<ul>\n<li><input disabled="" type="checkbox"> open</li>\n</ul>\n'
+      )
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+      try {
+        controller.render(TASK_MARKDOWN)
+      } finally {
+        lexer.mockRestore()
+        parse.mockRestore()
+      }
+
+      const checkbox = controller.contentTarget.querySelector("li input")
+      expect(checkbox.closest("li").dataset.sourceLine).toBeUndefined()
+      checkbox.click()
+
+      expect(dispatchSpy).not.toHaveBeenCalledWith("toggle-task", expect.anything())
     })
   })
 })

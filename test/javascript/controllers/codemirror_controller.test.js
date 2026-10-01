@@ -534,6 +534,109 @@ describe("CodemirrorController", () => {
     })
   })
 
+  describe("toggleTaskAtLine() (#203)", () => {
+    it("toggles the task marker at the given source line", () => {
+      controller.setValue("- [ ] open\n- [x] done\nplain")
+
+      controller.toggleTaskAtLine(1)
+      expect(controller.getValue()).toBe("- [x] open\n- [x] done\nplain")
+
+      controller.toggleTaskAtLine(2)
+      expect(controller.getValue()).toBe("- [x] open\n- [ ] done\nplain")
+    })
+
+    it("preserves the cursor position while toggling", () => {
+      controller.setValue("- [ ] open\nplain")
+      controller.setCursorPosition(1, 7)
+
+      controller.toggleTaskAtLine(1)
+
+      expect(controller.getValue()).toBe("- [x] open\nplain")
+      expect(controller.getCursorPosition()).toEqual({ line: 1, column: 7, offset: 6 })
+    })
+
+    it("is a no-op on a non-task line", () => {
+      controller.setValue("plain text")
+      const before = controller.getValue()
+      const dispatchSpy = vi.spyOn(controller.editor, "dispatch")
+
+      controller.toggleTaskAtLine(1)
+
+      expect(controller.getValue()).toBe(before)
+      expect(dispatchSpy).not.toHaveBeenCalled()
+      dispatchSpy.mockRestore()
+    })
+
+    it("clamps the requested line into the document", () => {
+      controller.setValue("irrelevant\n- [x] done")
+
+      controller.toggleTaskAtLine(99)
+
+      expect(controller.getValue()).toBe("irrelevant\n- [ ] done")
+    })
+
+    it("does nothing when the editor is missing", () => {
+      controller.editor = null
+      expect(() => controller.toggleTaskAtLine(1)).not.toThrow()
+    })
+  })
+
+  describe("toggleTask() shortcut (#203)", () => {
+    it("toggles the task on the cursor's line", () => {
+      controller.setValue("- [ ] open\n- [x] done")
+      controller.setCursorPosition(1, 1)
+
+      controller.toggleTask()
+
+      expect(controller.getValue()).toBe("- [x] open\n- [x] done")
+    })
+
+    it("adds a task marker when the line is not a task", () => {
+      controller.setValue("buy milk")
+      controller.setCursorPosition(1, 1)
+
+      controller.toggleTask()
+
+      expect(controller.getValue()).toBe("- [ ] buy milk")
+    })
+
+    it("creates a bare task on an empty line", () => {
+      controller.setValue("")
+      controller.setCursorPosition(1, 1)
+
+      controller.toggleTask()
+
+      expect(controller.getValue()).toBe("- [ ]")
+    })
+
+    it("applies the per-line rule to every line of a multi-line selection", () => {
+      controller.setValue("- [ ] a\nplain\n- [x] c\nuntouched")
+      // Lines: 1 "- [ ] a" (0-6), 2 "plain" (8-12), 3 "- [x] c" (14-20).
+      // Select from the start of line 1 through the start of line 3.
+      controller.setSelection(0, 14)
+
+      controller.toggleTask()
+
+      expect(controller.getValue()).toBe("- [x] a\n- [ ] plain\n- [ ] c\nuntouched")
+    })
+
+    it("is one undoable edit", () => {
+      controller.setValue("- [ ] a\nplain")
+      controller.setSelection(0, 9)
+
+      controller.toggleTask()
+      expect(controller.getValue()).toBe("- [x] a\n- [ ] plain")
+
+      undo(controller.getEditorView())
+      expect(controller.getValue()).toBe("- [ ] a\nplain")
+    })
+
+    it("does nothing when the editor is missing", () => {
+      controller.editor = null
+      expect(() => controller.toggleTask()).not.toThrow()
+    })
+  })
+
   describe("getCursorPosition()", () => {
     it("returns cursor position with line, column, offset", () => {
       const pos = controller.getCursorPosition()

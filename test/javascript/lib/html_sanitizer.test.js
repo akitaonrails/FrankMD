@@ -5,14 +5,16 @@ import { describe, it, expect } from "vitest"
 import { sanitizeHtml } from "../../../app/javascript/lib/html_sanitizer.js"
 
 describe("sanitizeHtml", () => {
-  describe("GFM task list checkboxes (issue #202)", () => {
+  describe("GFM task list checkboxes (#202, interactive as of #203)", () => {
     const TASK_LIST = '<ul>\n<li><input disabled="" type="checkbox"> open task</li>\n<li><input checked="" disabled="" type="checkbox"> done task</li>\n</ul>\n'
 
-    it("keeps inert, disabled task checkboxes inside list items", () => {
+    it("keeps task checkboxes inside list items, rendered enabled for interaction", () => {
       const out = sanitizeHtml(TASK_LIST)
       expect(out).toContain("<li>")
       expect(out).toMatch(/<input[^>]*type="checkbox"/)
-      expect(out).toMatch(/<input[^>]*disabled/)
+      // #203: the disabled attribute itself is stripped — disabled controls
+      // swallow click events, and the preview's delegated handler owns the toggle
+      expect(out).not.toMatch(/<input[^>]*disabled/)
     })
 
     it("preserves the checked state of completed tasks", () => {
@@ -20,9 +22,19 @@ describe("sanitizeHtml", () => {
       expect(out).toMatch(/<input[^>]*checked/)
     })
 
-    it("removes inputs that are not inert checkboxes", () => {
+    it("keeps a non-disabled checkbox with whitelisted attributes only", () => {
+      const out = sanitizeHtml('<input checked="" type="checkbox" name="evil" value="1" class="x" onclick="alert(1)">')
+      expect(out).toMatch(/<input[^>]*type="checkbox"/)
+      expect(out).toMatch(/<input[^>]*checked/)
+      expect(out).not.toContain("name=")
+      expect(out).not.toContain("value=")
+      expect(out).not.toContain("class=")
+      expect(out).not.toContain("onclick")
+      expect(out).not.toContain("disabled")
+    })
+
+    it("removes inputs that are not checkboxes", () => {
       expect(sanitizeHtml('<input type="text" value="x">')).not.toContain("<input")
-      expect(sanitizeHtml('<input type="checkbox">')).not.toContain("<input")
       expect(sanitizeHtml('<input type="submit">')).not.toContain("<input")
       expect(sanitizeHtml("<input>")).not.toContain("<input")
     })

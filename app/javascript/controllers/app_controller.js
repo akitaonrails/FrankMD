@@ -1919,6 +1919,30 @@ export default class extends Controller {
     }
   }
 
+  // Handle preview:toggle-task — a task checkbox was clicked in the preview
+  // (#203). Toggle the marker at that source line in the editor; the re-render
+  // follows through the normal change pipeline. No editor open or non-markdown
+  // file: no-op.
+  onPreviewToggleTask(event) {
+    const { line } = event.detail
+    if (!Number.isInteger(line)) return
+
+    const codemirrorController = this.getCodemirrorController()
+    if (!codemirrorController) return
+    if (!this.isMarkdownFile()) return
+
+    codemirrorController.toggleTaskAtLine(line)
+  }
+
+  // Ctrl+Enter: toggle the task on the current line(s), or add one
+  toggleTask() {
+    const codemirrorController = this.getCodemirrorController()
+    if (!codemirrorController) return
+    if (!this.isMarkdownFile()) return
+
+    codemirrorController.toggleTask()
+  }
+
   // === File Operations Event Handlers ===
 
   acquireCreatedNoteUndoEditorLock(codemirror) {
@@ -2544,6 +2568,7 @@ export default class extends Controller {
       fileFinder: () => this.openFileFinder(),
       toggleSidebar: () => this.toggleSidebar(),
       typewriterMode: () => this.toggleTypewriterMode(),
+      toggleTask: () => this.toggleTask(),
       toggleScrollSync: () => this.toggleScrollSync(),
       textFormat: () => this.openTextFormatMenu(),
       emojiPicker: () => this.openEmojiPicker(),

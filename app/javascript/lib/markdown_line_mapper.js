@@ -7,12 +7,54 @@ import { marked } from "marked"
 import { sanitizeHtml } from "lib/html_sanitizer"
 import { lineAtScroll } from "lib/scroll_utils"
 
+// Collect the absolute markdown positions of every list item inside a list
+// token, depth-first in document order (an item precedes its own nested items,
+// matching the <li> order marked emits). Positions are ascending.
+function collectListItemPositions(listToken, listStartPos, markdown, positions) {
+  let searchFrom = listStartPos
+
+  for (const item of listToken.items || []) {
+    const itemRaw = item.raw || ""
+    const itemStart = markdown.indexOf(itemRaw, searchFrom)
+    if (itemStart < 0) continue
+
+    positions.push(itemStart)
+
+    // Nested lists live inside the item's own raw text
+    for (const sub of item.tokens || []) {
+      if (sub.type === "list") {
+        const subStart = markdown.indexOf(sub.raw || "", itemStart)
+        if (subStart >= 0) collectListItemPositions(sub, subStart, markdown, positions)
+      }
+    }
+
+    searchFrom = itemStart + itemRaw.length
+  }
+}
+
+// Convert ascending absolute positions to 1-based source lines (+ frontmatter
+// offset) with a single forward scan over the markdown.
+function positionsToLines(positions, markdown, lineOffset) {
+  const lines = []
+  let line = 0
+  let scannedTo = 0
+
+  for (const position of positions) {
+    line += (markdown.slice(scannedTo, position).match(/\n/g) || []).length
+    scannedTo = position
+    lines.push(line + lineOffset + 1)
+  }
+
+  return lines
+}
+
 /**
  * Parse markdown and return HTML with source line annotations
  * Uses standard marked.parse() then post-processes to add line attributes
  * @param {string} markdown - The markdown content
  * @param {number} lineOffset - Line offset (e.g., for stripped frontmatter)
- * @returns {string} - Sanitized HTML with data-source-line attributes on block elements
+ * @returns {string} - Sanitized HTML with data-source-line attributes on block
+ *                    elements and on list items (task toggle, scroll sync)
  */
 export function parseWithLineNumbers(markdown, lineOffset = 0) {
   if (!markdown) return ""
@@ -22,6 +64,7 @@ export function parseWithLineNumbers(markdown, lineOffset = 0) {
 
   // Calculate line numbers for each token
   const tokenLines = []
+  const itemPositions = []
   let currentLine = 0
   let currentPos = 0
 
@@ -41,6 +84,11 @@ export function parseWithLineNumbers(markdown, lineOffset = 0) {
         line: currentLine + lineOffset + 1 // 1-based line numbers
       })
 
+      // Per-item lines for lists (clickable task checkboxes, #203)
+      if (token.type === "list") {
+        collectListItemPositions(token, tokenStart, markdown, itemPositions)
+      }
+
       // Move position past this token
       currentPos = tokenStart + tokenText.length
       currentLine += (tokenText.match(/\n/g) || []).length
@@ -56,7 +104,7 @@ export function parseWithLineNumbers(markdown, lineOffset = 0) {
   const blockRegex = new RegExp(`<(${blockTags.join("|")})(\\s|>)`, "gi")
 
   let tokenIndex = 0
-  const result = html.replace(blockRegex, (match, tag, after) => {
+  let result = html.replace(blockRegex, (match, tag, after) => {
     if (tokenIndex < tokenLines.length) {
       const line = tokenLines[tokenIndex].line
       tokenIndex++
@@ -64,6 +112,19 @@ export function parseWithLineNumbers(markdown, lineOffset = 0) {
     }
     return match
   })
+
+  // Post-process: annotate list items with their own source lines, in the same
+  // document order the positions were collected. <li inside code blocks is
+  // escaped, and the lookahead prevents matching tags like <link>.
+  const itemLines = positionsToLines(itemPositions, markdown, lineOffset)
+  if (itemLines.length > 0) {
+    let itemIndex = 0
+    result = result.replace(/<li(\s|>)/g, (match, after) => {
+      if (itemIndex >= itemLines.length) return match
+      const line = itemLines[itemIndex++]
+      return `<li data-source-line="${line}"${after}`
+    })
+  }
 
   // Sanitize last: the block-tag regex above assigns line numbers sequentially
   // over marked's raw output, and DOMPurify re-parses the HTML — restructuring
