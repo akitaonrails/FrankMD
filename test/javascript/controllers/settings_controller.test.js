@@ -55,6 +55,10 @@ function makePanelDom() {
               <option value="2" selected>2 spaces</option>
               <option value="4">4 spaces</option>
             </select>
+            <div class="settings-segmented">
+              <button type="button" data-settings-target="viewModeButton" data-view-mode="split" aria-pressed="true">Split View</button>
+              <button type="button" data-settings-target="viewModeButton" data-view-mode="single" aria-pressed="false">Single View</button>
+            </div>
           </div>
           <div class="hidden" data-settings-target="section" data-category="writing"></div>
           <div class="hidden" data-settings-target="section" data-category="preview">
@@ -478,6 +482,41 @@ describe("SettingsController", () => {
       expect(patchCall()).toEqual({ preview_zoom: 150 })
     })
 
+    it("view mode change applies live and PATCHes view_mode", async () => {
+      const app = { setViewMode: vi.fn() }
+      controller.getAppController = () => app
+      const singleButton = controller.viewModeButtonTargets.find(b => b.dataset.viewMode === "single")
+
+      controller.onViewModeChange({ currentTarget: singleButton })
+      await flush()
+
+      expect(controller.viewModeValue).toBe("single")
+      expect(app.setViewMode).toHaveBeenCalledWith("single")
+      vi.advanceTimersByTime(600)
+      expect(patchCall()).toEqual({ view_mode: "single" })
+    })
+
+    it("view mode segmented buttons sync their aria-pressed state", () => {
+      controller.viewModeValue = "single"
+      controller.syncViewModeButtons()
+
+      const split = controller.viewModeButtonTargets.find(b => b.dataset.viewMode === "split")
+      const single = controller.viewModeButtonTargets.find(b => b.dataset.viewMode === "single")
+      expect(split.getAttribute("aria-pressed")).toBe("false")
+      expect(single.getAttribute("aria-pressed")).toBe("true")
+
+      controller.viewModeValue = "split"
+      controller.syncViewModeButtons()
+      expect(split.getAttribute("aria-pressed")).toBe("true")
+      expect(single.getAttribute("aria-pressed")).toBe("false")
+    })
+
+    it("unknown view_mode values fall back to split", () => {
+      controller.viewModeValue = "garbage"
+
+      expect(controller.viewMode).toBe("split")
+    })
+
     it("announces successful saves via frankmd:config-file-modified", async () => {
       const handler = vi.fn()
       window.addEventListener("frankmd:config-file-modified", handler)
@@ -506,7 +545,8 @@ describe("SettingsController", () => {
             vim_mode: true,
             typewriter_mode: true,
             scroll_sync: false,
-            theme: "nord"
+            theme: "nord",
+            view_mode: "single"
           }
         })
       })
@@ -523,6 +563,7 @@ describe("SettingsController", () => {
       expect(controller.typewriterModeValue).toBe(true)
       expect(controller.scrollSyncValue).toBe(false)
       expect(controller.themeValue).toBe("nord")
+      expect(controller.viewModeValue).toBe("single")
 
       expect(controller.fontSelectTarget.value).toBe("fira-code")
       expect(controller.fontSizeSelectTarget.value).toBe("18")
@@ -531,6 +572,18 @@ describe("SettingsController", () => {
       expect(controller.lineNumbersSelectTarget.value).toBe("2")
       expect(controller.indentSelectTarget.value).toBe("4")
       expect(controller.zoomSelectTarget.value).toBe("150")
+      expect(controller.viewModeButtonTargets.find(b => b.dataset.viewMode === "single").getAttribute("aria-pressed")).toBe("true")
+    })
+
+    it("normalizes an unknown view_mode to split on reload", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ settings: { view_mode: "diagonal" } })
+      })
+
+      await controller.reload()
+
+      expect(controller.viewModeValue).toBe("split")
     })
 
     it("treats a missing scroll_sync as unchanged (stays enabled)", async () => {

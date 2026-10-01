@@ -125,3 +125,32 @@
 .settings-toggle[aria-pressed="true"] {
   color: var(--theme-accent);
 }
+
+/* Two-option segmented control (document view mode) */
+.settings-segmented {
+  display: inline-flex;
+  border: 1px solid var(--theme-border);
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.settings-segmented button {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--theme-text-muted);
+  background: var(--theme-bg-secondary);
+}
+
+.settings-segmented button:hover {
+  background: var(--theme-bg-hover);
+  color: var(--theme-text-primary);
+}
+
+.settings-segmented button + button {
+  border-left: 1px solid var(--theme-border);
+}
+
+.settings-segmented button[aria-pressed="true"] {
+  background: var(--theme-accent);
+  color: var(--theme-accent-text);
+}

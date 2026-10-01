@@ -15,6 +15,7 @@ class Config
     "editor_font_size" => { default: 14, type: :integer, env: nil },
     "preview_zoom" => { default: 100, type: :integer, env: nil },
     "sidebar_visible" => { default: true, type: :boolean, env: nil },
+    "view_mode" => { default: "split", type: :string, env: nil },
     "typewriter_mode" => { default: false, type: :boolean, env: nil },
     "vim_mode" => { default: false, type: :boolean, env: nil },
     "scroll_sync" => { default: true, type: :boolean, env: nil },
@@ -93,6 +94,7 @@ class Config
     editor_font_size
     preview_zoom
     sidebar_visible
+    view_mode
     typewriter_mode
     vim_mode
     scroll_sync

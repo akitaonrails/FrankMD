@@ -136,6 +136,18 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal false, config.get(:scroll_sync)
   end
 
+  test "view_mode is a UI setting that defaults to split" do
+    assert_includes Config::UI_KEYS, "view_mode"
+    assert_equal :string, Config::SCHEMA["view_mode"][:type]
+    assert_equal "split", Config::SCHEMA["view_mode"][:default]
+  end
+
+  test "reads view_mode from the config file" do
+    File.write(@test_dir.join(".fed"), "view_mode = single\n")
+    config = Config.new(base_path: @test_dir)
+    assert_equal "single", config.get(:view_mode)
+  end
+
   # === Upload extensions ===
 
   test "upload_extensions returns the default image list" do

@@ -143,6 +143,11 @@ export default class extends Controller {
     this.libraryVisible = false
     this.settingsVisible = false
 
+    // Document view mode: "split" (editor + preview side by side) or
+    // "single" (one full-width pane at a time). Boot default until the
+    // settings controller pushes the persisted value (initializeViewMode).
+    this.viewMode = "split"
+
     // Track pending config saves to debounce
     this.configSaveTimeout = null
 
@@ -155,6 +160,7 @@ export default class extends Controller {
     document.addEventListener("turbo:before-stream-render", this.boundTreeStreamRenderHandler)
     this.applySidebarVisibility()
     this.initializeTypewriterMode()
+    this.initializeViewMode()
     this.setupConfigFileListener()
     this.setupTableEditorListener()
     this.setupSlashCommandListener()
@@ -298,7 +304,7 @@ export default class extends Controller {
   getRecoveryDiffController() { return this.recoveryDiffOutlets[0] ?? null }
   getAutosaveController() { return this.autosaveOutlets[0] ?? null }
   getScrollSyncController() { return this.scrollSyncOutlets[0] ?? null }
-  getSettingsController() { return this.settingsOutlets[0] ?? null }
+  getSettingsController() { return this.settingsOutlets?.[0] ?? null }
 
   // === URL Management for Bookmarkable URLs ===
 
@@ -809,10 +815,37 @@ export default class extends Controller {
       return
     }
 
+    // Single view mode: the toggle swaps which pane owns the workspace
+    if (this.viewMode === "single") return this.switchSinglePane()
+
     const previewController = this.getPreviewController()
     if (previewController) {
       previewController.toggle()
     }
+  }
+
+  // Single view mode pane switch: editor → full-width preview → editor.
+  // The editor pane is hidden-not-disconnected, keeping autosave/undo/slash
+  // state alive across switches (same invariant as the Library/Settings
+  // workspaces).
+  switchSinglePane() {
+    const root = this.context?.element
+    const editorPanel = root?.querySelector('[data-app-target~="editorPanel"]')
+    const previewController = this.getPreviewController()
+    if (!previewController) return false
+
+    if (previewController.isVisible) {
+      // Full-width preview → back to the editor pane
+      previewController.hide()
+      editorPanel?.classList.remove("hidden")
+      this.getCodemirrorController()?.focus?.()
+      return false
+    }
+
+    // Editor pane → full-width preview
+    previewController.show()
+    editorPanel?.classList.add("hidden")
+    return true
   }
 
   updatePreview() {
@@ -1311,7 +1344,10 @@ export default class extends Controller {
       ? this._libraryPreviewWasVisible
       : (wasInSettings ? this._settingsPreviewWasVisible : null)
 
-    if ((wasInLibrary || wasInSettings) && previewPanel) {
+    // Single view mode: exactly one pane owns the workspace and returning to
+    // the editor always lands on the editor pane — the preview toggle swaps
+    // panes on demand. Split mode restores the stashed preview state.
+    if ((wasInLibrary || wasInSettings) && previewPanel && this.viewMode !== "single") {
       const previewController = this.getPreviewController()
       if (previewWasVisible) {
         if (previewController) previewController.show()
@@ -1323,6 +1359,10 @@ export default class extends Controller {
         previewPanel.classList.add("hidden")
         previewPanel.classList.remove("flex")
       }
+    } else if (this.viewMode === "single") {
+      const previewController = this.getPreviewController()
+      if (previewController) previewController.hide()
+      else previewPanel?.classList.add("hidden")
     }
     this._libraryPreviewWasVisible = null
     this._settingsPreviewWasVisible = null
@@ -1397,6 +1437,44 @@ export default class extends Controller {
       const enabled = configCtrl ? configCtrl.typewriterModeEnabled : false
       typewriterController.setEnabled(enabled)
       this.updateTypewriterToggleButton(enabled)
+    }
+  }
+
+  // === Document View Mode ===
+
+  // Pull the persisted view mode from the settings controller at boot. The
+  // settings controller also pushes changes live via setViewMode, so this
+  // covers boot regardless of controller connect order.
+  initializeViewMode() {
+    const settingsCtrl = this.getSettingsController()
+    const mode = settingsCtrl?.viewMode
+    if (mode) this.setViewMode(mode)
+  }
+
+  setViewMode(mode) {
+    const normalized = mode === "single" ? "single" : "split"
+    if (this.viewMode === normalized) return
+    this.viewMode = normalized
+    this.applyViewMode()
+  }
+
+  applyViewMode() {
+    document.body.classList.toggle("single-view-mode", this.viewMode === "single")
+
+    // While a workspace (Library/Settings) owns the main area, pane layout is
+    // re-applied by showEditorWorkspace when returning to the editor.
+    if (this.libraryVisible || this.settingsVisible) return
+
+    const root = this.context?.element
+    const editorPanel = root?.querySelector('[data-app-target~="editorPanel"]')
+    if (this.viewMode === "single") {
+      // Single mode defaults to the editor pane; the preview toggle swaps panes
+      this.getPreviewController()?.hide()
+      editorPanel?.classList.remove("hidden")
+    } else {
+      // Back to split: the editor pane returns beside the current preview
+      // state, exactly as the classic layout behaved
+      editorPanel?.classList.remove("hidden")
     }
   }
 
