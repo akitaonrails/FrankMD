@@ -135,3 +135,14 @@
     transform: translateY(0.5rem);
   }
 }
+
+/*
+ * Single document view mode: one pane at a time owns the workspace, so the
+ * preview panel stretches to full width instead of its 40% split column.
+ * The editor pane already fills the workspace when the preview is hidden.
+ */
+body.single-view-mode [data-app-target="previewPanel"] {
+  flex: 1 1 0%;
+  width: 100%;
+  border-left: none;
+}

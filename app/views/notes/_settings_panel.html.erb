@@ -14,6 +14,7 @@
   data-settings-scroll-sync-value="<%= @config_obj.get('scroll_sync') %>"
   data-settings-indent-value="<%= @config_obj.get('editor_indent') || 2 %>"
   data-settings-theme-value="<%= @config_obj.get('theme') || '' %>"
+  data-settings-view-mode-value="<%= @config_obj.get('view_mode') || 'split' %>"
   aria-labelledby="settings-title"
 >
   <div class="settings-workspace mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
@@ -162,6 +163,29 @@
         <!-- Editor -->
         <div class="settings-section hidden" data-settings-target="section" data-category="editor">
           <h2 class="settings-section-title"><%= t('settings.editor') %></h2>
+
+          <div class="settings-card">
+            <div class="min-w-0">
+              <p class="text-sm font-medium"><%= t('settings.view_mode') %></p>
+              <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.view_mode_description') %></p>
+            </div>
+            <div class="settings-segmented shrink-0" role="group" aria-label="<%= t('settings.view_mode') %>">
+              <button
+                type="button"
+                data-settings-target="viewModeButton"
+                data-view-mode="split"
+                data-action="click->settings#onViewModeChange"
+                aria-pressed="<%= (@config_obj.get('view_mode') || 'split') == 'split' ? 'true' : 'false' %>"
+              ><%= t('settings.view_mode_split') %></button>
+              <button
+                type="button"
+                data-settings-target="viewModeButton"
+                data-view-mode="single"
+                data-action="click->settings#onViewModeChange"
+                aria-pressed="<%= @config_obj.get('view_mode') == 'single' ? 'true' : 'false' %>"
+              ><%= t('settings.view_mode_single') %></button>
+            </div>
+          </div>
 
           <div class="settings-card flex-col gap-3">
             <div class="flex items-center justify-between gap-4">

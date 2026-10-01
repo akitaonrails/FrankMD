@@ -25,6 +25,7 @@ export default class extends Controller {
     "lineNumbersSelect",
     "indentSelect",
     "zoomSelect",
+    "viewModeButton",
     "status"
   ]
 
@@ -38,7 +39,8 @@ export default class extends Controller {
     vimMode: { type: Boolean, default: false },
     scrollSync: { type: Boolean, default: true },
     indent: { type: Number, default: 2 },
-    theme: { type: String, default: "" }
+    theme: { type: String, default: "" },
+    viewMode: { type: String, default: "split" }
   }
 
   static editorFonts = [
@@ -119,6 +121,10 @@ export default class extends Controller {
     if (this._previewReady) this.applyScrollSync()
   }
 
+  viewModeValueChanged() {
+    if (this.element.isConnected) this.applyViewMode()
+  }
+
   themeValueChanged() {
     if (this.element.isConnected) this.applyTheme()
   }
@@ -173,6 +179,19 @@ export default class extends Controller {
         detail: { theme: this.themeValue }
       }))
     }
+  }
+
+  // Document view mode owns the main-area layout, which the app controller
+  // manages (editor/preview panes + workspace interplay), so applying it
+  // delegates there — mirroring how preview_zoom applies via the outlet.
+  applyViewMode() {
+    this.getAppController()?.setViewMode(this.viewModeValue)
+  }
+
+  getAppController() {
+    const appEl = document.querySelector('[data-controller~="app"]')
+    if (!appEl) return null
+    return this.application.getControllerForElementAndIdentifier(appEl, "app")
   }
 
   // === Persistence ===
@@ -239,6 +258,7 @@ export default class extends Controller {
         this.assignIfChanged("scrollSyncValue", settings.scroll_sync !== false)
       }
       this.assignIfChanged("themeValue", settings.theme)
+      this.assignIfChanged("viewModeValue", settings.view_mode === "single" ? "single" : "split")
       this.syncControls()
     } catch (error) {
       console.warn("Error reloading settings:", error)
@@ -265,6 +285,7 @@ export default class extends Controller {
       const zoom = this.constructor.zoomLevels.includes(this.previewZoomValue) ? this.previewZoomValue : 100
       this.zoomSelectTarget.value = String(zoom)
     }
+    this.syncViewModeButtons()
     this.updateFontPreview()
   }
 
@@ -330,6 +351,20 @@ export default class extends Controller {
     this.saveSetting({ preview_zoom: this.previewZoomValue })
   }
 
+  // Segmented control: pick how documents are displayed (split/single)
+  onViewModeChange(event) {
+    const mode = event.currentTarget.dataset.viewMode === "single" ? "single" : "split"
+    this.viewModeValue = mode
+    this.syncViewModeButtons()
+    this.saveSetting({ view_mode: mode })
+  }
+
+  syncViewModeButtons() {
+    this.viewModeButtonTargets.forEach((button) => {
+      button.setAttribute("aria-pressed", String(this.viewModeValue === button.dataset.viewMode))
+    })
+  }
+
   updateFontPreview() {
     if (!this.hasFontPreviewTarget) return
     const font = this.constructor.editorFonts.find(f => f.id === this.fontValue)
@@ -354,5 +389,6 @@ export default class extends Controller {
   get typewriterModeEnabled() { return this.typewriterModeValue }
   get scrollSyncEnabled() { return this.scrollSyncValue }
   get editorIndent() { return this.indentValue }
+  get viewMode() { return this.viewModeValue === "single" ? "single" : "split" }
   get fonts() { return this.constructor.editorFonts }
 }
