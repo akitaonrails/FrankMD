@@ -15,6 +15,7 @@ import {
 } from "lib/codemirror_extensions"
 import { registerVimCommands, observeVimMode, configureVimKeys } from "lib/vim_mode"
 import { createTheme } from "lib/codemirror_theme"
+import { taskMarkerRange, applyTaskToggle } from "lib/task_utils"
 import {
   createTypewriterExtension,
   toggleTypewriter,
@@ -760,6 +761,62 @@ export default class extends Controller {
 
     this.setLineNumberMode(newMode)
     return newMode
+  }
+
+  // === Task Lists (#203) ===
+
+  /**
+   * Toggle the [ ]/[x] marker of the task on a specific source line
+   * (preview click-to-toggle). No-op when the line is not a task item.
+   * Only the 3-char marker is replaced, so cursor positions elsewhere in the
+   * document are preserved exactly; the standard transaction keeps undo and
+   * autosave treating it as one normal edit.
+   * @param {number} lineNumber - Absolute source line (1-based)
+   */
+  toggleTaskAtLine(lineNumber) {
+    if (!this.editor) return
+
+    const doc = this.editor.state.doc
+    const number = Math.max(1, Math.min(lineNumber, doc.lines))
+    const line = doc.line(number)
+    const range = taskMarkerRange(line.text)
+    if (!range) return
+
+    this.editor.dispatch({
+      changes: { from: line.from + range.from, to: line.from + range.to, insert: range.insert }
+    })
+  }
+
+  /**
+   * Toggle the task marker on the current line (Ctrl+Enter shortcut), or turn
+   * the line into an unchecked task. A selection spanning multiple lines
+   * applies the same per-line rule to every selected line.
+   */
+  toggleTask() {
+    if (!this.editor) return
+
+    const { doc } = this.editor.state
+    const { from, to } = this.editor.state.selection.main
+    const firstLine = doc.lineAt(from).number
+    const lastLine = doc.lineAt(to).number
+
+    const changes = []
+    for (let number = firstLine; number <= lastLine; number++) {
+      const line = doc.line(number)
+      const range = taskMarkerRange(line.text)
+      if (range) {
+        // Surgical toggle: length-preserving, cursor positions map unchanged
+        changes.push({ from: line.from + range.from, to: line.from + range.to, insert: range.insert })
+      } else {
+        const replacement = applyTaskToggle(line.text)
+        if (replacement !== line.text) {
+          changes.push({ from: line.from, to: line.to, insert: replacement })
+        }
+      }
+    }
+    if (changes.length === 0) return
+
+    this.editor.dispatch({ changes })
   }
 
   // === Typewriter Mode ===

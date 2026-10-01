@@ -475,6 +475,7 @@ pt-PT:
         toggle_sidebar: "Alternar barra lateral"
         toggle_preview: "Alternar pré-visualização"
         typewriter_mode: "Modo máquina de escrever"
+        toggle_task: "Alternar tarefa / adicionar tarefa"
         toggle_line_numbers: "Alternar números de linha"
         increase_width: "Aumentar largura do editor"
         decrease_width: "Diminuir largura do editor"

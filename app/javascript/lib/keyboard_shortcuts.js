@@ -22,6 +22,7 @@ export const DEFAULT_SHORTCUTS = {
   fileFinder:     { key: "p", ctrl: true },
   toggleSidebar:  { key: "e", ctrl: true },
   typewriterMode: { key: "\\", ctrl: true },
+  toggleTask:     { key: "Enter", ctrl: true },  // Ctrl+Enter (toggle/add task on current line or selection)
   toggleScrollSync: { key: "\\", ctrl: true, shift: true },  // Ctrl+Shift+\ (toggle editor-preview scroll sync)
   textFormat:     { key: "m", ctrl: true },
   emojiPicker:    { key: "E", ctrl: true, shift: true },

@@ -236,10 +236,21 @@
     font-weight: 600;
   }
 
-  /* Task lists */
+  /* Task lists — interactive checkboxes (#203): the sanitizer renders task
+   * checkboxes as enabled orphans (type/checked only, no form), and the
+   * preview's delegated click handler owns the toggle interaction.
+   */
   .prose input[type="checkbox"] {
     margin-right: 0.5em;
     accent-color: var(--theme-accent);
+    cursor: pointer;
+    transition: box-shadow 0.15s ease;
+  }
+
+  .prose input[type="checkbox"]:hover,
+  .prose input[type="checkbox"]:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--theme-bg-primary), 0 0 0 4px var(--theme-accent);
   }
 
   .prose ul:has(input[type="checkbox"]) {

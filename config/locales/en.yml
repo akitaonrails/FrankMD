@@ -477,6 +477,7 @@ en:
         toggle_sidebar: "Toggle sidebar"
         toggle_preview: "Toggle preview"
         typewriter_mode: "Typewriter mode"
+        toggle_task: "Toggle task / add task"
         toggle_line_numbers: "Toggle line numbers"
         increase_width: "Increase editor width"
         decrease_width: "Decrease editor width"

@@ -475,6 +475,7 @@ es:
         toggle_sidebar: "Alternar barra lateral"
         toggle_preview: "Alternar vista previa"
         typewriter_mode: "Modo máquina de escribir"
+        toggle_task: "Alternar tarea / agregar tarea"
         toggle_line_numbers: "Alternar números de línea"
         increase_width: "Aumentar ancho del editor"
         decrease_width: "Disminuir ancho del editor"

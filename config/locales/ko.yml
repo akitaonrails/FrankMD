@@ -475,6 +475,7 @@ ko:
         toggle_sidebar: "사이드바 전환"
         toggle_preview: "미리보기 전환"
         typewriter_mode: "타자기 모드"
+        toggle_task: "할 일 전환 / 추가"
         toggle_line_numbers: "줄 번호 전환"
         increase_width: "에디터 너비 늘리기"
         decrease_width: "에디터 너비 줄이기"

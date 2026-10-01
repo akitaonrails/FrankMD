@@ -144,6 +144,29 @@ export default class extends Controller {
     return preview.scrollTop / scrollHeight
   }
 
+  // Click-to-toggle for GFM task checkboxes (#203). The sanitizer renders task
+  // checkboxes as enabled orphans inside annotated <li> elements; this
+  // delegated handler fully owns the interaction: it reverts the visual toggle
+  // (preventDefault cancels the browser's pre-click activation) and asks the
+  // editor to toggle the marker at the item's source line. The preview only
+  // shows the new state once the change flows back through the normal
+  // render pipeline — same as typing the edit by hand.
+  onContentClick(event) {
+    const target = event.target
+    if (!target || target.tagName !== "INPUT" || target.type !== "checkbox") return
+
+    const listItem = target.closest("li[data-source-line]")
+    if (!listItem) return
+
+    // Immediately revert the visual state; the source of truth is the editor
+    event.preventDefault()
+
+    const line = parseInt(listItem.dataset.sourceLine, 10)
+    if (Number.isInteger(line)) {
+      this.dispatch("toggle-task", { detail: { line } })
+    }
+  }
+
   // Toggle preview panel visibility
   toggle() {
     if (!this.hasPanelTarget) return false
