@@ -21,6 +21,7 @@ import {
   toggleTypewriter,
   isTypewriterEnabled,
   getTypewriterSyncData,
+  refreshTypewriterLayout as refreshTypewriterViewLayout,
   setIsSelecting
 } from "lib/codemirror_typewriter"
 
@@ -872,6 +873,11 @@ export default class extends Controller {
         selection: { anchor: pos }
       })
     }
+  }
+
+  refreshTypewriterLayout() {
+    if (!this.editor) return
+    refreshTypewriterViewLayout(this.editor)
   }
 
   // === Read-only Mode ===

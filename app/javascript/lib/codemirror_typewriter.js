@@ -110,6 +110,10 @@ function maintainTypewriterScroll(view) {
 const typewriterPlugin = ViewPlugin.fromClass(class {
   constructor(view) {
     this.view = view
+    this.resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(() => this.refreshLayout())
+    this.resizeObserver?.observe(view.dom)
     this.updatePadding()
   }
 
@@ -151,13 +155,38 @@ const typewriterPlugin = ViewPlugin.fromClass(class {
     }
   }
 
+  refreshLayout() {
+    if (!this.view.state.field(typewriterState)) return
+
+    // The editor can be enabled while its workspace is hidden, when its
+    // scroller has no height. Recalculate padding and scroll after it becomes
+    // visible or changes size.
+    this.updatePadding()
+
+    const state = this.view.state
+    const selection = state.selection.main
+    const isMouseSelecting = state.field(isSelectingState)
+    if (!isMouseSelecting && selection.anchor === selection.head) {
+      maintainTypewriterScroll(this.view)
+    }
+  }
+
   destroy() {
     // Clean up padding
+    this.resizeObserver?.disconnect()
     const scroller = this.view.scrollDOM
     scroller.style.paddingBottom = ""
     this.view.dom.classList.remove("typewriter-mode")
   }
 })
+
+/**
+ * Refresh typewriter padding and cursor position after the editor becomes visible.
+ * @param {EditorView} view - The editor view
+ */
+export function refreshTypewriterLayout(view) {
+  view.plugin(typewriterPlugin)?.refreshLayout()
+}
 
 /**
  * Create typewriter mode extension

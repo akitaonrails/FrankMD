@@ -1374,6 +1374,10 @@ export default class extends Controller {
     if (wasInSettings && !wasInLibrary) {
       root?.querySelector('[data-app-target~="settingsToggle"]')?.focus()
     }
+
+    // Re-measure CodeMirror after revealing a workspace-hidden editor. When
+    // Typewriter mode was enabled in Settings, its initial measurement saw 0px.
+    this.codemirrorOutlets?.[0]?.refreshTypewriterLayout?.()
     return true
   }
 
@@ -1510,13 +1514,9 @@ export default class extends Controller {
       previewController.setTypewriterMode(enabled)
     }
 
-    // Typewriter mode: hide sidebar and preview for distraction-free writing
-    // Editor is centered on screen with content width control
+    // Typewriter mode hides the preview for distraction-free writing.
+    // Sidebar visibility remains controlled by the Explorer toggle.
     if (enabled) {
-      // Hide explorer
-      this.sidebarVisible = false
-      this.applySidebarVisibility()
-
       // Hide preview (keep editor only for focused writing)
       if (previewController && previewController.isVisible) {
         previewController.hide()
@@ -1525,10 +1525,6 @@ export default class extends Controller {
       // Add typewriter body class for full-width editor centering
       document.body.classList.add("typewriter-mode")
     } else {
-      // Show explorer
-      this.sidebarVisible = true
-      this.applySidebarVisibility()
-
       // Remove typewriter body class
       document.body.classList.remove("typewriter-mode")
     }
