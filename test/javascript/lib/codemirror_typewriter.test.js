@@ -9,6 +9,7 @@ import {
   toggleTypewriter,
   isTypewriterEnabled,
   getTypewriterSyncData,
+  refreshTypewriterLayout,
   setTypewriterMode,
   typewriterState
 } from "../../../app/javascript/lib/codemirror_typewriter.js"
@@ -191,6 +192,25 @@ describe("codemirror_typewriter", () => {
 
       const paddingBottom = view.scrollDOM.style.paddingBottom
       expect(paddingBottom === "" || paddingBottom === "0px" || !paddingBottom).toBe(true)
+    })
+
+    it("recalculates padding and recenters after a hidden editor becomes visible", () => {
+      createEditor(false, "Line 1\nLine 2")
+      const scroller = view.scrollDOM
+      Object.defineProperty(scroller, "clientHeight", { configurable: true, value: 0 })
+      Object.defineProperty(scroller, "scrollHeight", { configurable: true, value: 0 })
+
+      toggleTypewriter(view, true)
+      expect(scroller.style.paddingBottom).toBe("0px")
+
+      Object.defineProperty(scroller, "clientHeight", { configurable: true, value: 400 })
+      Object.defineProperty(scroller, "scrollHeight", { configurable: true, value: 1000 })
+      view.dom.getBoundingClientRect = () => ({ top: 0 })
+      view.coordsAtPos = () => ({ top: 600 })
+      refreshTypewriterLayout(view)
+
+      expect(scroller.style.paddingBottom).toBe("200px")
+      expect(scroller.scrollTop).toBe(400)
     })
   })
 })
