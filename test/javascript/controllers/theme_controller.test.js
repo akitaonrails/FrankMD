@@ -109,6 +109,12 @@ describe("ThemeController", () => {
   })
 
   describe("selectTheme()", () => {
+    beforeEach(() => {
+      // These tests cover the UI response to selection; persistence has its
+      // own tests below. Keep real debounce timers from leaking between tests.
+      vi.spyOn(controller, "saveThemeConfig").mockImplementation(() => {})
+    })
+
     it("updates current theme", () => {
       const event = { currentTarget: { dataset: { theme: "nord" } } }
       controller.selectTheme(event)
