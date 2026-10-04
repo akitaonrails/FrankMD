@@ -20,6 +20,7 @@ describe("ScrollSyncController", () => {
     contentTarget: null,
     getTopSourceLine: vi.fn(() => null),
     syncScrollRatio: vi.fn(),
+    syncToTypewriter: vi.fn(),
     syncToCursor: vi.fn(),
     render: vi.fn(),
     updateWithSync: vi.fn(),
@@ -31,6 +32,7 @@ describe("ScrollSyncController", () => {
     getCursorPosition: vi.fn(() => ({ offset: 0 })),
     getScrollRatio: vi.fn(() => 0.5),
     getTopVisibleLine: vi.fn(() => 1),
+    getTypewriterSyncData: vi.fn(() => ({ currentLine: 8, totalLines: 24 })),
     scrollToLine: vi.fn(),
     getScrollInfo: vi.fn(() => ({ top: 0, height: 1000, clientHeight: 500 })),
     scrollTo: vi.fn(),
@@ -84,6 +86,15 @@ describe("ScrollSyncController", () => {
       controller.onEditorScroll({ detail: { scrollRatio: 0.5 } })
 
       expect(mockPreviewController.syncScrollRatio).toHaveBeenCalledWith(0.5, 7)
+    })
+
+    it("centers the preview on the cursor line while Typewriter mode is enabled", () => {
+      controller.setTypewriterMode(true)
+
+      controller.onEditorScroll({ detail: { scrollRatio: 0.5 } })
+
+      expect(mockPreviewController.syncToTypewriter).toHaveBeenCalledWith(8, 24)
+      expect(mockPreviewController.syncScrollRatio).not.toHaveBeenCalled()
     })
 
     it("passes null line when the editor lacks line info (ratio fallback)", () => {
@@ -348,6 +359,16 @@ describe("ScrollSyncController", () => {
   })
 
   describe("re-anchoring after resize", () => {
+    it("re-centers the preview on the cursor line when Typewriter mode is active", () => {
+      controller.setTypewriterMode(true)
+      controller._markScrollFromEditor()
+
+      controller.onPreviewZoomChanged()
+
+      expect(mockPreviewController.syncToTypewriter).toHaveBeenCalledWith(8, 24)
+      expect(mockPreviewController.syncScrollRatio).not.toHaveBeenCalled()
+    })
+
     it("zoom change re-anchors the preview to the editor's top line (editor lock held)", () => {
       mockCodemirrorController.getTopVisibleLine.mockReturnValue(7)
       controller._markScrollFromEditor()

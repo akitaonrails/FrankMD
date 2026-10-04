@@ -36,8 +36,9 @@
     justify-content: center;
   }
 
-  /* Preview also needs padding in typewriter mode to allow centering last content */
+  /* Give the first and last preview blocks room to reach the pane center. */
   .preview-typewriter-mode {
+    padding-top: 50vh !important;
     padding-bottom: 50vh !important;
   }
 

@@ -38,6 +38,7 @@ describe("PreviewController", () => {
   afterEach(() => {
     application.stop()
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   describe("connect()", () => {
@@ -388,11 +389,52 @@ describe("PreviewController", () => {
       Object.defineProperty(controller.contentTarget, "clientHeight", { value: 400 })
     })
 
-    it("centers content at cursor position", () => {
+    it("centers the rendered block that matches the cursor line", () => {
+      const frames = []
+      vi.stubGlobal("requestAnimationFrame", (callback) => {
+        frames.push(callback)
+        return frames.length
+      })
+      vi.stubGlobal("cancelAnimationFrame", vi.fn())
+
+      const block = document.createElement("p")
+      block.dataset.sourceLine = "5"
+      block.getBoundingClientRect = () => ({ top: 400, height: 60 })
+      controller.contentTarget.append(block)
+      controller.contentTarget.getBoundingClientRect = () => ({ top: 100 })
+      controller.contentTarget.scrollTop = 80
+
       controller.syncToTypewriter(5, 10)
 
-      // Should set scrollTop to center the line
-      expect(controller.contentTarget.scrollTop).toBeGreaterThanOrEqual(0)
+      frames.shift()()
+      frames.shift()()
+
+      // Target top in the pane is 400 - 100 + 80 = 380; center the 60px block
+      // in the 400px pane: 380 + 30 - 200 = 210.
+      expect(controller.contentTarget.scrollTo).toHaveBeenCalledWith({
+        top: 210,
+        behavior: "smooth"
+      })
+    })
+
+    it("falls back to line ratio when rendered content has no source anchors", () => {
+      const frames = []
+      vi.stubGlobal("requestAnimationFrame", (callback) => {
+        frames.push(callback)
+        return frames.length
+      })
+      vi.stubGlobal("cancelAnimationFrame", vi.fn())
+
+      controller.syncToTypewriter(5, 10)
+
+      frames.shift()()
+      frames.shift()()
+
+      // (5 - 1) / (10 - 1) * 1000px - half of the 400px pane.
+      expect(controller.contentTarget.scrollTo).toHaveBeenCalledWith({
+        top: expect.closeTo(244.444, 2),
+        behavior: "smooth"
+      })
     })
 
     it("does nothing when totalLines <= 1", () => {

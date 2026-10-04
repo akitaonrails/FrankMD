@@ -38,22 +38,33 @@ export default class extends Controller {
   // === Event Handlers ===
 
   onTypewriterToggled(event) {
-    const { enabled } = event.detail
+    this.setTypewriterMode(event.detail.enabled)
+  }
+
+  setTypewriterMode(enabled) {
     this.typewriterModeEnabled = enabled
   }
 
   onEditorScroll(event) {
     const previewController = this.getPreviewController()
+    const codemirrorController = this.getCodemirrorController()
     if (!previewController || !previewController.isVisible) return
 
     if (this._scrollSource === "preview") return
 
     this._markScrollFromEditor()
 
+    if (this.typewriterModeEnabled) {
+      const syncData = codemirrorController?.getTypewriterSyncData()
+      if (syncData) {
+        previewController.syncToTypewriter(syncData.currentLine, syncData.totalLines)
+      }
+      return
+    }
+
     const scrollRatio = event.detail?.scrollRatio || 0
     // Anchor on the editor's top visible line when available (exact mapping,
     // incl. frontmatter offsets); the ratio is the fallback inside the preview
-    const codemirrorController = this.getCodemirrorController()
     const topLine = codemirrorController?.getTopVisibleLine?.() ?? null
     previewController.syncScrollRatio(scrollRatio, topLine)
   }
@@ -115,11 +126,17 @@ export default class extends Controller {
       const codemirrorController = this.getCodemirrorController()
       const previewController = this.getPreviewController()
       if (codemirrorController && previewController) {
-        const scrollRatio = codemirrorController.getScrollRatio()
-        const topLine = codemirrorController.getTopVisibleLine?.() ?? null
-        // Mark the lock for the re-sync echo...
         this._markScrollFromEditor()
-        previewController.syncScrollRatio(scrollRatio, topLine)
+        if (this.typewriterModeEnabled) {
+          const syncData = codemirrorController.getTypewriterSyncData()
+          if (syncData) {
+            previewController.syncToTypewriter(syncData.currentLine, syncData.totalLines)
+          }
+        } else {
+          const scrollRatio = codemirrorController.getScrollRatio()
+          const topLine = codemirrorController.getTopVisibleLine?.() ?? null
+          previewController.syncScrollRatio(scrollRatio, topLine)
+        }
         // ...but clear it as soon as the echo settles (scroll events fire in
         // the next frame's scroll steps, before its animation callbacks), so a
         // user scrolling the preview right after the toggle isn't swallowed.
@@ -212,6 +229,14 @@ export default class extends Controller {
     const codemirrorController = this.getCodemirrorController()
     if (!previewController || !codemirrorController) return
     if (!previewController.isVisible) return
+
+    if (this.typewriterModeEnabled && this._scrollSource !== "preview") {
+      const syncData = codemirrorController.getTypewriterSyncData()
+      if (syncData) {
+        previewController.syncToTypewriter(syncData.currentLine, syncData.totalLines)
+      }
+      return
+    }
 
     if (this._scrollSource === "preview") {
       // Preview last drove: re-anchor the editor to the preview's top source line
