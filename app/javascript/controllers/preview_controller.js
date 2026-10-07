@@ -190,6 +190,7 @@ export default class extends Controller {
     document.body.classList.add("preview-visible")
     // Invalidate content cache to ensure fresh render when shown
     this._lastRenderedContent = null
+    this.lastScrollTarget = null
     this.dispatch("toggled", { detail: { visible: true } })
   }
 
@@ -496,19 +497,27 @@ export default class extends Controller {
     this.syncScrollTimeout = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const preview = this.contentTarget
-        const lineRatio = (currentLine - 1) / (totalLines - 1)
+        const targetElement = findElementByLine(preview, currentLine)
+        let desiredScroll
 
-        // In typewriter mode, preview has bottom padding
-        const style = window.getComputedStyle(preview)
-        const paddingBottom = parseFloat(style.paddingBottom) || 0
-        const actualContentHeight = preview.scrollHeight - paddingBottom
+        if (targetElement) {
+          const elementRect = targetElement.getBoundingClientRect()
+          const previewRect = preview.getBoundingClientRect()
+          const elementTop = scrollTopForElement(elementRect, previewRect, preview.scrollTop)
+          desiredScroll = elementTop + elementRect.height / 2 - preview.clientHeight / 2
+        } else {
+          // Retain a ratio fallback for rendered content without line anchors.
+          const lineRatio = (currentLine - 1) / (totalLines - 1)
+          const style = window.getComputedStyle(preview)
+          const paddingBottom = parseFloat(style.paddingBottom) || 0
+          const actualContentHeight = preview.scrollHeight - paddingBottom
+          desiredScroll = lineRatio * actualContentHeight - preview.clientHeight / 2
+        }
 
-        // Position in the actual content based on line ratio
-        const contentPosition = lineRatio * actualContentHeight
-
-        // Center content at 50% of visible area
-        const targetY = preview.clientHeight * 0.5
-        const desiredScroll = Math.max(0, contentPosition - targetY)
+        // Clamp after accounting for typewriter bottom padding, which permits
+        // the final rendered block to reach the center of the preview pane.
+        const maxScroll = Math.max(0, preview.scrollHeight - preview.clientHeight)
+        desiredScroll = Math.max(0, Math.min(desiredScroll, maxScroll))
 
         // Only scroll if change exceeds threshold (prevents jitter)
         if (this.lastScrollTarget === null ||
@@ -557,6 +566,7 @@ export default class extends Controller {
 
   // Toggle typewriter mode styling on preview
   setTypewriterMode(enabled) {
+    if (this.typewriterModeValue !== enabled) this.lastScrollTarget = null
     this.typewriterModeValue = enabled
     if (this.hasContentTarget) {
       this.contentTarget.classList.toggle("preview-typewriter-mode", enabled)

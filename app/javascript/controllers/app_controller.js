@@ -159,8 +159,6 @@ export default class extends Controller {
     this.boundTreeStreamRenderHandler = this.invalidateTreeRefreshesForStream.bind(this)
     document.addEventListener("turbo:before-stream-render", this.boundTreeStreamRenderHandler)
     this.applySidebarVisibility()
-    this.initializeTypewriterMode()
-    this.initializeViewMode()
     this.setupConfigFileListener()
     this.setupTableEditorListener()
     this.setupSlashCommandListener()
@@ -189,12 +187,31 @@ export default class extends Controller {
     // Fallback timeout ensures it runs even if outlet callback doesn't fire.
     this._initialFileHandled = false
     this._initializationReady = true
+    this.initializeViewMode()
+    this.initializeTypewriterMode()
     this._initialFileTimeout = setTimeout(() => this._completeInitialLoad(), 50)
   }
 
   // Called by Stimulus when the codemirror outlet controller connects
   codemirrorOutletConnected() {
     this._completeInitialLoad()
+    if (this._initializationReady) this.initializeTypewriterMode()
+  }
+
+  settingsOutletConnected() {
+    if (this._initializationReady) this.initializeTypewriterMode()
+  }
+
+  typewriterOutletConnected() {
+    if (this._initializationReady) this.initializeTypewriterMode()
+  }
+
+  previewOutletConnected() {
+    if (this._initializationReady) this.initializeTypewriterMode()
+  }
+
+  scrollSyncOutletConnected() {
+    if (this._initializationReady) this.initializeTypewriterMode()
   }
 
   _preloadInitialContent() {
@@ -291,9 +308,9 @@ export default class extends Controller {
 
   // Outlet getters use the plural form (*Outlets) which returns only connected controllers
   // as an array (never throws). Returns null when the outlet controller isn't connected yet.
-  getPreviewController() { return this.previewOutlets[0] ?? null }
-  getTypewriterController() { return this.typewriterOutlets[0] ?? null }
-  getCodemirrorController() { return this.codemirrorOutlets[0] ?? null }
+  getPreviewController() { return this.previewOutlets?.[0] ?? null }
+  getTypewriterController() { return this.typewriterOutlets?.[0] ?? null }
+  getCodemirrorController() { return this.codemirrorOutlets?.[0] ?? null }
   getPathDisplayController() { return this.pathDisplayOutlets[0] ?? null }
   getTextFormatController() { return this.textFormatOutlets[0] ?? null }
   getHelpController() { return this.helpOutlets[0] ?? null }
@@ -303,7 +320,7 @@ export default class extends Controller {
   getOfflineBackupController() { return this.offlineBackupOutlets[0] ?? null }
   getRecoveryDiffController() { return this.recoveryDiffOutlets[0] ?? null }
   getAutosaveController() { return this.autosaveOutlets[0] ?? null }
-  getScrollSyncController() { return this.scrollSyncOutlets[0] ?? null }
+  getScrollSyncController() { return this.scrollSyncOutlets?.[0] ?? null }
   getSettingsController() { return this.settingsOutlets?.[0] ?? null }
 
   // === URL Management for Bookmarkable URLs ===
@@ -673,6 +690,7 @@ export default class extends Controller {
     this.updateStats()
     // Apply editor settings (font, size, line numbers)
     this.applyEditorSettings()
+    this.initializeTypewriterMode()
   }
 
   // Check if current file is markdown
@@ -737,6 +755,10 @@ export default class extends Controller {
     if (this.isMarkdownFile() && !this._tableCheckTimeout) {
       this.checkTableAtCursor()
     }
+
+    if (this.isMarkdownFile() && this.getSettingsController()?.typewriterModeEnabled) {
+      this.syncTypewriterPreview()
+    }
   }
 
   // Dispatch an input event to trigger all listeners after programmatic value changes
@@ -797,6 +819,7 @@ export default class extends Controller {
     const configCtrl = this.getSettingsController()
     if (configCtrl) {
       await configCtrl.reload()
+      this.initializeTypewriterMode()
       const autosaveCtrl = this.getAutosaveController()
       if (autosaveCtrl) {
         autosaveCtrl.showSaveStatus(window.t("status.config_applied"))
@@ -1378,6 +1401,7 @@ export default class extends Controller {
     // Re-measure CodeMirror after revealing a workspace-hidden editor. When
     // Typewriter mode was enabled in Settings, its initial measurement saw 0px.
     this.codemirrorOutlets?.[0]?.refreshTypewriterLayout?.()
+    this.initializeTypewriterMode()
     return true
   }
 
@@ -1436,12 +1460,14 @@ export default class extends Controller {
 
   initializeTypewriterMode() {
     const typewriterController = this.getTypewriterController()
-    if (typewriterController) {
-      const configCtrl = this.getSettingsController()
-      const enabled = configCtrl ? configCtrl.typewriterModeEnabled : false
-      typewriterController.setEnabled(enabled)
-      this.updateTypewriterToggleButton(enabled)
-    }
+    const configCtrl = this.getSettingsController()
+    if (!typewriterController || !configCtrl) return
+
+    const savedValue = configCtrl.typewriterModeEnabled
+    const enabled = savedValue && this.isMarkdownFile()
+    typewriterController.setEnabled(enabled)
+    this.updateTypewriterToggleButton(savedValue)
+    this.applyTypewriterMode(enabled)
   }
 
   // === Document View Mode ===
@@ -1506,28 +1532,29 @@ export default class extends Controller {
   onTypewriterToggled(event) {
     const { enabled } = event.detail
     this.saveConfig({ typewriter_mode: enabled })
+    const configCtrl = this.getSettingsController()
+    if (configCtrl) configCtrl.typewriterModeValue = enabled
     this.updateTypewriterToggleButton(enabled)
 
-    // Toggle typewriter mode on preview controller
+    const active = enabled && this.isMarkdownFile()
+    this.getTypewriterController()?.setEnabled(active)
+    this.applyTypewriterMode(active)
+  }
+
+  applyTypewriterMode(enabled) {
     const previewController = this.getPreviewController()
-    if (previewController) {
-      previewController.setTypewriterMode(enabled)
-    }
+    previewController?.setTypewriterMode(enabled)
+    this.getScrollSyncController()?.setTypewriterMode(enabled)
+    document.body.classList.toggle("typewriter-mode", enabled)
 
-    // Typewriter mode hides the preview for distraction-free writing.
-    // Sidebar visibility remains controlled by the Explorer toggle.
-    if (enabled) {
-      // Hide preview (keep editor only for focused writing)
-      if (previewController && previewController.isVisible) {
-        previewController.hide()
-      }
+    if (!enabled || !this.isMarkdownFile() || this.libraryVisible || this.settingsVisible) return
 
-      // Add typewriter body class for full-width editor centering
-      document.body.classList.add("typewriter-mode")
-    } else {
-      // Remove typewriter body class
-      document.body.classList.remove("typewriter-mode")
+    // In split view, keep both panes available so the preview can follow the
+    // cursor. Single view continues to let the user switch between panes.
+    if (this.viewMode !== "single" && previewController && !previewController.isVisible) {
+      previewController.show()
     }
+    this.syncTypewriterPreview()
   }
 
   maintainTypewriterScroll() {
@@ -1537,13 +1564,17 @@ export default class extends Controller {
     // Center cursor in editor (works regardless of preview)
     codemirrorController.maintainTypewriterScroll()
 
-    // Sync preview if visible
+    this.syncTypewriterPreview()
+  }
+
+  syncTypewriterPreview() {
+    const codemirrorController = this.getCodemirrorController()
     const previewController = this.getPreviewController()
-    if (previewController && previewController.isVisible) {
-      const syncData = codemirrorController.getTypewriterSyncData()
-      if (syncData) {
-        previewController.syncToTypewriter(syncData.currentLine, syncData.totalLines)
-      }
+    if (!codemirrorController || !previewController?.isVisible) return
+
+    const syncData = codemirrorController.getTypewriterSyncData()
+    if (syncData) {
+      previewController.syncToTypewriter(syncData.currentLine, syncData.totalLines)
     }
   }
 
