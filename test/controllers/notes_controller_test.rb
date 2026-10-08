@@ -620,15 +620,13 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_match "From Param", response.body
   end
 
-  test "index renders settings workspace with editor config values" do
+  test "index renders settings dialog with editor config values" do
     get root_url
     assert_response :success
-    # The editor-config bootstrap div was consolidated into the Settings
-    # workspace, which carries the same server-synced values on its root.
-    assert_select "section[data-app-target='settingsPanel'][data-controller='settings']"
-    assert_select "section[data-controller='settings'][data-settings-font-value]"
-    assert_select "section[data-controller='settings'][data-settings-font-size-value]"
-    assert_select "section[data-controller='settings'][data-settings-editor-width-value]"
+    assert_select "dialog[data-app-target='settingsDialog'][data-controller='settings'][aria-modal='true']"
+    assert_select "dialog[data-controller='settings'][data-settings-font-value]"
+    assert_select "dialog[data-controller='settings'][data-settings-font-size-value]"
+    assert_select "dialog[data-controller='settings'][data-settings-editor-width-value]"
   end
 
   # === turbo stream responses ===

@@ -51,7 +51,6 @@ function makeTypewriterApp({ savedValue = true, fileType = null, viewMode = "spl
     currentFileType: fileType,
     viewMode,
     libraryVisible: false,
-    settingsVisible: false,
     saveConfig: vi.fn(),
     settingsOutlets: [settingsController],
     typewriterOutlets: [typewriterController],
@@ -120,6 +119,16 @@ describe("AppController Typewriter mode", () => {
     expect(previewController.setTypewriterMode).toHaveBeenCalledWith(true)
   })
 
+  it("applies Typewriter preview sync while Settings is open", () => {
+    const { app, settingsController, previewController } = makeTypewriterApp({ fileType: "markdown" })
+    settingsController.isDialogOpen = true
+
+    app.applyTypewriterMode(true)
+
+    expect(previewController.show).toHaveBeenCalledOnce()
+    expect(previewController.syncToTypewriter).toHaveBeenCalledWith(6, 20)
+  })
+
   it.each([true, false])("preserves sidebar visibility (%s)", (sidebarVisible) => {
     const { app } = makeApp(sidebarVisible)
 
@@ -132,13 +141,13 @@ describe("AppController Typewriter mode", () => {
     expect(app.applySidebarVisibility).not.toHaveBeenCalled()
   })
 
-  it("refreshes CodeMirror after showing the editor workspace", () => {
+  it("refreshes CodeMirror after returning from Library", () => {
     const root = document.createElement("div")
     root.innerHTML = `
       <main data-app-target="editorPanel" class="hidden"></main>
       <aside data-app-target="previewPanel" class="hidden"></aside>
-      <section data-app-target="settingsPanel"></section>
-      <button data-app-target="settingsToggle"></button>
+      <section data-app-target="libraryPanel"></section>
+      <button data-app-target="libraryToggle"></button>
     `
     document.body.append(root)
 
@@ -146,8 +155,7 @@ describe("AppController Typewriter mode", () => {
     const app = Object.create(AppController.prototype)
     Object.assign(app, {
       context: { element: root },
-      libraryVisible: false,
-      settingsVisible: true,
+      libraryVisible: true,
       viewMode: "split",
       codemirrorOutlets: [codemirrorController],
       previewOutlets: []

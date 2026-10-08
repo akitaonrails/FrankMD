@@ -6,15 +6,15 @@ import AppController from "../../../app/javascript/controllers/app_controller.js
 
 function makePanelDom() {
   document.body.innerHTML = `
-    <div data-controller="app">
+    <div>
       <aside data-app-target="sidebar"></aside>
       <main data-app-target="editorPanel"></main>
       <aside data-app-target="previewPanel" class="hidden"></aside>
       <section data-app-target="libraryPanel" class="hidden"></section>
-      <section id="settings-panel"
-           class="hidden"
-           data-app-target="settingsPanel"
+      <dialog id="settings-panel"
+           data-app-target="settingsDialog"
            data-controller="settings"
+           data-action="click->settings#closeOnBackdrop"
            data-settings-font-value="cascadia-code"
            data-settings-font-size-value="14"
            data-settings-editor-width-value="72"
@@ -25,6 +25,7 @@ function makePanelDom() {
            data-settings-theme-value=""
            data-settings-codemirror-outlet='[data-controller~="mock-codemirror"]'
            data-settings-preview-outlet='[data-controller~="mock-preview"]'>
+        <button type="button" data-action="click->settings#closeSettings">Close</button>
         <nav>
           <button type="button" data-settings-target="navButton" data-category="general" aria-pressed="true">General</button>
           <button type="button" data-settings-target="navButton" data-category="editor" aria-pressed="false">Editor</button>
@@ -70,7 +71,7 @@ function makePanelDom() {
           </div>
           <p class="hidden" data-settings-target="status"></p>
         </div>
-      </section>
+      </dialog>
       <button data-app-target="libraryToggle" aria-pressed="false"></button>
       <button data-app-target="settingsToggle" aria-pressed="false"></button>
     </div>
@@ -80,6 +81,13 @@ function makePanelDom() {
     </div>
     <div data-controller="mock-preview" data-mock-preview-zoom-value="100"></div>
   `
+
+  const dialog = document.getElementById("settings-panel")
+  dialog.showModal = vi.fn(() => dialog.setAttribute("open", ""))
+  dialog.close = vi.fn(() => {
+    dialog.removeAttribute("open")
+    dialog.dispatchEvent(new window.Event("close"))
+  })
 }
 
 describe("SettingsController", () => {
@@ -368,24 +376,48 @@ describe("SettingsController", () => {
     })
   })
 
-  describe("closeSettings()", () => {
-    it("dispatches close when the panel is visible", () => {
-      const handler = vi.fn()
-      controller.element.addEventListener("settings:close", handler)
-      controller.element.classList.remove("hidden")
+  describe("dialog lifecycle", () => {
+    it("opens modally, syncs controls, focuses navigation, and reports its state", () => {
+      const stateChanged = vi.fn()
+      controller.element.addEventListener("settings:dialog-state-changed", stateChanged)
+      controller.fontValue = "fira-code"
 
-      controller.closeSettings()
+      expect(controller.openDialog()).toBe(true)
 
-      expect(handler).toHaveBeenCalled()
+      expect(controller.element.showModal).toHaveBeenCalledOnce()
+      expect(controller.isDialogOpen).toBe(true)
+      expect(controller.fontSelectTarget.value).toBe("fira-code")
+      expect(document.activeElement).toBe(controller.navButtonTargets[0])
+      expect(stateChanged).toHaveBeenCalledWith(expect.objectContaining({ detail: { open: true } }))
     })
 
-    it("does nothing when already hidden", () => {
-      const handler = vi.fn()
-      controller.element.addEventListener("settings:close", handler)
+    it("closes through the dialog close method and reports its state", () => {
+      const stateChanged = vi.fn()
+      controller.element.addEventListener("settings:dialog-state-changed", stateChanged)
+      controller.openDialog()
 
-      controller.closeSettings()
+      expect(controller.closeSettings()).toBe(true)
 
-      expect(handler).not.toHaveBeenCalled()
+      expect(controller.element.close).toHaveBeenCalledOnce()
+      expect(controller.isDialogOpen).toBe(false)
+      expect(stateChanged.mock.calls.map(([event]) => event.detail.open)).toEqual([true, false])
+    })
+
+    it("closes on backdrop clicks but ignores clicks inside the dialog", () => {
+      controller.openDialog()
+      const insideButton = controller.navButtonTargets[0]
+
+      controller.closeOnBackdrop({ target: insideButton })
+      expect(controller.isDialogOpen).toBe(true)
+
+      controller.closeOnBackdrop({ target: controller.element })
+      expect(controller.isDialogOpen).toBe(false)
+      expect(controller.element.close).toHaveBeenCalledOnce()
+    })
+
+    it("does nothing when asked to close while already closed", () => {
+      expect(controller.closeSettings()).toBe(false)
+      expect(controller.element.close).not.toHaveBeenCalled()
     })
   })
 
@@ -622,23 +654,23 @@ describe("SettingsController", () => {
     })
   })
 
-  describe("onWorkspaceOpen()", () => {
-    it("syncs controls so the panel reflects current values", () => {
+  describe("openDialog()", () => {
+    it("syncs controls so the dialog reflects current values", () => {
       controller.fontValue = "fira-code"
-      controller.onWorkspaceOpen()
+      controller.openDialog()
 
       expect(controller.fontSelectTarget.value).toBe("fira-code")
     })
   })
 })
 
-describe("AppController Settings workspace", () => {
+describe("AppController Settings dialog", () => {
   afterEach(() => {
     document.body.replaceChildren()
     delete window.t
   })
 
-  function makeWorkspaceApp() {
+  function makeSettingsApp({ previewVisible = false } = {}) {
     window.t = (key) => key
     const element = document.createElement("div")
     element.innerHTML = `
@@ -646,138 +678,100 @@ describe("AppController Settings workspace", () => {
       <main data-app-target="editorPanel"></main>
       <aside data-app-target="previewPanel" class="hidden"></aside>
       <section data-app-target="libraryPanel" class="hidden"></section>
-      <section data-app-target="settingsPanel" class="hidden"></section>
+      <dialog data-app-target="settingsDialog"></dialog>
       <button data-app-target="libraryToggle" aria-pressed="false"></button>
       <button data-app-target="settingsToggle" aria-pressed="false"></button>
     `
     document.body.replaceChildren(element)
     const app = Object.create(AppController.prototype)
-    const settingsPanel = element.querySelector('[data-app-target="settingsPanel"]')
-    const settingsController = { onWorkspaceOpen: vi.fn(), navButtonTargets: [document.createElement("button")] }
-    const application = {
-      getControllerForElementAndIdentifier: vi.fn((candidate, identifier) =>
-        candidate === settingsPanel && identifier === "settings" ? settingsController : null
-      )
+    const dialog = element.querySelector('[data-app-target="settingsDialog"]')
+    const previewPanel = element.querySelector('[data-app-target="previewPanel"]')
+    const previewController = {
+      get isVisible() { return !previewPanel.classList.contains("hidden") },
+      show: vi.fn(() => {
+        previewPanel.classList.remove("hidden")
+        previewPanel.classList.add("flex")
+      }),
+      hide: vi.fn(() => {
+        previewPanel.classList.add("hidden")
+        previewPanel.classList.remove("flex")
+      }),
+      toggle: vi.fn()
     }
+    const settingsController = {
+      isDialogOpen: false,
+      toggleDialog: vi.fn(function () {
+        this.isDialogOpen = !this.isDialogOpen
+        dialog.toggleAttribute("open", this.isDialogOpen)
+        app.onSettingsDialogStateChanged({ detail: { open: this.isDialogOpen } })
+        return this.isDialogOpen
+      })
+    }
+    Object.defineProperty(app, "settingsOutlets", { value: [settingsController] })
     Object.assign(app, {
       context: { element },
       libraryVisible: false,
-      settingsVisible: false,
-      previewOutlets: []
+      viewMode: "split",
+      currentFileType: "markdown",
+      previewOutlets: [previewController]
     })
-    Object.defineProperty(app, "application", { value: application })
-    return { app, element, settingsController }
+    if (previewVisible) previewController.show()
+    return { app, element, settingsController, previewController }
   }
 
-  it("opens Settings hiding the editor without disconnecting it", () => {
-    const { app, element } = makeWorkspaceApp()
+  it.each([false, true])("opens over the editor without changing preview visibility (%s)", (previewVisible) => {
+    const { app, element, settingsController, previewController } = makeSettingsApp({ previewVisible })
     const editor = element.querySelector('[data-app-target="editorPanel"]')
-    const settings = element.querySelector('[data-app-target="settingsPanel"]')
+    const dialog = element.querySelector('[data-app-target="settingsDialog"]')
     const button = element.querySelector('[data-app-target="settingsToggle"]')
 
-    app.toggleSettings()
+    expect(app.toggleSettings()).toBe(true)
 
-    expect(editor.classList.contains("hidden")).toBe(true)
-    // Hidden, not disconnected: the panel (and the editor it coexists with)
-    // stays in the DOM so controller state survives.
     expect(editor.isConnected).toBe(true)
-    expect(settings.classList.contains("hidden")).toBe(false)
+    expect(editor.classList.contains("hidden")).toBe(false)
+    expect(dialog.open).toBe(true)
+    expect(previewController.isVisible).toBe(previewVisible)
     expect(button.getAttribute("aria-pressed")).toBe("true")
+
+    expect(app.toggleSettings()).toBe(false)
+
+    expect(dialog.open).toBe(false)
+    expect(editor.classList.contains("hidden")).toBe(false)
+    expect(previewController.isVisible).toBe(previewVisible)
+    expect(button.getAttribute("aria-pressed")).toBe("false")
+    expect(settingsController.toggleDialog).toHaveBeenCalledTimes(2)
   })
 
-  it("round-trips back to the editor restoring focus to the toggle", () => {
-    const { app, element } = makeWorkspaceApp()
-    const editor = element.querySelector('[data-app-target="editorPanel"]')
-    const settings = element.querySelector('[data-app-target="settingsPanel"]')
-    const button = element.querySelector('[data-app-target="settingsToggle"]')
-    button.focus = vi.fn()
+  it("can overlay the Library without changing its workspace state", () => {
+    const { app, element, previewController } = makeSettingsApp({ previewVisible: true })
+    const library = element.querySelector('[data-app-target="libraryPanel"]')
+    const libraryButton = element.querySelector('[data-app-target="libraryToggle"]')
+
+    app.showLibraryWorkspace()
+    expect(library.classList.contains("hidden")).toBe(false)
+    expect(previewController.isVisible).toBe(false)
 
     app.toggleSettings()
-    const result = app.toggleSettings()
-
-    expect(result).toBe(false)
-    expect(editor.classList.contains("hidden")).toBe(false)
-    expect(settings.classList.contains("hidden")).toBe(true)
-    expect(button.getAttribute("aria-pressed")).toBe("false")
-    expect(button.focus).toHaveBeenCalled()
-  })
-
-  it("syncs the workspace controls on open", () => {
-    const { app, settingsController } = makeWorkspaceApp()
-
-    app.showSettingsWorkspace()
-
-    expect(settingsController.onWorkspaceOpen).toHaveBeenCalled()
-  })
-
-  it("Settings and Library are mutually exclusive panes", () => {
-    const { app, element } = makeWorkspaceApp()
-    const library = element.querySelector('[data-app-target="libraryPanel"]')
-    const settings = element.querySelector('[data-app-target="settingsPanel"]')
-    const libraryButton = element.querySelector('[data-app-target="libraryToggle"]')
-    const settingsButton = element.querySelector('[data-app-target="settingsToggle"]')
-
-    app.showLibraryWorkspace()
+    expect(element.querySelector('[data-app-target="settingsDialog"]').open).toBe(true)
     expect(library.classList.contains("hidden")).toBe(false)
+    expect(libraryButton.getAttribute("aria-pressed")).toBe("true")
 
-    app.showSettingsWorkspace()
-    expect(library.classList.contains("hidden")).toBe(true)
-    expect(libraryButton.getAttribute("aria-pressed")).toBe("false")
-    expect(settings.classList.contains("hidden")).toBe(false)
-    expect(settingsButton.getAttribute("aria-pressed")).toBe("true")
-
-    app.showLibraryWorkspace()
-    expect(settings.classList.contains("hidden")).toBe(true)
-    expect(settingsButton.getAttribute("aria-pressed")).toBe("false")
+    app.toggleSettings()
     expect(library.classList.contains("hidden")).toBe(false)
+    expect(libraryButton.getAttribute("aria-pressed")).toBe("true")
   })
 
-  it("inherits the stashed preview state when switching workspaces directly", () => {
-    const { app, element } = makeWorkspaceApp()
-    const preview = element.querySelector('[data-app-target="previewPanel"]')
-    preview.classList.remove("hidden")
-    preview.classList.add("flex")
+  it("blocks background shortcuts while the Settings dialog is open", () => {
+    const { app, settingsController, previewController } = makeSettingsApp()
+    settingsController.isDialogOpen = true
 
-    app.showSettingsWorkspace()
-    expect(preview.classList.contains("hidden")).toBe(true)
+    app.executeShortcutAction("togglePreview")
 
-    // Library inherits Settings' stashed preview state (was visible)
-    app.showLibraryWorkspace()
-    expect(app._libraryPreviewWasVisible).toBe(true)
-
-    // ...and returning to the editor restores the preview exactly once
-    const result = app.showEditorWorkspace()
-    expect(result).toBe(true)
-    expect(preview.classList.contains("hidden")).toBe(false)
-    expect(app._libraryPreviewWasVisible).toBeNull()
-    expect(app._settingsPreviewWasVisible).toBeNull()
-  })
-
-  it("note selection returns to the editor from Settings", () => {
-    const { app, element } = makeWorkspaceApp()
-    const editor = element.querySelector('[data-app-target="editorPanel"]')
-    const settings = element.querySelector('[data-app-target="settingsPanel"]')
-
-    app.showSettingsWorkspace()
-    Object.assign(app, {
-      prepareEditorTransition: vi.fn(() => true),
-      isCurrentNavigation: vi.fn(() => true),
-      updatePathDisplay: vi.fn(),
-      expandParentFolders: vi.fn(),
-      showEditor: vi.fn(),
-      refreshTree: vi.fn(),
-      updateUrl: vi.fn()
-    })
-
-    app.applyLoadedFile("folder/selected.md", "note body", "revision", 1)
-
-    expect(app.currentFile).toBe("folder/selected.md")
-    expect(editor.classList.contains("hidden")).toBe(false)
-    expect(settings.classList.contains("hidden")).toBe(true)
+    expect(previewController.toggle).not.toHaveBeenCalled()
   })
 
   it("keeps the vim/scroll-sync switch aria state in sync via app toggle helpers", () => {
-    const { app, element } = makeWorkspaceApp()
+    const { app, element } = makeSettingsApp()
     const vimSwitch = document.createElement("button")
     vimSwitch.dataset.appTarget = "vimToggle"
     const scrollSwitch = document.createElement("button")
