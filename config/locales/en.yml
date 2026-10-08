@@ -94,7 +94,6 @@ en:
   # Settings workspace
   settings:
     title: "Settings"
-    description: "Preferences apply immediately and are saved to your config file."
     categories: "Settings categories"
     general: "General"
     editor: "Editor"

@@ -94,7 +94,6 @@ ja:
   # 設定ワークスペース
   settings:
     title: "設定"
-    description: "設定はすぐに適用され、設定ファイルに保存されます。"
     categories: "設定カテゴリ"
     general: "全般"
     editor: "エディター"

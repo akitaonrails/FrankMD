@@ -94,7 +94,6 @@ he:
   # סביבת ההגדרות
   settings:
     title: "הגדרות"
-    description: "ההעדפות חלות מיד ונשמרות בקובץ התצורה שלך."
     categories: "קטגוריות הגדרות"
     general: "כללי"
     editor: "עורך"
