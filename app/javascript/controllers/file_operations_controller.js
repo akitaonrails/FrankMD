@@ -31,6 +31,7 @@ export default class extends Controller {
 
   connect() {
     this.contextItem = null
+    this.contextSelection = []
     this.newItemType = null
     this.newItemParent = ""
     this.newNoteTemplate = "empty"
@@ -124,6 +125,11 @@ export default class extends Controller {
     if (fileType === "config") return
 
     this.contextItem = { path, type }
+    const app = this.getAppController()
+    const selectedItems = app?.getSelectedExplorerItems?.() || []
+    const targetIsSelected = selectedItems.some((item) => item.path === path && item.type === type)
+    if (!targetIsSelected) app?.selectExplorerItem?.(target)
+    this.contextSelection = targetIsSelected ? selectedItems : [{ path, type, fileType }]
     this.contextClickX = event.clientX
     this.contextClickY = event.clientY
 
@@ -424,6 +430,13 @@ export default class extends Controller {
   }
 
   // Rename
+  renameExplorerItem(item) {
+    if (!item?.path || !["file", "folder"].includes(item.type)) return
+
+    this.contextItem = { path: item.path, type: item.type }
+    this.renameItem()
+  }
+
   renameItem() {
     this.hideContextMenu()
     if (!this.contextItem) return
@@ -513,54 +526,85 @@ export default class extends Controller {
   }
 
   // Delete
-  async deleteItem() {
-    if (!this.contextItem) return
+  async deleteItem(item = this.contextItem) {
+    const items = item?.path
+      ? [item]
+      : (this.contextSelection.length ? this.contextSelection : (this.contextItem ? [this.contextItem] : []))
+    return this.deleteItems(items)
+  }
 
-    const item = { ...this.contextItem }
+  async deleteItems(items) {
+    const uniqueItems = new Map()
+    for (const item of items || []) {
+      if (!item?.path || !["file", "folder"].includes(item.type) || item.fileType === "config") continue
+      uniqueItems.set(JSON.stringify([item.type, item.path]), { path: item.path, type: item.type })
+    }
+    const selectedItems = Array.from(uniqueItems.values())
+    const selectedFolders = selectedItems.filter((item) => item.type === "folder")
+    const itemsToDelete = selectedItems.filter((item) => !selectedFolders.some((folder) =>
+      item.path !== folder.path && item.path.startsWith(`${folder.path}/`)
+    ))
+    if (itemsToDelete.length === 0) return
+
     this.hideContextMenu()
 
-    const itemName = item.path.split("/").pop()
-    const confirmKey = item.type === "folder"
-      ? "dialogs.confirm.delete_folder"
-      : "dialogs.confirm.delete_file"
+    let confirmMessage
+    if (itemsToDelete.length === 1) {
+      const item = itemsToDelete[0]
+      const itemName = item.path.split("/").pop()
+      const confirmKey = item.type === "folder"
+        ? "dialogs.confirm.delete_folder"
+        : "dialogs.confirm.delete_file"
+      confirmMessage = window.t(confirmKey, { name: itemName })
+    } else {
+      confirmMessage = window.t("dialogs.confirm.delete_multiple", { count: itemsToDelete.length })
+    }
 
-    if (!await appConfirm(window.t(confirmKey, { name: itemName }), {
+    if (!await appConfirm(confirmMessage, {
       acceptLabel: window.t("common.delete"),
       destructive: true
     })) {
       return
     }
 
-    const prepared = this.preparePathOperation(item.path, item.type)
+    const app = this.getAppController()
+    const activeFile = app?.currentFile
+    const activeItem = itemsToDelete.find((item) => activeFile && this.pathMatchesItem(activeFile, item.path, item.type))
+    const prepared = activeItem
+      ? this.preparePathOperation(activeItem.path, activeItem.type)
+      : { ok: true, prepared: false }
     if (!prepared.ok) {
       if (prepared.needsAlert) appAlert(window.t("status.draft_storage_error"))
       return
     }
 
-    try {
-      const endpoint = item.type === "file" ? "notes" : "folders"
-      const expanded = this.expandedFolders
-      const response = await destroy(`/${endpoint}/${encodePath(item.path)}?expanded=${encodeURIComponent(expanded)}`, {
-        responseKind: "turbo-stream"
-      })
+    let activeItemDeleted = !activeItem
+    for (const item of itemsToDelete) {
+      try {
+        const endpoint = item.type === "file" ? "notes" : "folders"
+        const expanded = this.expandedFolders
+        const response = await destroy(`/${endpoint}/${encodePath(item.path)}?expanded=${encodeURIComponent(expanded)}`, {
+          responseKind: "turbo-stream"
+        })
 
-      if (!response.ok) {
-        const data = await response.json
-        throw new Error(data.error || window.t("errors.failed_to_delete"))
-      }
-
-      // Turbo Stream response auto-processed by request.js
-
-      this.dispatch("file-deleted", {
-        detail: {
-          path: item.path,
-          type: item.type
+        if (!response.ok) {
+          const data = await response.json
+          throw new Error(data.error || window.t("errors.failed_to_delete"))
         }
-      })
-    } catch (error) {
-      this.resumePathOperation(prepared)
-      console.error("Failed to delete:", error)
-      appAlert(error.message || window.t("errors.failed_to_delete"))
+
+        // Turbo Stream responses auto-process by request.js.
+        this.dispatch("file-deleted", {
+          detail: { path: item.path, type: item.type }
+        })
+        if (activeItem && item.path === activeItem.path && item.type === activeItem.type) {
+          activeItemDeleted = true
+        }
+      } catch (error) {
+        if (!activeItemDeleted) this.resumePathOperation(prepared)
+        console.error("Failed to delete:", error)
+        appAlert(error.message || window.t("errors.failed_to_delete"))
+        return
+      }
     }
   }
 

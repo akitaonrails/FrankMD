@@ -56,6 +56,7 @@ function showNextPrompt() {
   dialog.setAttribute("aria-labelledby", "app-prompt-title")
   dialog.setAttribute("aria-describedby", "app-prompt-message")
   dialog.setAttribute("role", "alertdialog")
+  if (prompt.confirm && prompt.destructive) dialog.tabIndex = -1
 
   const content = document.createElement("div")
   content.className = "p-4 text-[var(--theme-text-primary)]"
@@ -94,7 +95,10 @@ function showNextPrompt() {
   activePrompt = prompt
   document.body.append(dialog)
   dialog.showModal()
-  ;(prompt.confirm ? actions.firstElementChild : acceptButton).focus()
+  const initialFocus = prompt.confirm && prompt.destructive
+    ? dialog
+    : (prompt.confirm ? actions.firstElementChild : acceptButton)
+  initialFocus.focus()
 }
 
 function enqueuePrompt(message, { confirm = false, acceptLabel, cancelLabel, destructive = false } = {}) {

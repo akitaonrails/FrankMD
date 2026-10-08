@@ -123,6 +123,31 @@ describe("AppController navigation", () => {
     expect(app.fileTreeTarget.innerHTML).toBe("tree after delete")
   })
 
+  it("restores every selected Explorer row after refreshing the tree", async () => {
+    global.fetch.mockResolvedValue(response({
+      text: `
+        <div class="tree-item" data-path="open.md" data-type="file"></div>
+        <div class="tree-item" data-path="second.md" data-type="file"></div>
+      `
+    }))
+    const app = makeApp({ currentFile: "open.md" })
+    app.fileTreeTarget = document.createElement("div")
+    app.explorerSelection = new Map([
+      [JSON.stringify(["file", "open.md"]), { path: "open.md", type: "file" }],
+      [JSON.stringify(["file", "second.md"]), { path: "second.md", type: "file" }]
+    ])
+    app.explorerSelectionAnchor = JSON.stringify(["file", "second.md"])
+    app.explorerItemKey = AppController.prototype.explorerItemKey
+    app.syncExplorerSelection = AppController.prototype.syncExplorerSelection
+    app.refreshTree = AppController.prototype.refreshTree
+    app.isCurrentNavigation = () => true
+
+    await app.refreshTree(0)
+
+    expect(app.fileTreeTarget.querySelectorAll(".explorer-selected")).toHaveLength(2)
+    expect(app.explorerSelectionAnchor).toBe(JSON.stringify(["file", "second.md"]))
+  })
+
   it("keeps the current editor and URL when the outgoing draft cannot be stored", async () => {
     global.fetch.mockResolvedValue(response({ json: { content: "content B", revision: "revision-B" } }))
     const autosave = { prepareForTransition: vi.fn(() => ({ ok: false, error: new Error("storage full") })) }

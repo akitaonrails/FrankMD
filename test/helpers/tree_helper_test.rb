@@ -18,6 +18,7 @@ class TreeHelperTest < ActionView::TestCase
     assert_includes html, 'data-path="test.md"'
     assert_includes html, 'data-type="file"'
     assert_includes html, 'data-file-type="markdown"'
+    assert_includes html, "keydown-&gt;app#renameSelectedExplorerItem"
     assert_includes html, "test"
   end
 
@@ -26,6 +27,16 @@ class TreeHelperTest < ActionView::TestCase
     html = render_tree_items(items, expanded_folders: Set.new, selected_file: "test.md")
 
     assert_includes html, "selected"
+  end
+
+  test "renders folders as focusable explorer items with selection and keyboard actions" do
+    items = [ { name: "folder1", path: "folder1", type: "folder", children: [] } ]
+    html = render_tree_items(items, expanded_folders: Set.new, selected_file: "")
+
+    assert_includes html, 'tabindex="0"'
+    assert_includes html, "focus-&gt;app#onExplorerItemFocus"
+    assert_includes html, "keydown-&gt;app#deleteSelectedExplorerItem"
+    assert_includes html, "keydown-&gt;app#renameSelectedExplorerItem"
   end
 
   test "renders folder with children" do
@@ -59,10 +70,13 @@ class TreeHelperTest < ActionView::TestCase
     html = render_tree_items(items, expanded_folders: Set.new, selected_file: "")
 
     assert_includes html, 'data-file-type="config"'
+    assert_includes html, 'tabindex="0"'
     # Config files should not be draggable
     refute_includes html, 'draggable="true"'
-    # Config files should only have click action (HTML-encoded ->)
+    # Config files can be selected but should not have context menu actions.
     assert_includes html, "click-&gt;app#selectFile"
+    assert_includes html, "keydown-&gt;app#deleteSelectedExplorerItem"
+    assert_includes html, "keydown-&gt;app#renameSelectedExplorerItem"
     refute_includes html, "contextmenu"
   end
 

@@ -56,6 +56,22 @@ describe("app prompts", () => {
     await expect(result).resolves.toBe(true)
   })
 
+  it("focuses the dialog instead of either button for destructive confirmations", async () => {
+    const result = appConfirm("Delete this file?", {
+      acceptLabel: window.t("common.delete"),
+      destructive: true
+    })
+    const dialog = document.querySelector("dialog")
+    const buttons = dialog.querySelectorAll("button")
+
+    expect(dialog.tabIndex).toBe(-1)
+    expect(document.activeElement).toBe(dialog)
+    expect([...buttons]).not.toContain(document.activeElement)
+
+    buttons[0].click()
+    await expect(result).resolves.toBe(false)
+  })
+
   it("resolves false when a confirmation is cancelled", async () => {
     const result = appConfirm("Continue?")
     const dialog = document.querySelector("dialog")

@@ -225,6 +225,7 @@ he:
     confirm:
       delete_file: 'למחוק את "%{name}"? אי אפשר לבטל פעולה זו.'
       delete_folder: 'למחוק את "%{name}" ואת כל התוכן שבה? אי אפשר לבטל פעולה זו.'
+      delete_multiple: 'למחוק את %{count} הפריטים שנבחרו? אי אפשר לבטל פעולה זו.'
 
     # דיאלוג שינוי שם
     rename:
@@ -466,6 +467,8 @@ he:
         file_operations: "פעולות קובץ"
         save: "שמור קובץ"
         new_note: "הערה חדשה"
+        delete_selected_item: "מחיקת הפריט שנבחר בסייר"
+        rename_selected_item: "שינוי שם הפריט שנבחר בסייר"
         file_finder: "חפש קובץ"
         search_files: "חפש בקבצים"
         find: "חיפוש בקובץ"

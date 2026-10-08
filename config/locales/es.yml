@@ -225,6 +225,7 @@ es:
     confirm:
       delete_file: '¿Seguro que quieres eliminar "%{name}"? Esta acción no se puede deshacer.'
       delete_folder: '¿Seguro que quieres eliminar "%{name}" y todo su contenido? Esta acción no se puede deshacer.'
+      delete_multiple: '¿Seguro que quieres eliminar estos %{count} elementos seleccionados? Esta acción no se puede deshacer.'
 
     # Rename dialog
     rename:
@@ -466,6 +467,8 @@ es:
         file_operations: "Operaciones de Archivo"
         save: "Guardar archivo"
         new_note: "Nueva nota"
+        delete_selected_item: "Eliminar elemento seleccionado del Explorador"
+        rename_selected_item: "Renombrar elemento seleccionado del Explorador"
         file_finder: "Buscar archivo"
         search_files: "Buscar en archivos"
         find: "Buscar en el archivo"

@@ -226,6 +226,7 @@ en:
     confirm:
       delete_file: 'Are you sure you want to delete "%{name}"? This action cannot be undone.'
       delete_folder: 'Are you sure you want to delete "%{name}" and all its contents? This action cannot be undone.'
+      delete_multiple: 'Are you sure you want to delete these %{count} selected items? This action cannot be undone.'
 
     # Rename dialog
     rename:
@@ -468,6 +469,8 @@ en:
         file_operations: "File Operations"
         save: "Save file"
         new_note: "New note"
+        delete_selected_item: "Delete selected Explorer item"
+        rename_selected_item: "Rename selected Explorer item"
         file_finder: "File finder"
         search_files: "Search in files"
         find: "Find in file"

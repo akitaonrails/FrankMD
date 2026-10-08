@@ -15,7 +15,7 @@
     background: var(--theme-bg-hover);
   }
 
-  .tree-item.selected {
+  .tree-item.explorer-selected {
     background: var(--theme-selection);
     color: var(--theme-selection-text);
   }

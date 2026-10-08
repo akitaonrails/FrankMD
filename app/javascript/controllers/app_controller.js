@@ -125,6 +125,10 @@ export default class extends Controller {
     this.installUnauthorizedRedirect()
     this.currentFile = null
     this.currentFileType = null  // "markdown", "config", or null
+    this.explorerSelection = new Map()
+    this.explorerSelectionAnchor = null
+    this._settingExplorerFocus = false
+    this._explorerPointerDownItem = null
     // Session-only creation boundaries used by file-scoped undo.
     this.createdNoteBoundaries = new Map()
     this.expandedFolders = new Set()
@@ -133,6 +137,10 @@ export default class extends Controller {
     this._treeRefreshGeneration = 0
     this._fileNotFoundTimeout = null
     this.pendingSlashInsertionRange = null
+    this.initializeExplorerSelection()
+    this.boundExplorerPointerUp = () => { this._explorerPointerDownItem = null }
+    document.addEventListener("pointerup", this.boundExplorerPointerUp, true)
+    document.addEventListener("pointercancel", this.boundExplorerPointerUp, true)
 
     // Sidebar/Explorer visibility - always start visible
     // (don't persist closed state across sessions)
@@ -280,6 +288,10 @@ export default class extends Controller {
     }
     if (this.boundTreeStreamRenderHandler) {
       document.removeEventListener("turbo:before-stream-render", this.boundTreeStreamRenderHandler)
+    }
+    if (this.boundExplorerPointerUp) {
+      document.removeEventListener("pointerup", this.boundExplorerPointerUp, true)
+      document.removeEventListener("pointercancel", this.boundExplorerPointerUp, true)
     }
 
     // Clean up object URLs to prevent memory leaks
@@ -521,6 +533,7 @@ export default class extends Controller {
   }
 
   toggleFolder(event) {
+    this.selectExplorerItem(event.currentTarget, event)
     const path = event.currentTarget.dataset.path
     const folderEl = event.currentTarget.closest(".tree-folder")
     const children = folderEl.querySelector(".tree-children")
@@ -545,6 +558,7 @@ export default class extends Controller {
     const { oldPath, newPath, type } = event.detail
     this.invalidateTreeRefreshes()
     this.remapSessionNotePaths(oldPath, newPath, type)
+    this.remapExplorerSelection(oldPath, newPath, type)
 
     if (type === "folder") {
       // Preserve expand/collapse state for moved folder and its descendants
@@ -583,7 +597,175 @@ export default class extends Controller {
   }
 
   // === File Selection and Editor ===
+  initializeExplorerSelection() {
+    if (!this.hasFileTreeTarget) return
+    const openFile = this.fileTreeTarget.querySelector('.tree-item.selected[data-type="file"]')
+    if (openFile) this.selectExplorerItem(openFile, {}, { focus: false })
+  }
+
+  explorerItemKey(item) {
+    const type = item?.dataset?.type || item?.type
+    const path = item?.dataset?.path || item?.path
+    return type && path ? JSON.stringify([type, path]) : null
+  }
+
+  getSelectedExplorerItems() {
+    if (!this.fileTreeTarget) return []
+    const selected = this.explorerSelection || new Map()
+    return Array.from(this.fileTreeTarget.querySelectorAll(".tree-item"))
+      .filter((item) => selected.has(this.explorerItemKey(item)))
+      .map((item) => {
+        const value = { path: item.dataset.path, type: item.dataset.type }
+        if (item.dataset.fileType) value.fileType = item.dataset.fileType
+        return value
+      })
+  }
+
+  syncExplorerSelection({ pruneMissing = false } = {}) {
+    if (!this.fileTreeTarget) return
+    const rows = Array.from(this.fileTreeTarget.querySelectorAll(".tree-item"))
+    const availableKeys = new Set(rows.map((item) => this.explorerItemKey(item)))
+    if (pruneMissing && this.explorerSelection) {
+      for (const key of this.explorerSelection.keys()) {
+        if (!availableKeys.has(key)) this.explorerSelection.delete(key)
+      }
+      if (this.explorerSelectionAnchor && !availableKeys.has(this.explorerSelectionAnchor)) {
+        this.explorerSelectionAnchor = null
+      }
+    }
+    rows.forEach((item) => {
+      item.classList.toggle("explorer-selected", this.explorerSelection?.has(this.explorerItemKey(item)) || false)
+    })
+  }
+
+  visibleExplorerItems() {
+    return Array.from(this.fileTreeTarget.querySelectorAll(".tree-item"))
+      .filter((item) => !item.closest(".tree-children.hidden") && !item.closest("[hidden]"))
+  }
+
+  focusExplorerItem(item) {
+    if (!item || document.activeElement === item) return
+    this._settingExplorerFocus = true
+    try {
+      item.focus()
+    } finally {
+      this._settingExplorerFocus = false
+    }
+  }
+
+  selectExplorerItem(item, event = {}, { focus = true } = {}) {
+    if (!item || !this.fileTreeTarget?.contains(item)) return
+    if (!this.explorerSelection) this.explorerSelection = new Map()
+
+    const target = { path: item.dataset.path, type: item.dataset.type }
+    const targetKey = this.explorerItemKey(target)
+    const selection = new Map(this.explorerSelection)
+    const additive = event.ctrlKey || event.metaKey
+
+    if (event.shiftKey) {
+      const visibleItems = this.visibleExplorerItems()
+      const anchorIndex = visibleItems.findIndex((visibleItem) => this.explorerItemKey(visibleItem) === this.explorerSelectionAnchor)
+      const targetIndex = visibleItems.indexOf(item)
+      if (anchorIndex < 0 || targetIndex < 0) {
+        selection.clear()
+        selection.set(targetKey, target)
+        this.explorerSelectionAnchor = targetKey
+      } else {
+        if (!additive) selection.clear()
+        const start = Math.min(anchorIndex, targetIndex)
+        const end = Math.max(anchorIndex, targetIndex)
+        visibleItems.slice(start, end + 1).forEach((visibleItem) => {
+          const value = { path: visibleItem.dataset.path, type: visibleItem.dataset.type }
+          selection.set(this.explorerItemKey(value), value)
+        })
+      }
+    } else if (additive) {
+      if (selection.has(targetKey)) selection.delete(targetKey)
+      else selection.set(targetKey, target)
+      this.explorerSelectionAnchor = targetKey
+    } else {
+      selection.clear()
+      selection.set(targetKey, target)
+      this.explorerSelectionAnchor = targetKey
+    }
+
+    this.explorerSelection = selection
+    this.syncExplorerSelection()
+    if (focus) this.focusExplorerItem(item)
+  }
+
+  onExplorerItemFocus(event) {
+    if (this._settingExplorerFocus || this._explorerPointerDownItem === event.currentTarget) return
+    this.selectExplorerItem(event.currentTarget, {}, { focus: false })
+  }
+
+  onExplorerItemPointerDown(event) {
+    this._explorerPointerDownItem = event.currentTarget
+  }
+
+  remapExplorerSelection(oldPath, newPath, type) {
+    if (!this.explorerSelection) return
+    const remapped = new Map()
+    for (const item of this.explorerSelection.values()) {
+      const value = { ...item, path: remapScopedPath(item.path, oldPath, newPath, type) }
+      remapped.set(this.explorerItemKey(value), value)
+    }
+    this.explorerSelection = remapped
+    if (this.explorerSelectionAnchor) {
+      const [anchorType, anchorPath] = JSON.parse(this.explorerSelectionAnchor)
+      this.explorerSelectionAnchor = this.explorerItemKey({
+        type: anchorType,
+        path: remapScopedPath(anchorPath, oldPath, newPath, type)
+      })
+    }
+    this.syncExplorerSelection()
+  }
+
+  removeExplorerSelection(path, type) {
+    if (!this.explorerSelection) return
+    for (const [key, item] of this.explorerSelection) {
+      if (pathMatchesScope(item.path, path, type)) this.explorerSelection.delete(key)
+    }
+    if (this.explorerSelectionAnchor) {
+      const [anchorType, anchorPath] = JSON.parse(this.explorerSelectionAnchor)
+      if (pathMatchesScope(anchorPath, path, type)) this.explorerSelectionAnchor = null
+    }
+    this.syncExplorerSelection({ pruneMissing: true })
+  }
+
+  deleteSelectedExplorerItem(event) {
+    const item = event.currentTarget
+    if (event.key !== "Delete" || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.repeat) return
+    if (!this.fileTreeTarget?.contains(item) || !item.classList.contains("explorer-selected")) return
+
+    const selectedItems = this.getSelectedExplorerItems().filter((selectedItem) => selectedItem.fileType !== "config")
+    if (selectedItems.length === 0) return
+
+    const fileOperations = this.getFileOperationsController()
+    if (!fileOperations) return
+
+    event.preventDefault()
+    fileOperations.deleteItems(selectedItems)
+  }
+
+  renameSelectedExplorerItem(event) {
+    const item = event.currentTarget
+    if (event.key !== "F2" || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.repeat) return
+    if (!this.fileTreeTarget?.contains(item) || !item.classList.contains("explorer-selected")) return
+
+    const selectedItems = this.getSelectedExplorerItems()
+    if (selectedItems.length !== 1 || selectedItems[0].fileType === "config") return
+
+    const fileOperations = this.getFileOperationsController()
+    if (!fileOperations) return
+
+    event.preventDefault()
+    fileOperations.renameExplorerItem(selectedItems[0])
+  }
+
   async selectFile(event) {
+    this.selectExplorerItem(event.currentTarget, event)
+    if (event.ctrlKey || event.metaKey || event.shiftKey) return
     const path = event.currentTarget.dataset.path
     await this.loadFile(path)
   }
@@ -658,7 +840,6 @@ export default class extends Controller {
       codemirrorController.setUndoAtHistoryStartHandler?.((path) => this.onUndoAtHistoryStart(path))
       codemirrorController.setRedoAtHistoryEndHandler?.((path) => this.onRedoAtHistoryEnd(path))
       codemirrorController.loadContent(editorContent, this.currentFile)
-      codemirrorController.focus()
     } else {
       // Fallback to hidden textarea
       this.textareaTarget.value = editorContent
@@ -2343,6 +2524,7 @@ export default class extends Controller {
     const { oldPath, newPath, type } = event.detail
     this.invalidateTreeRefreshes()
     this.remapSessionNotePaths(oldPath, newPath, type)
+    this.remapExplorerSelection(oldPath, newPath, type)
 
     if (type === "folder") {
       // Preserve expand/collapse state for renamed folder and its descendants.
@@ -2418,6 +2600,7 @@ export default class extends Controller {
   onFileDeleted(event, { preserveSessionState = false } = {}) {
     const { path, type } = event.detail
     this.invalidateTreeRefreshes()
+    this.removeExplorerSelection(path, type)
     const activeFileWasDeleted = this.currentFile === path || (
       type === "folder" && this.currentFile?.startsWith(`${path}/`)
     )
@@ -2487,6 +2670,13 @@ export default class extends Controller {
   invalidateTreeRefreshesForStream(event) {
     if (event.target?.getAttribute?.("target") === "file-tree-content") {
       this.invalidateTreeRefreshes()
+      const render = event.detail?.render
+      if (typeof render === "function") {
+        event.detail.render = async (streamElement) => {
+          await render(streamElement)
+          this.syncExplorerSelection({ pruneMissing: true })
+        }
+      }
     }
   }
 
@@ -2503,7 +2693,19 @@ export default class extends Controller {
         const html = await response.text
         if (!this.isCurrentNavigation(generation) || this.currentFile !== (selected || null)) return
         if (treeRevision !== this._treeRevision || refreshGeneration !== this._treeRefreshGeneration) return
+        const focusedItem = document.activeElement?.closest?.(".tree-item")
+        const focusedPath = this.fileTreeTarget.contains(focusedItem) ? focusedItem.dataset.path : null
+        const focusedType = this.fileTreeTarget.contains(focusedItem) ? focusedItem.dataset.type : null
+
         this.fileTreeTarget.innerHTML = html
+        this.syncExplorerSelection({ pruneMissing: true })
+
+        if (focusedPath && focusedType) {
+          const restoredItem = Array.from(this.fileTreeTarget.querySelectorAll(".tree-item")).find((item) =>
+            item.dataset.path === focusedPath && item.dataset.type === focusedType
+          )
+          if (restoredItem) this.focusExplorerItem(restoredItem)
+        }
       }
     } catch (error) {
       console.error("Error refreshing tree:", error)
