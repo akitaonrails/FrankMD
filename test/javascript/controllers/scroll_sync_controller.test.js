@@ -88,7 +88,7 @@ describe("ScrollSyncController", () => {
       expect(mockPreviewController.syncScrollRatio).toHaveBeenCalledWith(0.5, 7)
     })
 
-    it("centers the preview on the cursor line while Typewriter mode is enabled", () => {
+    it("syncs the preview to the cursor line while Typewriter mode is enabled", () => {
       controller.setTypewriterMode(true)
 
       controller.onEditorScroll({ detail: { scrollRatio: 0.5 } })

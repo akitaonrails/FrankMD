@@ -389,7 +389,7 @@ describe("PreviewController", () => {
       Object.defineProperty(controller.contentTarget, "clientHeight", { value: 400 })
     })
 
-    it("centers the rendered block that matches the cursor line", () => {
+    it("aligns the rendered block that matches the cursor line at the top", () => {
       const frames = []
       vi.stubGlobal("requestAnimationFrame", (callback) => {
         frames.push(callback)
@@ -409,10 +409,9 @@ describe("PreviewController", () => {
       frames.shift()()
       frames.shift()()
 
-      // Target top in the pane is 400 - 100 + 80 = 380; center the 60px block
-      // in the 400px pane: 380 + 30 - 200 = 210.
+      // Target top in the pane is 400 - 100 + 80 = 380.
       expect(controller.contentTarget.scrollTo).toHaveBeenCalledWith({
-        top: 210,
+        top: 380,
         behavior: "smooth"
       })
     })
@@ -430,9 +429,9 @@ describe("PreviewController", () => {
       frames.shift()()
       frames.shift()()
 
-      // (5 - 1) / (10 - 1) * 1000px - half of the 400px pane.
+      // (5 - 1) / (10 - 1) * 1000px, aligned at the top of the pane.
       expect(controller.contentTarget.scrollTo).toHaveBeenCalledWith({
-        top: expect.closeTo(244.444, 2),
+        top: expect.closeTo(444.444, 2),
         behavior: "smooth"
       })
     })
