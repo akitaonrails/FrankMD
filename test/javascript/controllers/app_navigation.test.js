@@ -79,6 +79,34 @@ describe("AppController navigation", () => {
     expect(autosave.prepareForTransition).toHaveBeenCalledTimes(1)
   })
 
+  it("selects the newly opened note in the Explorer without moving focus", () => {
+    const autosave = { prepareForTransition: vi.fn(() => ({ ok: true })) }
+    const app = makeApp({ autosave })
+    app.fileTreeTarget = document.createElement("div")
+    app.fileTreeTarget.innerHTML = `
+      <div class="tree-item explorer-selected" data-path="first.md" data-type="file"></div>
+      <div class="tree-item" data-path="second.md" data-type="file"></div>
+    `
+    app.explorerSelection = new Map([
+      [JSON.stringify(["file", "first.md"]), { path: "first.md", type: "file" }]
+    ])
+    app.explorerItemKey = AppController.prototype.explorerItemKey
+    app.selectExplorerPath = AppController.prototype.selectExplorerPath
+    app.syncExplorerSelection = AppController.prototype.syncExplorerSelection
+    app.showEditorWorkspace = vi.fn()
+
+    const focused = vi.spyOn(AppController.prototype, "focusExplorerItem")
+    const applied = app.applyLoadedFile("second.md", "content", "revision", 0)
+
+    expect(applied).toBe(true)
+    expect(app.explorerSelection).toEqual(new Map([
+      [JSON.stringify(["file", "second.md"]), { path: "second.md", type: "file" }]
+    ]))
+    expect(app.fileTreeTarget.querySelector('[data-path="first.md"]').classList.contains("explorer-selected")).toBe(false)
+    expect(app.fileTreeTarget.querySelector('[data-path="second.md"]').classList.contains("explorer-selected")).toBe(true)
+    expect(focused).not.toHaveBeenCalled()
+  })
+
   it("ignores stale 404 and error responses without changing visible state or URL", async () => {
     const pending = []
     global.fetch.mockImplementation(() => new Promise((resolve, reject) => pending.push({ resolve, reject })))

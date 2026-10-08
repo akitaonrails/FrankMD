@@ -431,6 +431,7 @@ export default class extends Controller {
     this.showEditorWorkspace()
     this.currentFile = path
     const fileType = this.getFileType(path)
+    this.selectExplorerPath(path, "file")
     const displayPath = fileType === "markdown" ? path.replace(/\.md$/, "") : path
     this.updatePathDisplay(displayPath)
     this.expandParentFolders(path)
@@ -607,6 +608,16 @@ export default class extends Controller {
     const type = item?.dataset?.type || item?.type
     const path = item?.dataset?.path || item?.path
     return type && path ? JSON.stringify([type, path]) : null
+  }
+
+  selectExplorerPath(path, type) {
+    const item = { path, type }
+    const key = this.explorerItemKey(item)
+    if (!key) return
+
+    this.explorerSelection = new Map([[key, item]])
+    this.explorerSelectionAnchor = key
+    if (this.fileTreeTarget?.querySelectorAll) this.syncExplorerSelection()
   }
 
   getSelectedExplorerItems() {
