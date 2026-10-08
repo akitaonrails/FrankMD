@@ -122,7 +122,9 @@
 }
 
 /* Header toggle active state (mirrors .library-toggle) */
-.settings-toggle[aria-pressed="true"] {
+.settings-toggle[aria-pressed="true"],
+.preview-toggle[aria-pressed="true"] {
+  background: var(--theme-bg-hover);
   color: var(--theme-accent);
 }
 

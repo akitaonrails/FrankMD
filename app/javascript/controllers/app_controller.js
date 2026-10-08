@@ -1242,10 +1242,16 @@ export default class extends Controller {
     const openingLibrary = !this.libraryVisible
     if (openingLibrary) {
       if (this.settingsVisible) {
-        // Direct workspace switch: the Settings workspace already stashed the
-        // preview state (and hid the preview) — inherit it so returning to
-        // the editor restores it.
+        // The Library hides the preview; preserve its prior state for when
+        // the user returns to the editor.
         this._libraryPreviewWasVisible = this._settingsPreviewWasVisible ?? false
+        const previewController = this.getPreviewController()
+        if (previewController?.isVisible) {
+          previewController.hide()
+        } else {
+          previewPanel?.classList.add("hidden")
+          previewPanel?.classList.remove("flex")
+        }
         this.closeSettingsWorkspace()
       } else {
         const previewController = this.getPreviewController()
@@ -1295,21 +1301,23 @@ export default class extends Controller {
     if (openingSettings) {
       if (this.libraryVisible) {
         // Direct workspace switch: the Library workspace already stashed the
-        // preview state (and hid the preview) — inherit it so returning to
-        // the editor restores it.
+        // preview state — restore it alongside Settings so the two stay
+        // independent.
         this._settingsPreviewWasVisible = this._libraryPreviewWasVisible ?? false
         this.closeLibraryWorkspace()
+        if (this._settingsPreviewWasVisible) {
+          const previewController = this.getPreviewController()
+          if (previewController) previewController.show()
+          else {
+            previewPanel?.classList.remove("hidden")
+            previewPanel?.classList.add("flex")
+          }
+        }
       } else {
         const previewController = this.getPreviewController()
         this._settingsPreviewWasVisible = previewController
           ? previewController.isVisible
           : Boolean(previewPanel && !previewPanel.classList.contains("hidden"))
-        if (this._settingsPreviewWasVisible && previewController) {
-          previewController.hide()
-        } else {
-          previewPanel?.classList.add("hidden")
-          previewPanel?.classList.remove("flex")
-        }
       }
     }
     this.settingsVisible = true
@@ -1367,9 +1375,8 @@ export default class extends Controller {
       ? this._libraryPreviewWasVisible
       : (wasInSettings ? this._settingsPreviewWasVisible : null)
 
-    // Single view mode: exactly one pane owns the workspace and returning to
-    // the editor always lands on the editor pane — the preview toggle swaps
-    // panes on demand. Split mode restores the stashed preview state.
+    // Returning from Settings restores the preview state that was active when
+    // Settings opened. Library returns to the editor pane in single view mode.
     if ((wasInLibrary || wasInSettings) && previewPanel && this.viewMode !== "single") {
       const previewController = this.getPreviewController()
       if (previewWasVisible) {
@@ -1384,8 +1391,17 @@ export default class extends Controller {
       }
     } else if (this.viewMode === "single") {
       const previewController = this.getPreviewController()
-      if (previewController) previewController.hide()
-      else previewPanel?.classList.add("hidden")
+      if (wasInSettings && previewWasVisible) {
+        if (previewController) previewController.show()
+        else {
+          previewPanel?.classList.remove("hidden")
+          previewPanel?.classList.add("flex")
+        }
+        editorPanel?.classList.add("hidden")
+      } else {
+        if (previewController) previewController.hide()
+        else previewPanel?.classList.add("hidden")
+      }
     }
     this._libraryPreviewWasVisible = null
     this._settingsPreviewWasVisible = null
@@ -1937,6 +1953,10 @@ export default class extends Controller {
   // Handle preview toggled event
   onPreviewToggled(event) {
     const { visible } = event.detail
+    this.context?.element
+      ?.querySelector('[data-app-target~="previewToggle"]')
+      ?.setAttribute("aria-pressed", String(visible))
+
     if (visible) {
       // Ensure editor sync is setup (may not have been ready at connect time)
       const previewController = this.getPreviewController()
