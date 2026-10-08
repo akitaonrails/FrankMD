@@ -13,6 +13,7 @@ function createAppFixture(markup = "") {
     expandedFolders: new Set(),
     explorerSelection: new Map(),
     explorerSelectionAnchor: null,
+    explorerActiveKey: null,
     _settingExplorerFocus: false,
     _explorerPointerDownItem: null,
     invalidateTreeRefreshes: vi.fn(),
@@ -93,6 +94,7 @@ describe("Explorer selection and keyboard actions", () => {
     expect(openFile.classList.contains("selected")).toBe(true)
     expect(openFile.classList.contains("explorer-selected")).toBe(false)
     expect(folder.classList.contains("explorer-selected")).toBe(true)
+    expect(folder.classList.contains("explorer-active")).toBe(true)
   })
 
   it("replaces the selection on a plain click", () => {
@@ -107,6 +109,8 @@ describe("Explorer selection and keyboard actions", () => {
     app.selectExplorerItem(folder, clickEvent(folder))
 
     expect(app.getSelectedExplorerItems().map((item) => item.path)).toEqual(["docs"])
+    expect(folder.classList.contains("explorer-active")).toBe(true)
+    expect(first.classList.contains("explorer-active")).toBe(false)
   })
 
   it.each(["ctrlKey", "metaKey"])("toggles selection with %s", (modifier) => {
@@ -119,9 +123,12 @@ describe("Explorer selection and keyboard actions", () => {
 
     app.selectExplorerItem(second, clickEvent(second, { [modifier]: true }))
     expect(app.getSelectedExplorerItems().map((item) => item.path)).toEqual(["first.md", "second.md"])
+    expect(second.classList.contains("explorer-active")).toBe(true)
+    expect(first.classList.contains("explorer-active")).toBe(false)
 
     app.selectExplorerItem(second, clickEvent(second, { [modifier]: true }))
     expect(app.getSelectedExplorerItems().map((item) => item.path)).toEqual(["first.md"])
+    expect(first.classList.contains("explorer-active")).toBe(true)
   })
 
   it("selects visible Shift ranges and adds a range with Ctrl+Shift", () => {
@@ -140,11 +147,13 @@ describe("Explorer selection and keyboard actions", () => {
 
     app.selectExplorerItem(third, clickEvent(third, { shiftKey: true }))
     expect(app.getSelectedExplorerItems().map((item) => item.path)).toEqual(["a.md", "closed", "b.md", "c.md"])
+    expect(third.classList.contains("explorer-active")).toBe(true)
     expect(fileTree.querySelector('[data-path="hidden.md"]').classList.contains("explorer-selected")).toBe(false)
 
     select(app, second)
     app.selectExplorerItem(first, clickEvent(first, { ctrlKey: true, shiftKey: true }))
     expect(app.getSelectedExplorerItems().map((item) => item.path)).toEqual(["a.md", "closed", "b.md"])
+    expect(first.classList.contains("explorer-active")).toBe(true)
   })
 
   it("does not collapse modifier selection when pointer focus fires first", () => {
@@ -196,6 +205,7 @@ describe("Explorer selection and keyboard actions", () => {
     app.explorerSelection.set(JSON.stringify(["file", "old-folder/note.md"]), { path: "old-folder/note.md", type: "file" })
     app.explorerSelection.set(JSON.stringify(["file", "outside.md"]), { path: "outside.md", type: "file" })
     app.explorerSelectionAnchor = JSON.stringify(["folder", "old-folder"])
+    app.explorerActiveKey = JSON.stringify(["file", "old-folder/note.md"])
 
     AppController.prototype.remapExplorerSelection.call(app, "old-folder", "new-folder", "folder")
 
@@ -206,6 +216,8 @@ describe("Explorer selection and keyboard actions", () => {
     ])
     expect(app.explorerSelectionAnchor).toBe(JSON.stringify(["folder", "new-folder"]))
     expect(fileTree.querySelector('[data-path="new-folder/note.md"]').classList.contains("explorer-selected")).toBe(true)
+    expect(app.explorerActiveKey).toBe(JSON.stringify(["file", "new-folder/note.md"]))
+    expect(fileTree.querySelector('[data-path="new-folder/note.md"]').classList.contains("explorer-active")).toBe(true)
   })
 
   it("removes selected descendants when a folder is deleted", () => {
@@ -219,11 +231,14 @@ describe("Explorer selection and keyboard actions", () => {
       app.explorerSelection.set(app.explorerItemKey(value), value)
     }
     app.explorerSelectionAnchor = JSON.stringify(["folder", "docs"])
+    app.explorerActiveKey = JSON.stringify(["file", "docs/note.md"])
 
     AppController.prototype.removeExplorerSelection.call(app, "docs", "folder")
 
     expect(app.getSelectedExplorerItems().map((item) => item.path)).toEqual(["outside.md"])
     expect(app.explorerSelectionAnchor).toBeNull()
+    expect(app.explorerActiveKey).toBe(JSON.stringify(["file", "outside.md"]))
+    expect(fileTree.querySelector('[data-path="outside.md"]').classList.contains("explorer-active")).toBe(true)
   })
 
   it("routes Delete for selected files and folders through the bulk delete action", () => {

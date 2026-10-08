@@ -127,6 +127,7 @@ export default class extends Controller {
     this.currentFileType = null  // "markdown", "config", or null
     this.explorerSelection = new Map()
     this.explorerSelectionAnchor = null
+    this.explorerActiveKey = null
     this._settingExplorerFocus = false
     this._explorerPointerDownItem = null
     // Session-only creation boundaries used by file-scoped undo.
@@ -617,6 +618,7 @@ export default class extends Controller {
 
     this.explorerSelection = new Map([[key, item]])
     this.explorerSelectionAnchor = key
+    this.explorerActiveKey = key
     if (this.fileTreeTarget?.querySelectorAll) this.syncExplorerSelection()
   }
 
@@ -644,8 +646,14 @@ export default class extends Controller {
         this.explorerSelectionAnchor = null
       }
     }
+    if (!this.explorerSelection?.has(this.explorerActiveKey)) {
+      this.explorerActiveKey = Array.from(this.explorerSelection?.keys() || []).pop() || null
+    }
     rows.forEach((item) => {
-      item.classList.toggle("explorer-selected", this.explorerSelection?.has(this.explorerItemKey(item)) || false)
+      const key = this.explorerItemKey(item)
+      const selected = this.explorerSelection?.has(key) || false
+      item.classList.toggle("explorer-selected", selected)
+      item.classList.toggle("explorer-active", selected && key === this.explorerActiveKey)
     })
   }
 
@@ -701,6 +709,9 @@ export default class extends Controller {
     }
 
     this.explorerSelection = selection
+    this.explorerActiveKey = selection.has(targetKey)
+      ? targetKey
+      : (selection.has(this.explorerActiveKey) ? this.explorerActiveKey : Array.from(selection.keys()).pop() || null)
     this.syncExplorerSelection()
     if (focus) this.focusExplorerItem(item)
   }
@@ -727,6 +738,13 @@ export default class extends Controller {
       this.explorerSelectionAnchor = this.explorerItemKey({
         type: anchorType,
         path: remapScopedPath(anchorPath, oldPath, newPath, type)
+      })
+    }
+    if (this.explorerActiveKey) {
+      const [activeType, activePath] = JSON.parse(this.explorerActiveKey)
+      this.explorerActiveKey = this.explorerItemKey({
+        type: activeType,
+        path: remapScopedPath(activePath, oldPath, newPath, type)
       })
     }
     this.syncExplorerSelection()

@@ -102,6 +102,7 @@ describe("AppController navigation", () => {
     expect(app.explorerSelection).toEqual(new Map([
       [JSON.stringify(["file", "second.md"]), { path: "second.md", type: "file" }]
     ]))
+    expect(app.explorerActiveKey).toBe(JSON.stringify(["file", "second.md"]))
     expect(app.fileTreeTarget.querySelector('[data-path="first.md"]').classList.contains("explorer-selected")).toBe(false)
     expect(app.fileTreeTarget.querySelector('[data-path="second.md"]').classList.contains("explorer-selected")).toBe(true)
     expect(focused).not.toHaveBeenCalled()
