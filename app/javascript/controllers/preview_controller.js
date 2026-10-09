@@ -479,7 +479,7 @@ export default class extends Controller {
     return findLineAtScroll(this.contentTarget, this.contentTarget.scrollTop)
   }
 
-  // Sync scroll in typewriter mode (center content)
+  // Sync the current editor line to the top of the preview in typewriter mode.
   syncToTypewriter(currentLine, totalLines) {
     if (!this.syncScrollEnabledValue) return
     if (!this.hasContentTarget) return
@@ -503,19 +503,18 @@ export default class extends Controller {
         if (targetElement) {
           const elementRect = targetElement.getBoundingClientRect()
           const previewRect = preview.getBoundingClientRect()
-          const elementTop = scrollTopForElement(elementRect, previewRect, preview.scrollTop)
-          desiredScroll = elementTop + elementRect.height / 2 - preview.clientHeight / 2
+          desiredScroll = scrollTopForElement(elementRect, previewRect, preview.scrollTop)
         } else {
           // Retain a ratio fallback for rendered content without line anchors.
           const lineRatio = (currentLine - 1) / (totalLines - 1)
           const style = window.getComputedStyle(preview)
+          const paddingTop = parseFloat(style.paddingTop) || 0
           const paddingBottom = parseFloat(style.paddingBottom) || 0
-          const actualContentHeight = preview.scrollHeight - paddingBottom
-          desiredScroll = lineRatio * actualContentHeight - preview.clientHeight / 2
+          const actualContentHeight = preview.scrollHeight - paddingTop - paddingBottom
+          desiredScroll = paddingTop + lineRatio * actualContentHeight
         }
 
-        // Clamp after accounting for typewriter bottom padding, which permits
-        // the final rendered block to reach the center of the preview pane.
+        // Clamp to the preview's natural scroll range.
         const maxScroll = Math.max(0, preview.scrollHeight - preview.clientHeight)
         desiredScroll = Math.max(0, Math.min(desiredScroll, maxScroll))
 

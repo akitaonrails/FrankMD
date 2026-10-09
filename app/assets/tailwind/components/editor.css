@@ -36,10 +36,11 @@
     justify-content: center;
   }
 
-  /* Give the first and last preview blocks room to reach the pane center. */
-  .preview-typewriter-mode {
-    padding-top: 50vh !important;
-    padding-bottom: 50vh !important;
+  /* Match the editor's reading width while keeping the preview top-aligned. */
+  .preview-typewriter-mode.prose {
+    width: 100%;
+    max-width: calc(var(--editor-width, 72ch) + 3rem) !important;
+    margin-inline: auto;
   }
 
   /*
