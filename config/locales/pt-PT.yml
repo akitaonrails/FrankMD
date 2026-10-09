@@ -225,6 +225,7 @@ pt-PT:
     confirm:
       delete_file: 'Tem a certeza que deseja eliminar "%{name}"? Esta ação não pode ser anulada.'
       delete_folder: 'Tem a certeza que deseja eliminar "%{name}" e todo o seu conteúdo? Esta ação não pode ser anulada.'
+      delete_multiple: 'Tem a certeza que deseja eliminar estes %{count} itens selecionados? Esta ação não pode ser anulada.'
 
     # Diálogo de renomear
     rename:
@@ -466,6 +467,8 @@ pt-PT:
         file_operations: "Operações de Ficheiro"
         save: "Guardar ficheiro"
         new_note: "Nova nota"
+        delete_selected_item: "Eliminar item selecionado no Explorador"
+        rename_selected_item: "Renomear item selecionado no Explorador"
         file_finder: "Procurar ficheiro"
         search_files: "Pesquisar em ficheiros"
         find: "Localizar no ficheiro"

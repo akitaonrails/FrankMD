@@ -15,9 +15,14 @@
     background: var(--theme-bg-hover);
   }
 
-  .tree-item.selected {
+  .tree-item.explorer-selected {
     background: var(--theme-selection);
     color: var(--theme-selection-text);
+  }
+
+  .tree-item.explorer-active {
+    outline: 0.5px solid var(--theme-accent);
+    outline-offset: -2px;
   }
 
   .tree-item .tree-icon {

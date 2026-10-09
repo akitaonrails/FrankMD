@@ -142,6 +142,54 @@ describe("FileOperationsController", () => {
       expect(controller.contextItem).toEqual({ path: "folder/test.md", type: "file" })
     })
 
+    it("preserves a multi-selection when right-clicking a selected row", () => {
+      const selectedItems = [
+        { path: "first.md", type: "file" },
+        { path: "docs", type: "folder" }
+      ]
+      const app = {
+        getSelectedExplorerItems: () => selectedItems,
+        selectExplorerItem: vi.fn()
+      }
+      controller.getAppController = () => app
+      const target = document.createElement("div")
+      target.dataset.path = "docs"
+      target.dataset.type = "folder"
+
+      controller.showContextMenu({
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+        clientX: 50,
+        clientY: 70,
+        currentTarget: target
+      })
+
+      expect(app.selectExplorerItem).not.toHaveBeenCalled()
+      expect(controller.contextSelection).toEqual(selectedItems)
+    })
+
+    it("selects only the right-clicked row when it is outside the selection", () => {
+      const app = {
+        getSelectedExplorerItems: () => [{ path: "first.md", type: "file" }],
+        selectExplorerItem: vi.fn()
+      }
+      controller.getAppController = () => app
+      const target = document.createElement("div")
+      target.dataset.path = "second.md"
+      target.dataset.type = "file"
+
+      controller.showContextMenu({
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+        clientX: 50,
+        clientY: 70,
+        currentTarget: target
+      })
+
+      expect(app.selectExplorerItem).toHaveBeenCalledWith(target)
+      expect(controller.contextSelection).toEqual([{ path: "second.md", type: "file", fileType: undefined }])
+    })
+
     it("does not show for config files", () => {
       const event = {
         preventDefault: vi.fn(),
@@ -601,6 +649,17 @@ describe("FileOperationsController", () => {
   })
 
   describe("renameItem()", () => {
+    it.each([
+      ["file", "folder/test.md", "test"],
+      ["folder", "parent/test-folder", "test-folder"]
+    ])("opens the existing rename dialog for an Explorer %s", (type, path, inputValue) => {
+      controller.renameExplorerItem({ path, type })
+
+      expect(controller.contextItem).toEqual({ path, type })
+      expect(controller.renameDialogTarget.showModal).toHaveBeenCalled()
+      expect(controller.renameInputTarget.value).toBe(inputValue)
+    })
+
     it("hides context menu", () => {
       controller.contextItem = { path: "test.md", type: "file" }
       controller.renameItem()
@@ -757,11 +816,101 @@ describe("FileOperationsController", () => {
 
     it("does not delete if confirmation cancelled", async () => {
       appConfirm.mockResolvedValue(false)
-      controller.contextItem = { path: "test.md", type: "file" }
 
-      await controller.deleteItem()
+      await controller.deleteItem({ path: "test.md", type: "file" })
 
       expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    it("deletes multiple selected rows after one combined confirmation", async () => {
+      await controller.deleteItems([
+        { path: "first.md", type: "file" },
+        { path: "docs", type: "folder" }
+      ])
+
+      expect(appConfirm).toHaveBeenCalledOnce()
+      expect(appConfirm).toHaveBeenCalledWith(expect.stringContaining("dialogs.confirm.delete_multiple"), {
+        acceptLabel: "common.delete",
+        destructive: true
+      })
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+      expect(global.fetch).toHaveBeenNthCalledWith(1,
+        expect.stringContaining("/notes/first.md"),
+        expect.objectContaining({ method: "DELETE" })
+      )
+      expect(global.fetch).toHaveBeenNthCalledWith(2,
+        expect.stringContaining("/folders/docs"),
+        expect.objectContaining({ method: "DELETE" })
+      )
+    })
+
+    it("skips descendants covered by a selected folder", async () => {
+      await controller.deleteItems([
+        { path: "docs", type: "folder" },
+        { path: "docs/nested.md", type: "file" }
+      ])
+
+      expect(appConfirm).toHaveBeenCalledWith(expect.stringContaining("dialogs.confirm.delete_folder"), {
+        acceptLabel: "common.delete",
+        destructive: true
+      })
+      expect(global.fetch).toHaveBeenCalledOnce()
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/folders/docs"),
+        expect.objectContaining({ method: "DELETE" })
+      )
+    })
+
+    it("does not delete protected config files from a selected set", async () => {
+      await controller.deleteItems([
+        { path: ".fed", type: "file", fileType: "config" },
+        { path: "note.md", type: "file" }
+      ])
+
+      expect(global.fetch).toHaveBeenCalledOnce()
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/notes/note.md"),
+        expect.objectContaining({ method: "DELETE" })
+      )
+    })
+
+    it("stops after the first failed request and leaves later rows for retry", async () => {
+      global.fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve("")
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({ error: "delete failed" }),
+          text: () => Promise.resolve("")
+        })
+
+      await controller.deleteItems([
+        { path: "first.md", type: "file" },
+        { path: "second.md", type: "file" },
+        { path: "third.md", type: "file" }
+      ])
+
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+      expect(appAlert).toHaveBeenCalledWith("delete failed")
+    })
+
+    it("deletes a selected folder through the same confirmation and folder endpoint", async () => {
+      await controller.deleteItem({ path: "docs", type: "folder" })
+
+      expect(appConfirm).toHaveBeenCalledWith(expect.stringContaining("dialogs.confirm.delete_folder"), {
+        acceptLabel: "common.delete",
+        destructive: true
+      })
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/folders/docs"),
+        expect.objectContaining({ method: "DELETE" })
+      )
     })
 
     it("deletes the item selected before confirmation even if context changes while waiting", async () => {

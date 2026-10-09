@@ -225,6 +225,7 @@ ja:
     confirm:
       delete_file: '「%{name}」を削除しますか？この操作は取り消せません。'
       delete_folder: '「%{name}」とそのすべての内容を削除しますか？この操作は取り消せません。'
+      delete_multiple: '選択した%{count}件を削除しますか？この操作は取り消せません。'
 
     # Rename dialog
     rename:
@@ -466,6 +467,8 @@ ja:
         file_operations: "ファイル操作"
         save: "ファイルを保存"
         new_note: "新規ノート"
+        delete_selected_item: "選択したエクスプローラー項目を削除"
+        rename_selected_item: "選択したエクスプローラー項目の名前を変更"
         file_finder: "ファイル検索"
         search_files: "ファイル内検索"
         find: "ファイル内を検索"

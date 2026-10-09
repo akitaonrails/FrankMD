@@ -31,8 +31,9 @@ module TreeHelper
       folder_header = content_tag(:div,
         class: "tree-item drop-target",
         draggable: "true",
+        tabindex: 0,
         data: {
-          action: "click->app#toggleFolder contextmenu->app#showContextMenu dragstart->drag-drop#onDragStart dragover->drag-drop#onDragOver drop->drag-drop#onDrop dragend->drag-drop#onDragEnd",
+          action: "pointerdown->app#onExplorerItemPointerDown click->app#toggleFolder focus->app#onExplorerItemFocus keydown->app#deleteSelectedExplorerItem keydown->app#renameSelectedExplorerItem contextmenu->app#showContextMenu dragstart->drag-drop#onDragStart dragover->drag-drop#onDragOver drop->drag-drop#onDrop dragend->drag-drop#onDragEnd",
           path: path,
           drop_id: path,
           type: "folder"
@@ -61,8 +62,9 @@ module TreeHelper
     attrs = if is_config
       {
         class: "tree-item#{is_selected ? ' selected' : ''}",
+        tabindex: 0,
         data: {
-          action: "click->app#selectFile",
+          action: "pointerdown->app#onExplorerItemPointerDown click->app#selectFile focus->app#onExplorerItemFocus keydown->app#deleteSelectedExplorerItem keydown->app#renameSelectedExplorerItem",
           path: path,
           type: "file",
           file_type: file_type,
@@ -73,8 +75,9 @@ module TreeHelper
       {
         class: "tree-item#{is_selected ? ' selected' : ''}",
         draggable: "true",
+        tabindex: 0,
         data: {
-          action: "click->app#selectFile contextmenu->app#showContextMenu dragstart->drag-drop#onDragStart dragend->drag-drop#onDragEnd",
+          action: "pointerdown->app#onExplorerItemPointerDown click->app#selectFile focus->app#onExplorerItemFocus keydown->app#deleteSelectedExplorerItem keydown->app#renameSelectedExplorerItem contextmenu->app#showContextMenu dragstart->drag-drop#onDragStart dragend->drag-drop#onDragEnd",
           path: path,
           type: "file",
           file_type: file_type,

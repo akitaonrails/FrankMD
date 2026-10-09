@@ -225,6 +225,7 @@ ko:
     confirm:
       delete_file: '"%{name}" 파일을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.'
       delete_folder: '"%{name}" 폴더와 모든 내용을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.'
+      delete_multiple: '선택한 %{count}개 항목을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.'
 
     # 이름 변경 다이얼로그
     rename:
@@ -466,6 +467,8 @@ ko:
         file_operations: "파일 작업"
         save: "파일 저장"
         new_note: "새 노트"
+        delete_selected_item: "선택한 탐색기 항목 삭제"
+        rename_selected_item: "선택한 탐색기 항목 이름 변경"
         file_finder: "파일 찾기"
         search_files: "파일 내 검색"
         find: "파일에서 찾기"

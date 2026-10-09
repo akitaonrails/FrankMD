@@ -30,10 +30,13 @@ class NotesTest < ApplicationSystemTestCase
     create_test_note("test.md", "# Test Content\n\nHello world")
 
     visit root_url
-    find("[data-path='test.md']").click
+    note = find("[data-path='test.md'][data-type='file']")
+    note.click
 
     assert_selector "[data-app-target='currentPath']", text: "test"
     assert_selector ".cm-editor", visible: true
+    assert_selector "[data-path='test.md'].explorer-selected:focus"
+    refute_selector ".cm-content:focus"
   end
 
   test "creating a new note via dialog" do
@@ -278,6 +281,45 @@ class NotesTest < ApplicationSystemTestCase
     refute @test_notes_dir.join("old_name.md").exist?
   end
 
+  test "renames the selected Explorer note with F2" do
+    create_test_note("keyboard_rename.md", "Content")
+
+    visit root_url
+    note = find("[data-path='keyboard_rename.md'][data-type='file']")
+    note.click
+    note.send_keys(:f2)
+
+    assert_selector "dialog[open]"
+    within "dialog[open]" do
+      fill_in with: "renamed_note"
+      click_button "Rename"
+    end
+
+    assert_selector "[data-path='renamed_note.md']", wait: 3
+    assert @test_notes_dir.join("renamed_note.md").exist?
+    refute @test_notes_dir.join("keyboard_rename.md").exist?
+  end
+
+  test "renames the selected Explorer folder with F2" do
+    create_test_folder("keyboard_rename_folder")
+    create_test_note("keyboard_rename_folder/nested.md", "Nested note")
+
+    visit root_url
+    folder = find("[data-path='keyboard_rename_folder'][data-type='folder']")
+    folder.click
+    folder.send_keys(:f2)
+
+    assert_selector "dialog[open]"
+    within "dialog[open]" do
+      fill_in with: "renamed_folder"
+      click_button "Rename"
+    end
+
+    assert_selector "[data-path='renamed_folder'][data-type='folder']", wait: 3
+    assert @test_notes_dir.join("renamed_folder/nested.md").exist?
+    refute @test_notes_dir.join("keyboard_rename_folder").exist?
+  end
+
   test "deleting a note via context menu" do
     create_test_note("to_delete.md")
 
@@ -296,6 +338,85 @@ class NotesTest < ApplicationSystemTestCase
     # Note should be gone
     assert_no_selector "[data-path='to_delete.md']", wait: 3
     refute @test_notes_dir.join("to_delete.md").exist?
+  end
+
+  test "Ctrl selection deletes multiple notes from the context menu" do
+    create_test_note("first_selected.md", "First")
+    create_test_note("second_selected.md", "Second")
+
+    visit root_url
+    first_note = find("[data-path='first_selected.md'][data-type='file']")
+    first_note.click
+    second_note = find("[data-path='second_selected.md'][data-type='file']")
+
+    page.driver.browser.action
+      .key_down(:control)
+      .click(second_note.native)
+      .key_up(:control)
+      .perform
+
+    assert_selector "[data-path='first_selected.md'].explorer-selected"
+    assert_selector "[data-path='second_selected.md'].explorer-selected"
+    assert_selector "[data-app-target='currentPath']", text: "first_selected"
+
+    first_note = find("[data-path='first_selected.md'][data-type='file']")
+    first_note.right_click
+    assert_selector 'dialog[role="alertdialog"]', text: "2 selected items"
+    find('dialog[role="alertdialog"] button', text: "Delete").click
+
+    assert_no_selector "[data-path='first_selected.md']", wait: 3
+    assert_no_selector "[data-path='second_selected.md']", wait: 3
+    refute @test_notes_dir.join("first_selected.md").exist?
+    refute @test_notes_dir.join("second_selected.md").exist?
+  end
+
+  test "deletes the focused Explorer note with Delete after confirmation" do
+    create_test_note("keyboard_delete.md", "Keep this note")
+
+    visit root_url
+    note = find("[data-path='keyboard_delete.md'][data-type='file']")
+    note.click
+    assert_selector "[data-path='keyboard_delete.md'].explorer-selected"
+
+    find("[data-path='keyboard_delete.md'][data-type='file']").send_keys(:delete)
+    assert_selector 'dialog[role="alertdialog"]'
+    find('dialog[role="alertdialog"] button', text: "Delete").click
+
+    assert_no_selector "[data-path='keyboard_delete.md']", wait: 3
+    refute @test_notes_dir.join("keyboard_delete.md").exist?
+  end
+
+  test "selecting a folder keeps its expansion behavior and Delete removes it" do
+    create_test_folder("keyboard_folder")
+    create_test_note("keyboard_folder/nested.md", "Nested note")
+
+    visit root_url
+    folder = find("[data-path='keyboard_folder'][data-type='folder']")
+    folder.click
+
+    assert_selector "[data-path='keyboard_folder'].explorer-selected"
+    assert_selector "[data-path='keyboard_folder/nested.md']", visible: true
+
+    folder.send_keys(:delete)
+    assert_selector 'dialog[role="alertdialog"]'
+    find('dialog[role="alertdialog"] button', text: "Delete").click
+
+    assert_no_selector "[data-path='keyboard_folder']", wait: 3
+    refute @test_notes_dir.join("keyboard_folder").exist?
+  end
+
+  test "Delete in the editor removes text instead of deleting the selected note" do
+    create_test_note("editor_delete.md", "abc")
+
+    visit root_url
+    find("[data-path='editor_delete.md'][data-type='file']").click
+    assert_selector ".cm-line", text: "abc"
+
+    find(".cm-content").send_keys(:home, :delete)
+
+    assert_selector ".cm-line", text: "bc"
+    assert @test_notes_dir.join("editor_delete.md").exist?
+    assert_no_selector 'dialog[role="alertdialog"]'
   end
 
   # Table Editor Tests
