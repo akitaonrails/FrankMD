@@ -94,7 +94,6 @@ ko:
   # 설정 워크스페이스
   settings:
     title: "설정"
-    description: "설정은 즉시 적용되며 구성 파일에 저장됩니다."
     categories: "설정 카테고리"
     general: "일반"
     editor: "에디터"

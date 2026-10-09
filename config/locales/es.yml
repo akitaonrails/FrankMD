@@ -94,7 +94,6 @@ es:
   # Espacio de trabajo de configuración
   settings:
     title: "Configuración"
-    description: "Las preferencias se aplican de inmediato y se guardan en tu archivo de configuración."
     categories: "Categorías de configuración"
     general: "General"
     editor: "Editor"

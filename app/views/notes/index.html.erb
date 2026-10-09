@@ -1,6 +1,6 @@
 <div class="h-screen w-full flex flex-col bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)]"
      data-controller="app autosave scroll-sync connection-monitor typewriter"
-     data-action="connection-monitor:offline->autosave#onConnectionLost connection-monitor:online->autosave#onConnectionRestored autosave:config-saved->app#onAutosaveConfigSaved autosave:offline-changed->app#onAutosaveOfflineChanged typewriter:toggled->app#onTypewriterToggled typewriter:toggled->scroll-sync#onTypewriterToggled library:insert-media->app#insertLibraryMedia library:open-note->app#openLibraryNote library:close->app#showEditorWorkspace settings:close->app#showEditorWorkspace"
+     data-action="connection-monitor:offline->autosave#onConnectionLost connection-monitor:online->autosave#onConnectionRestored autosave:config-saved->app#onAutosaveConfigSaved autosave:offline-changed->app#onAutosaveOfflineChanged typewriter:toggled->app#onTypewriterToggled typewriter:toggled->scroll-sync#onTypewriterToggled library:insert-media->app#insertLibraryMedia library:open-note->app#openLibraryNote library:close->app#showEditorWorkspace settings:dialog-state-changed->app#onSettingsDialogStateChanged"
      data-app-initial-path-value="<%= @initial_path %>"
      data-app-initial-note-value="<%= (@initial_note || {}).to_json %>"
      data-app-codemirror-outlet='[data-controller~="codemirror"]'

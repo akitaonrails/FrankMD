@@ -13,7 +13,7 @@ function makeViewModeApp() {
     </main>
     <aside data-app-target="previewPanel" class="hidden"></aside>
     <section data-app-target="libraryPanel" class="hidden"></section>
-    <section data-app-target="settingsPanel" class="hidden"></section>
+    <dialog data-app-target="settingsDialog"></dialog>
     <button data-app-target="settingsToggle" aria-pressed="false"></button>
   `
   document.body.replaceChildren(element)
@@ -40,13 +40,18 @@ function makeViewModeApp() {
     })
   }
   const codemirrorController = { focus: vi.fn() }
-  const settingsController = { viewMode: "split" }
-
   const app = Object.create(AppController.prototype)
+  const settingsController = {
+    viewMode: "split",
+    isDialogOpen: false,
+    toggleDialog() {
+      this.isDialogOpen = !this.isDialogOpen
+      return this.isDialogOpen
+    }
+  }
   Object.assign(app, {
     context: { element },
     libraryVisible: false,
-    settingsVisible: false,
     viewMode: "split",
     currentFileType: "markdown",
     previewOutlets: [previewController],
@@ -158,40 +163,41 @@ describe("AppController document view mode", () => {
     expect(codemirrorController.focus).toHaveBeenCalled()
   })
 
-  it("single mode: returning from a workspace lands on the editor pane only", () => {
-    const { app, element, previewController } = makeViewModeApp()
+  it("single mode: opening Settings preserves the active preview pane", () => {
+    const { app, element, previewController, settingsController } = makeViewModeApp()
     const editorPanel = element.querySelector('[data-app-target="editorPanel"]')
     const previewPanel = element.querySelector('[data-app-target="previewPanel"]')
     app.setViewMode("single")
 
-    // Open Settings while the preview pane is active
     app.switchSinglePane()
-    app.settingsVisible = true
-    app._settingsPreviewWasVisible = true
+    previewController.hide.mockClear()
 
-    app.showEditorWorkspace()
+    app.toggleSettings()
 
-    expect(previewController.hide).toHaveBeenCalled()
-    expect(editorPanel.classList.contains("hidden")).toBe(false)
-    expect(previewPanel.classList.contains("hidden")).toBe(true)
+    expect(settingsController.isDialogOpen).toBe(true)
+    expect(previewController.isVisible).toBe(true)
+    expect(editorPanel.classList.contains("hidden")).toBe(true)
+
+    app.toggleSettings()
+
+    expect(previewController.hide).not.toHaveBeenCalled()
+    expect(previewPanel.classList.contains("hidden")).toBe(false)
+    expect(editorPanel.classList.contains("hidden")).toBe(true)
   })
 
-  it("applyViewMode defers pane changes while a workspace owns the main area", () => {
-    const { app, element, previewController } = makeViewModeApp()
+  it("applies view mode changes while Settings is open", () => {
+    const { app, element, previewController, settingsController } = makeViewModeApp()
     const editorPanel = element.querySelector('[data-app-target="editorPanel"]')
-    app.settingsVisible = true
-    editorPanel.classList.add("hidden")
+    previewController.show()
+    app.toggleSettings()
+    expect(settingsController.isDialogOpen).toBe(true)
+    previewController.hide.mockClear()
 
     app.setViewMode("single")
 
-    expect(previewController.hide).not.toHaveBeenCalled()
-    // The mode + body class still apply live...
+    expect(previewController.hide).toHaveBeenCalledOnce()
     expect(app.viewMode).toBe("single")
     expect(document.body.classList.contains("single-view-mode")).toBe(true)
-    // ...and showEditorWorkspace enforces the panes on return
-    app.settingsVisible = false
-    app.showEditorWorkspace()
-    expect(previewController.hide).toHaveBeenCalled()
     expect(editorPanel.classList.contains("hidden")).toBe(false)
   })
 

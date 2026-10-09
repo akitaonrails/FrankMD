@@ -206,11 +206,18 @@ class NotesTest < ApplicationSystemTestCase
   end
 
   test "theme picker can change theme" do
+    create_test_note("settings-preview.md", "# Settings Preview")
     visit root_url
+    find("[data-path='settings-preview.md'][data-type='file']").click
 
-    # Open the Settings workspace (theme picker lives there now)
+    find("[data-app-target='previewToggle']").click
+    assert_selector "[data-app-target='previewPanel']:not(.hidden)"
+    assert_equal "true", find("[data-app-target='previewToggle']")["aria-pressed"]
+
     find("button[title='Open Settings']").click
-    assert_selector "[data-app-target='settingsPanel']:not(.hidden)", wait: 2
+    assert_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
+    assert_equal "true", find("[data-app-target='settingsToggle']")["aria-pressed"]
+    assert_selector "[data-app-target='previewPanel']:not(.hidden)"
 
     # Get initial theme text
     initial_theme = find("[data-theme-target='currentTheme']").text
@@ -235,6 +242,25 @@ class NotesTest < ApplicationSystemTestCase
     # Theme should have changed
     new_theme = find("[data-theme-target='currentTheme']").text
     refute_equal initial_theme, new_theme, "Theme should have changed"
+
+    find("dialog[open] [data-action='click->settings#closeSettings']").click
+    assert_no_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
+    assert_equal "false", find("[data-app-target='settingsToggle']")["aria-pressed"]
+    assert_equal "true", find("[data-app-target='previewToggle']")["aria-pressed"]
+    assert_selector "[data-app-target='previewPanel']:not(.hidden)"
+
+    find("button[title='Open Settings']").click
+    assert_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
+    page.execute_script("document.getElementById('settings-dialog').dispatchEvent(new MouseEvent('click', { bubbles: true }))")
+    assert_no_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
+
+    find("button[title='Open Settings']").click
+    assert_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
+    find("dialog[open]").send_keys(:escape)
+    assert_no_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
+    assert_equal "false", find("[data-app-target='settingsToggle']")["aria-pressed"]
+    assert_equal "true", find("[data-app-target='previewToggle']")["aria-pressed"]
+    assert_selector "[data-app-target='previewPanel']:not(.hidden)"
   end
 
   test "context menu appears on right-click" do

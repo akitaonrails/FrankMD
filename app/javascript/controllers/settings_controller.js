@@ -3,13 +3,13 @@ import { get, patch } from "@rails/request.js"
 import { normalizeLineNumberMode } from "lib/line_numbers"
 
 // SettingsController
-// Dedicated Settings workspace: left-nav categories + control panels.
+// Settings dialog: left-nav categories + control panels.
 // Absorbs the old editor-config controller: Stimulus values synced from the
 // server drive CodeMirror, preview and CSS custom properties, and the
 // workspace controls mutate those values and persist them via PATCH /config
 // (server enforces Config::UI_KEYS).
-// The panel boots hidden in the DOM (hide-not-disconnect) so editor,
-// autosave and undo state survive workspace switches.
+// The dialog stays mounted while closed so app configuration and outlets are
+// available before it opens.
 
 export default class extends Controller {
   static outlets = ["codemirror", "preview"]
@@ -66,6 +66,8 @@ export default class extends Controller {
     this._previewReady = false
     this._configSaveTimeout = null
     this.category = "general"
+    this.boundDialogClose = () => this.onDialogClose()
+    this.element.addEventListener("close", this.boundDialogClose)
     // Apply non-outlet settings immediately
     this.applyEditorWidth()
     this.applyTheme()
@@ -73,6 +75,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.element.removeEventListener("close", this.boundDialogClose)
     if (this._configSaveTimeout) {
       clearTimeout(this._configSaveTimeout)
       this._configSaveTimeout = null
@@ -307,10 +310,30 @@ export default class extends Controller {
     this.updateFontPreview()
   }
 
-  // === Workspace ===
+  // === Dialog ===
 
-  onWorkspaceOpen() {
+  get isDialogOpen() {
+    return this.element.open
+  }
+
+  toggleDialog() {
+    if (this.isDialogOpen) {
+      this.closeSettings()
+      return false
+    }
+
+    this.openDialog()
+    return true
+  }
+
+  openDialog() {
+    if (this.isDialogOpen) return false
+
     this.syncControls()
+    this.element.showModal()
+    this.navButtonTargets[0]?.focus()
+    this.dispatch("dialog-state-changed", { detail: { open: true } })
+    return true
   }
 
   // Left-nav category switching
@@ -328,10 +351,19 @@ export default class extends Controller {
     })
   }
 
-  // Close button — the app controller listens and returns to the editor.
+  // Close button; native dialog behavior restores focus to its invoker.
   closeSettings() {
-    if (this.element.classList.contains("hidden")) return
-    this.dispatch("close")
+    if (!this.isDialogOpen) return false
+    this.element.close()
+    return true
+  }
+
+  closeOnBackdrop(event) {
+    if (event.target === this.element) this.closeSettings()
+  }
+
+  onDialogClose() {
+    this.dispatch("dialog-state-changed", { detail: { open: false } })
   }
 
   // === Control Handlers (apply live + persist) ===

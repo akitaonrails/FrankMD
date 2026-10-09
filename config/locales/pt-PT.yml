@@ -94,7 +94,6 @@ pt-PT:
   # Espaço de trabalho de configurações
   settings:
     title: "Configurações"
-    description: "As preferências são aplicadas de imediato e guardadas no seu ficheiro de configuração."
     categories: "Categorias de configurações"
     general: "Geral"
     editor: "Editor"
