@@ -22,7 +22,9 @@ import {
   isTypewriterEnabled,
   getTypewriterSyncData,
   refreshTypewriterLayout as refreshTypewriterViewLayout,
-  setIsSelecting
+  setIsSelecting,
+  setCursorRecenterOnClick,
+  recenterCursorAfterClick
 } from "lib/codemirror_typewriter"
 
 function pathMatchesScope(candidatePath, path, type) {
@@ -57,6 +59,7 @@ export default class extends Controller {
     lineHeight: { type: Number, default: 1.6 },
     lineNumberMode: { type: Number, default: 0 },
     typewriterMode: { type: Boolean, default: false },
+    cursorRecenterOnClick: { type: Boolean, default: false },
     vimMode: { type: Boolean, default: false },
     readOnly: { type: Boolean, default: false }
   }
@@ -99,7 +102,7 @@ export default class extends Controller {
     })
 
     // Add typewriter extension
-    extensions.push(...createTypewriterExtension(this.typewriterModeValue))
+    extensions.push(...createTypewriterExtension(this.typewriterModeValue, this.cursorRecenterOnClickValue))
 
     // Create initial state
     const state = EditorState.create({
@@ -136,6 +139,7 @@ export default class extends Controller {
       // Only track left button (button 0)
       if (e.button === 0) {
         this._isSelecting = true
+        this._mouseDownInContent = this.editor.contentDOM.contains(e.target)
         // Notify typewriter plugin to stop auto-scrolling during selection
         this.editor.dispatch({
           effects: setIsSelecting.of(true)
@@ -144,13 +148,21 @@ export default class extends Controller {
     })
 
     // Track when user finishes selecting
-    document.addEventListener("mouseup", () => {
+    document.addEventListener("mouseup", (event) => {
       if (this._isSelecting) {
+        const view = this.editor
+        const completedContentClick = this._mouseDownInContent && view?.contentDOM.contains(event.target)
         this._isSelecting = false
+        this._mouseDownInContent = false
         // Notify typewriter plugin that selection is complete
-        this.editor.dispatch({
-          effects: setIsSelecting.of(false)
-        })
+        view?.dispatch({ effects: setIsSelecting.of(false) })
+        if (completedContentClick) {
+          setTimeout(() => {
+            if (this.editor === view && view.state.selection.main.empty) {
+              recenterCursorAfterClick(view)
+            }
+          }, 0)
+        }
         // Small delay before re-enabling scroll sync to let things settle
         setTimeout(() => {
           // Dispatch selection change now that selection is complete
@@ -407,6 +419,7 @@ export default class extends Controller {
     this.setLineNumberMode(this.lineNumberModeValue)
     this.setVimMode(this.vimModeValue)
     this.setReadOnly(this.readOnlyValue)
+    this.setCursorRecenterOnClick(this.cursorRecenterOnClickValue)
     this.setTypewriterMode(this.typewriterModeValue)
   }
 
@@ -831,6 +844,19 @@ export default class extends Controller {
 
     this.typewriterModeValue = enabled
     toggleTypewriter(this.editor, enabled)
+  }
+
+  /**
+   * Set whether a completed editor click recenters the cursor
+   * @param {boolean} enabled - Enable click recentering
+   */
+  setCursorRecenterOnClick(enabled) {
+    this.cursorRecenterOnClickValue = enabled
+    if (!this.editor) return
+
+    this.editor.dispatch({
+      effects: setCursorRecenterOnClick.of(enabled)
+    })
   }
 
   /**

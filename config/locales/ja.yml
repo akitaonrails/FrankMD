@@ -123,6 +123,8 @@ ja:
     indent_spaces: "%{count} スペース"
     typewriter: "タイプライターモード"
     typewriter_description: "集中して書けるようカーソルを中央に固定"
+    cursor_recenter_on_click: "クリック後にカーソルを中央へ"
+    cursor_recenter_on_click_description: "タイプライターモードのオン・オフにかかわらず、クリック後にカーソルを中央へ移動"
     vim: "Vimモード"
     vim_description: "エディターでVimキーバインドを使用"
     scroll_sync: "スクロール同期"

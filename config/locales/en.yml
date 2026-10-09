@@ -123,6 +123,8 @@ en:
     indent_spaces: "%{count} spaces"
     typewriter: "Typewriter mode"
     typewriter_description: "Center the cursor for distraction-free writing"
+    cursor_recenter_on_click: "Center cursor after clicking"
+    cursor_recenter_on_click_description: "Recenter the cursor after a click, with Typewriter mode on or off"
     vim: "Vim mode"
     vim_description: "Vim keybindings in the editor"
     scroll_sync: "Scroll sync"

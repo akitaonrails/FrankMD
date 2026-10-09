@@ -24,6 +24,7 @@ export default class extends Controller {
     "widthLabel",
     "lineNumbersSelect",
     "indentSelect",
+    "cursorRecenterOnClickToggle",
     "zoomSelect",
     "viewModeButton",
     "status"
@@ -36,6 +37,7 @@ export default class extends Controller {
     previewZoom: { type: Number, default: 100 },
     lineNumbers: { type: Number, default: 0 },
     typewriterMode: { type: Boolean, default: false },
+    cursorRecenterOnClick: { type: Boolean, default: false },
     vimMode: { type: Boolean, default: false },
     scrollSync: { type: Boolean, default: true },
     indent: { type: Number, default: 2 },
@@ -81,6 +83,7 @@ export default class extends Controller {
     this._codemirrorReady = true
     this.applyFont()
     this.applyLineNumbers()
+    this.applyCursorRecenterOnClick()
     this.applyVimMode()
   }
 
@@ -111,6 +114,13 @@ export default class extends Controller {
 
   lineNumbersValueChanged() {
     if (this._codemirrorReady) this.applyLineNumbers()
+  }
+
+  cursorRecenterOnClickValueChanged() {
+    if (this._codemirrorReady) this.applyCursorRecenterOnClick()
+    if (this.element.isConnected && this.hasCursorRecenterOnClickToggleTarget) {
+      this.cursorRecenterOnClickToggleTarget.setAttribute("aria-pressed", String(this.cursorRecenterOnClickValue))
+    }
   }
 
   vimModeValueChanged() {
@@ -157,6 +167,10 @@ export default class extends Controller {
     if (codemirror) {
       codemirror.setLineNumberMode(mode)
     }
+  }
+
+  applyCursorRecenterOnClick() {
+    this.getCodemirrorController()?.setCursorRecenterOnClick(this.cursorRecenterOnClickValue)
   }
 
   applyVimMode() {
@@ -253,6 +267,7 @@ export default class extends Controller {
       this.assignIfChanged("indentValue", settings.editor_indent, Number)
       this.assignIfChanged("vimModeValue", settings.vim_mode)
       this.assignIfChanged("typewriterModeValue", settings.typewriter_mode)
+      this.assignIfChanged("cursorRecenterOnClickValue", settings.cursor_recenter_on_click, Boolean)
       // scroll_sync is enabled unless explicitly false (nil means default-on)
       if (Object.prototype.hasOwnProperty.call(settings, "scroll_sync")) {
         this.assignIfChanged("scrollSyncValue", settings.scroll_sync !== false)
@@ -281,6 +296,9 @@ export default class extends Controller {
     if (this.hasWidthLabelTarget) this.widthLabelTarget.textContent = `${this.editorWidthValue}ch`
     if (this.hasLineNumbersSelectTarget) this.lineNumbersSelectTarget.value = String(this.lineNumbersValue)
     if (this.hasIndentSelectTarget) this.indentSelectTarget.value = String(this.indentValue)
+    if (this.hasCursorRecenterOnClickToggleTarget) {
+      this.cursorRecenterOnClickToggleTarget.setAttribute("aria-pressed", String(this.cursorRecenterOnClickValue))
+    }
     if (this.hasZoomSelectTarget) {
       const zoom = this.constructor.zoomLevels.includes(this.previewZoomValue) ? this.previewZoomValue : 100
       this.zoomSelectTarget.value = String(zoom)
@@ -344,6 +362,11 @@ export default class extends Controller {
   onIndentChange() {
     this.indentValue = parseInt(this.indentSelectTarget.value, 10)
     this.saveSetting({ editor_indent: this.indentValue })
+  }
+
+  toggleCursorRecenterOnClick() {
+    this.cursorRecenterOnClickValue = !this.cursorRecenterOnClickValue
+    this.saveSetting({ cursor_recenter_on_click: this.cursorRecenterOnClickValue })
   }
 
   onZoomChange() {

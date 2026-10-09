@@ -123,6 +123,8 @@ he:
     indent_spaces: "%{count} רווחים"
     typewriter: "מצב מכונת כתיבה"
     typewriter_description: "ממרכז את הסמן לכתיבה ממוקדת"
+    cursor_recenter_on_click: "מרכז את הסמן לאחר לחיצה"
+    cursor_recenter_on_click_description: "מרכז מחדש את הסמן לאחר לחיצה, עם מצב מכונת כתיבה מופעל או כבוי"
     vim: "מצב Vim"
     vim_description: "קיצורי מקלדת Vim בעורך"
     scroll_sync: "סנכרון גלילה"
