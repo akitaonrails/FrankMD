@@ -10,6 +10,7 @@
   data-settings-preview-zoom-value="<%= @config_obj.get('preview_zoom') || 100 %>"
   data-settings-line-numbers-value="<%= @config_obj.get('editor_line_numbers') || 0 %>"
   data-settings-typewriter-mode-value="<%= @config_obj.get('typewriter_mode') || false %>"
+  data-settings-cursor-recenter-on-click-value="<%= @config_obj.get('cursor_recenter_on_click') || false %>"
   data-settings-vim-mode-value="<%= @config_obj.get('vim_mode') || false %>"
   data-settings-scroll-sync-value="<%= @config_obj.get('scroll_sync') %>"
   data-settings-indent-value="<%= @config_obj.get('editor_indent') || 2 %>"
@@ -314,6 +315,23 @@
               aria-pressed="<%= @config_obj.get('typewriter_mode') ? 'true' : 'false' %>"
               class="settings-switch shrink-0"
               title="<%= t('settings.typewriter') %>"
+            >
+              <span class="settings-switch-knob" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <div class="settings-card">
+            <div class="min-w-0">
+              <p class="text-sm font-medium"><%= t('settings.cursor_recenter_on_click') %></p>
+              <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.cursor_recenter_on_click_description') %></p>
+            </div>
+            <button
+              type="button"
+              data-settings-target="cursorRecenterOnClickToggle"
+              data-action="click->settings#toggleCursorRecenterOnClick"
+              aria-pressed="<%= @config_obj.get('cursor_recenter_on_click') ? 'true' : 'false' %>"
+              class="settings-switch shrink-0"
+              title="<%= t('settings.cursor_recenter_on_click') %>"
             >
               <span class="settings-switch-knob" aria-hidden="true"></span>
             </button>

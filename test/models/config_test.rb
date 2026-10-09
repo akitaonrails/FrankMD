@@ -108,6 +108,7 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal 100, config.get(:preview_zoom)
     assert_equal true, config.get(:sidebar_visible)
     assert_equal false, config.get(:typewriter_mode)
+    assert_equal false, config.get(:cursor_recenter_on_click)
     assert_equal false, config.get(:vim_mode)
     assert_nil config.get(:theme)
   end
@@ -122,6 +123,18 @@ class ConfigTest < ActiveSupport::TestCase
     File.write(@test_dir.join(".fed"), "vim_mode = true\n")
     config = Config.new(base_path: @test_dir)
     assert_equal true, config.get(:vim_mode)
+  end
+
+  test "cursor_recenter_on_click is a UI setting that defaults to false" do
+    assert_includes Config::UI_KEYS, "cursor_recenter_on_click"
+    assert_equal :boolean, Config::SCHEMA["cursor_recenter_on_click"][:type]
+    assert_equal false, Config::SCHEMA["cursor_recenter_on_click"][:default]
+  end
+
+  test "reads cursor_recenter_on_click from the config file" do
+    File.write(@test_dir.join(".fed"), "cursor_recenter_on_click = true\n")
+    config = Config.new(base_path: @test_dir)
+    assert_equal true, config.get(:cursor_recenter_on_click)
   end
 
   test "scroll_sync is a UI setting that defaults to true" do

@@ -123,6 +123,8 @@ ko:
     indent_spaces: "%{count} 공백"
     typewriter: "타이프라이터 모드"
     typewriter_description: "집중 글쓰기를 위해 커서를 중앙에 고정"
+    cursor_recenter_on_click: "클릭 후 커서 가운데 맞춤"
+    cursor_recenter_on_click_description: "타이프라이터 모드의 켜짐 여부와 관계없이 클릭 후 커서를 가운데로 이동"
     vim: "Vim 모드"
     vim_description: "에디터에서 Vim 키 바인딩 사용"
     scroll_sync: "스크롤 동기화"

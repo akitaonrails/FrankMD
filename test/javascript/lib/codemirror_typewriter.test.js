@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { EditorView } from "@codemirror/view"
-import { EditorState } from "@codemirror/state"
+import { EditorState, Transaction } from "@codemirror/state"
 import {
   createTypewriterExtension,
   toggleTypewriter,
@@ -11,7 +11,10 @@ import {
   getTypewriterSyncData,
   refreshTypewriterLayout,
   setTypewriterMode,
-  typewriterState
+  typewriterState,
+  setCursorRecenterOnClick,
+  cursorRecenterOnClickState,
+  recenterCursorAfterClick
 } from "../../../app/javascript/lib/codemirror_typewriter.js"
 
 describe("codemirror_typewriter", () => {
@@ -31,13 +34,22 @@ describe("codemirror_typewriter", () => {
     container.remove()
   })
 
-  function createEditor(enabled = false, content = "Hello World") {
+  function createEditor(enabled = false, content = "Hello World", recenterOnClick = false) {
     const state = EditorState.create({
       doc: content,
-      extensions: createTypewriterExtension(enabled)
+      extensions: createTypewriterExtension(enabled, recenterOnClick)
     })
     view = new EditorView({ state, parent: container })
     return view
+  }
+
+  function setScrollGeometry({ scrollTop = 25, cursorTop = 300, clientHeight = 100, scrollHeight = 1000 } = {}) {
+    const scroller = view.scrollDOM
+    Object.defineProperty(scroller, "clientHeight", { configurable: true, value: clientHeight })
+    Object.defineProperty(scroller, "scrollHeight", { configurable: true, value: scrollHeight })
+    scroller.scrollTop = scrollTop
+    view.dom.getBoundingClientRect = () => ({ top: 0 })
+    view.coordsAtPos = () => ({ top: cursorTop })
   }
 
   describe("createTypewriterExtension()", () => {
@@ -166,7 +178,89 @@ describe("codemirror_typewriter", () => {
     })
   })
 
+  describe("cursorRecenterOnClickState", () => {
+    it("defaults to false", () => {
+      createEditor()
+      expect(view.state.field(cursorRecenterOnClickState)).toBe(false)
+    })
+
+    it("can be toggled with its state effect", () => {
+      createEditor()
+      view.dispatch({ effects: setCursorRecenterOnClick.of(true) })
+      expect(view.state.field(cursorRecenterOnClickState)).toBe(true)
+    })
+  })
+
   describe("scroll behavior", () => {
+    it.each([false, true])("does not recenter a pointer click when disabled (Typewriter %s)", async (typewriterEnabled) => {
+      createEditor(typewriterEnabled, "Line 1\nLine 2\nLine 3")
+      setScrollGeometry()
+
+      view.dispatch({
+        selection: { anchor: 8 },
+        annotations: Transaction.userEvent.of("select.pointer")
+      })
+      recenterCursorAfterClick(view)
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      expect(view.scrollDOM.scrollTop).toBe(25)
+    })
+
+    it.each([false, true])("recenters a collapsed pointer click when enabled (Typewriter %s)", (typewriterEnabled) => {
+      createEditor(typewriterEnabled, "Line 1\nLine 2\nLine 3", true)
+      setScrollGeometry()
+
+      view.dispatch({
+        selection: { anchor: 8 },
+        annotations: Transaction.userEvent.of("select.pointer")
+      })
+      recenterCursorAfterClick(view)
+
+      expect(view.scrollDOM.scrollTop).toBe(275)
+    })
+
+    it("does not recenter a pointer range selection", () => {
+      createEditor(false, "Line 1\nLine 2\nLine 3", true)
+      setScrollGeometry()
+
+      view.dispatch({
+        selection: { anchor: 2, head: 12 },
+        annotations: Transaction.userEvent.of("select.pointer")
+      })
+      recenterCursorAfterClick(view)
+
+      expect(view.scrollDOM.scrollTop).toBe(25)
+    })
+
+    it("keeps Typewriter keyboard selection recentering when click recentering is off", async () => {
+      createEditor(true, "Line 1\nLine 2\nLine 3")
+      setScrollGeometry()
+
+      view.dispatch({ selection: { anchor: 8 } })
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      expect(view.scrollDOM.scrollTop).toBe(275)
+    })
+
+    it("keeps Typewriter document-change recentering when click recentering is off", async () => {
+      createEditor(true, "Line 1\nLine 2\nLine 3")
+      setScrollGeometry()
+
+      view.dispatch({ changes: { from: 0, to: 0, insert: "x" } })
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      expect(view.scrollDOM.scrollTop).toBe(275)
+    })
+
+    it("clamps click recentering to the editor scroll bounds", () => {
+      createEditor(false, "Line 1\nLine 2\nLine 3", true)
+      setScrollGeometry({ scrollTop: 10, cursorTop: 900, scrollHeight: 500 })
+
+      recenterCursorAfterClick(view)
+
+      expect(view.scrollDOM.scrollTop).toBe(400)
+    })
+
     it("adds padding when enabled", async () => {
       createEditor(true)
 

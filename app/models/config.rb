@@ -4,7 +4,7 @@
 # Provides defaults from ENV variables that can be overridden per-folder.
 class Config
   CONFIG_FILE = ".fed"
-  CONFIG_VERSION = 2  # Increment when adding new settings
+  CONFIG_VERSION = 3  # Increment when adding new settings
 
   # All configurable options with their defaults and types
   SCHEMA = {
@@ -17,6 +17,7 @@ class Config
     "sidebar_visible" => { default: true, type: :boolean, env: nil },
     "view_mode" => { default: "split", type: :string, env: nil },
     "typewriter_mode" => { default: false, type: :boolean, env: nil },
+    "cursor_recenter_on_click" => { default: false, type: :boolean, env: nil },
     "vim_mode" => { default: false, type: :boolean, env: nil },
     "scroll_sync" => { default: true, type: :boolean, env: nil },
     "editor_indent" => { default: 2, type: :integer, env: nil },
@@ -96,6 +97,7 @@ class Config
     sidebar_visible
     view_mode
     typewriter_mode
+    cursor_recenter_on_click
     vim_mode
     scroll_sync
     editor_indent
@@ -148,6 +150,7 @@ class Config
         "# preview_zoom = 100",
         "# sidebar_visible = true",
         "# typewriter_mode = false",
+        "# cursor_recenter_on_click = false",
         "",
         "# Vim mode: hjkl navigation, modal editing, and : ex-commands (default: false)",
         "# vim_mode = false",

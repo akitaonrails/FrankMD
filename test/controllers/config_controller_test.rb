@@ -28,6 +28,7 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert settings.key?("preview_zoom")
     assert settings.key?("sidebar_visible")
     assert settings.key?("typewriter_mode")
+    assert settings.key?("cursor_recenter_on_click")
 
     # Should include features
     assert data.key?("features")
@@ -50,6 +51,7 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert_equal 100, settings["preview_zoom"]
     assert_equal true, settings["sidebar_visible"]
     assert_equal false, settings["typewriter_mode"]
+    assert_equal false, settings["cursor_recenter_on_click"]
   end
 
   test "show returns configured values from file" do
@@ -57,6 +59,7 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
       theme = gruvbox
       editor_font = hack
       typewriter_mode = true
+      cursor_recenter_on_click = true
     CONFIG
 
     get config_url, as: :json
@@ -68,6 +71,7 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert_equal "gruvbox", settings["theme"]
     assert_equal "hack", settings["editor_font"]
     assert_equal true, settings["typewriter_mode"]
+    assert_equal true, settings["cursor_recenter_on_click"]
   end
 
   # === update ===
@@ -133,12 +137,13 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update handles boolean values" do
-    patch config_url, params: { typewriter_mode: true, sidebar_visible: false }, as: :json
+    patch config_url, params: { typewriter_mode: true, sidebar_visible: false, cursor_recenter_on_click: true }, as: :json
     assert_response :success
 
     data = JSON.parse(response.body)
     assert_equal true, data["settings"]["typewriter_mode"]
     assert_equal false, data["settings"]["sidebar_visible"]
+    assert_equal true, data["settings"]["cursor_recenter_on_click"]
   end
 
   test "update writes font settings to file" do

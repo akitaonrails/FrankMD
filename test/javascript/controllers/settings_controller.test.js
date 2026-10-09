@@ -20,6 +20,7 @@ function makePanelDom() {
            data-settings-editor-width-value="72"
            data-settings-preview-zoom-value="100"
            data-settings-line-numbers-value="0"
+           data-settings-cursor-recenter-on-click-value="false"
            data-settings-indent-value="2"
            data-settings-scroll-sync-value="true"
            data-settings-theme-value=""
@@ -60,7 +61,9 @@ function makePanelDom() {
               <button type="button" data-settings-target="viewModeButton" data-view-mode="single" aria-pressed="false">Single View</button>
             </div>
           </div>
-          <div class="hidden" data-settings-target="section" data-category="writing"></div>
+          <div class="hidden" data-settings-target="section" data-category="writing">
+            <button type="button" data-settings-target="cursorRecenterOnClickToggle" aria-pressed="false"></button>
+          </div>
           <div class="hidden" data-settings-target="section" data-category="preview">
             <select data-settings-target="zoomSelect">
               <option value="50">50%</option>
@@ -198,12 +201,14 @@ describe("SettingsController", () => {
     it("codemirrorOutletConnected sets _codemirrorReady and applies settings", () => {
       const applyFontSpy = vi.spyOn(controller, "applyFont")
       const applyLineNumbersSpy = vi.spyOn(controller, "applyLineNumbers")
+      const applyClickRecenterSpy = vi.spyOn(controller, "applyCursorRecenterOnClick")
 
       controller.codemirrorOutletConnected()
 
       expect(controller._codemirrorReady).toBe(true)
       expect(applyFontSpy).toHaveBeenCalled()
       expect(applyLineNumbersSpy).toHaveBeenCalled()
+      expect(applyClickRecenterSpy).toHaveBeenCalled()
     })
 
     it("previewOutletConnected sets _previewReady and applies zoom and scroll sync", () => {
@@ -457,6 +462,21 @@ describe("SettingsController", () => {
       expect(patchCall()).toEqual({ editor_line_numbers: 2 })
     })
 
+    it("cursor recenter toggle applies live and PATCHes cursor_recenter_on_click", async () => {
+      const setCursorRecenterOnClick = vi.fn()
+      controller.getCodemirrorController = () => ({ setCursorRecenterOnClick })
+      controller._codemirrorReady = true
+
+      controller.toggleCursorRecenterOnClick()
+      await flush()
+
+      expect(controller.cursorRecenterOnClickValue).toBe(true)
+      expect(setCursorRecenterOnClick).toHaveBeenCalledWith(true)
+      expect(controller.cursorRecenterOnClickToggleTarget.getAttribute("aria-pressed")).toBe("true")
+      vi.advanceTimersByTime(600)
+      expect(patchCall()).toEqual({ cursor_recenter_on_click: true })
+    })
+
     it("indent change PATCHes editor_indent", async () => {
       controller.indentSelectTarget.value = "4"
 
@@ -544,6 +564,7 @@ describe("SettingsController", () => {
             preview_zoom: 150,
             vim_mode: true,
             typewriter_mode: true,
+            cursor_recenter_on_click: true,
             scroll_sync: false,
             theme: "nord",
             view_mode: "single"
@@ -561,6 +582,8 @@ describe("SettingsController", () => {
       expect(controller.previewZoomValue).toBe(150)
       expect(controller.vimModeValue).toBe(true)
       expect(controller.typewriterModeValue).toBe(true)
+      expect(controller.cursorRecenterOnClickValue).toBe(true)
+      expect(controller.cursorRecenterOnClickToggleTarget.getAttribute("aria-pressed")).toBe("true")
       expect(controller.scrollSyncValue).toBe(false)
       expect(controller.themeValue).toBe("nord")
       expect(controller.viewModeValue).toBe("single")

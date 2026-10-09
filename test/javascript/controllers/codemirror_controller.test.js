@@ -3,7 +3,9 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { redo, undo } from "@codemirror/commands"
+import { Transaction } from "@codemirror/state"
 import { Application } from "@hotwired/stimulus"
+import { cursorRecenterOnClickState } from "../../../app/javascript/lib/codemirror_typewriter.js"
 import CodemirrorController from "../../../app/javascript/controllers/codemirror_controller.js"
 
 describe("CodemirrorController", () => {
@@ -19,6 +21,7 @@ describe("CodemirrorController", () => {
            data-codemirror-line-height-value="1.6"
            data-codemirror-line-number-mode-value="0"
            data-codemirror-typewriter-mode-value="false"
+           data-codemirror-cursor-recenter-on-click-value="false"
            data-codemirror-read-only-value="false">
         <div data-codemirror-target="container" class="h-full"></div>
         <textarea data-codemirror-target="hidden" class="hidden"></textarea>
@@ -748,6 +751,73 @@ describe("CodemirrorController", () => {
 
       controller.setTypewriterMode(false)
       expect(controller.typewriterModeValue).toBe(false)
+    })
+  })
+
+  describe("setCursorRecenterOnClick()", () => {
+    it("updates the live editor preference", () => {
+      controller.setCursorRecenterOnClick(true)
+
+      expect(controller.cursorRecenterOnClickValue).toBe(true)
+      expect(controller.getEditorView().state.field(cursorRecenterOnClickState)).toBe(true)
+    })
+
+    it("reapplies the current preference when restoring a note state", () => {
+      controller.loadContent("Hello World", "first.md")
+      controller.setCursorRecenterOnClick(true)
+      controller.loadContent("Other note", "second.md")
+      controller.loadContent("Hello World", "first.md")
+
+      expect(controller.getEditorView().state.field(cursorRecenterOnClickState)).toBe(true)
+    })
+  })
+
+  describe("mouse click recentering", () => {
+    async function prepareClick(typewriterEnabled, recenterOnClick) {
+      const view = controller.getEditorView()
+      controller.setTypewriterMode(typewriterEnabled)
+      controller.setCursorRecenterOnClick(recenterOnClick)
+      await new Promise(resolve => setTimeout(resolve, 0))
+      Object.defineProperty(view.scrollDOM, "clientHeight", { configurable: true, value: 100 })
+      Object.defineProperty(view.scrollDOM, "scrollHeight", { configurable: true, value: 1000 })
+      view.scrollDOM.scrollTop = 25
+      view.dom.getBoundingClientRect = () => ({ top: 0 })
+      view.coordsAtPos = () => ({ top: 300 })
+      view.dispatch({
+        selection: { anchor: 5 },
+        annotations: Transaction.userEvent.of("select.pointer")
+      })
+      controller._isSelecting = true
+      controller._mouseDownInContent = true
+      return view
+    }
+
+    it.each([false, true])("recenters a collapsed click when enabled (Typewriter %s)", async (typewriterEnabled) => {
+      const view = await prepareClick(typewriterEnabled, true)
+      view.contentDOM.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, button: 0 }))
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      expect(view.scrollDOM.scrollTop).toBe(275)
+    })
+
+    it("does not recenter a range selection", async () => {
+      const view = await prepareClick(true, true)
+      view.dispatch({
+        selection: { anchor: 2, head: 7 },
+        annotations: Transaction.userEvent.of("select.pointer")
+      })
+      view.contentDOM.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, button: 0 }))
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      expect(view.scrollDOM.scrollTop).toBe(25)
+    })
+
+    it("does not recenter a click when the setting is off in Typewriter mode", async () => {
+      const view = await prepareClick(true, false)
+      view.contentDOM.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, button: 0 }))
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      expect(view.scrollDOM.scrollTop).toBe(25)
     })
   })
 

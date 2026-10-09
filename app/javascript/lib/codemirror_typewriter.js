@@ -7,6 +7,9 @@ import { StateField, StateEffect, Facet } from "@codemirror/state"
 // State effect to toggle typewriter mode
 export const setTypewriterMode = StateEffect.define()
 
+// State effect to toggle cursor recentering after a pointer click
+export const setCursorRecenterOnClick = StateEffect.define()
+
 // State effect to toggle "is selecting" state (mouse drag selection)
 export const setIsSelecting = StateEffect.define()
 
@@ -31,6 +34,21 @@ export const typewriterState = StateField.define({
   provide: f => typewriterMode.from(f)
 })
 
+// State field to track whether pointer clicks recenter the cursor
+export const cursorRecenterOnClickState = StateField.define({
+  create() {
+    return false
+  },
+  update(value, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setCursorRecenterOnClick)) {
+        return effect.value
+      }
+    }
+    return value
+  }
+})
+
 // State field to track mouse selection state
 export const isSelectingState = StateField.define({
   create() {
@@ -51,12 +69,9 @@ export const isSelectingState = StateField.define({
  * @param {EditorView} view - The editor view
  * @returns {number|null} - Target scroll position or null if not needed
  */
-function calculateTypewriterScroll(view) {
+function calculateCursorScroll(view) {
   try {
     const state = view.state
-    const enabled = state.field(typewriterState)
-
-    if (!enabled) return null
 
     // Get cursor position
     const cursorPos = state.selection.main.head
@@ -90,8 +105,8 @@ function calculateTypewriterScroll(view) {
  * Smoothly scroll to center the cursor
  * @param {EditorView} view - The editor view
  */
-function maintainTypewriterScroll(view) {
-  const targetScroll = calculateTypewriterScroll(view)
+function maintainCursorScroll(view) {
+  const targetScroll = calculateCursorScroll(view)
   if (targetScroll === null) return
 
   const scrollDOM = view.scrollDOM
@@ -100,6 +115,23 @@ function maintainTypewriterScroll(view) {
   // Only scroll if difference is significant
   if (Math.abs(currentScroll - targetScroll) > 5) {
     scrollDOM.scrollTop = targetScroll
+  }
+}
+
+function maintainTypewriterScroll(view) {
+  if (view.state.field(typewriterState)) {
+    maintainCursorScroll(view)
+  }
+}
+
+/**
+ * Recenter the cursor after a completed pointer click when the setting is enabled.
+ * @param {EditorView} view - The editor view
+ */
+export function recenterCursorAfterClick(view) {
+  const selection = view.state.selection
+  if (view.state.field(cursorRecenterOnClickState) && selection.ranges.length === 1 && selection.main.empty) {
+    maintainCursorScroll(view)
   }
 }
 
@@ -126,15 +158,17 @@ const typewriterPlugin = ViewPlugin.fromClass(class {
       this.updatePadding()
     }
 
-    // Center cursor on selection changes or document changes
+    // Center cursor on keyboard selection changes or document changes.
     // But NOT while:
     // 1. User is actively selecting with mouse (prevents scroll jitter during drag)
     // 2. There's an active text selection (anchor !== head) - user is selecting text
+    // Pointer clicks are handled after mouseup so range and drag selections do not recenter.
     const isMouseSelecting = update.state.field(isSelectingState)
     const selection = update.state.selection.main
     const hasTextSelection = selection.anchor !== selection.head
+    const isPointerSelection = update.transactions.some(transaction => transaction.isUserEvent("select.pointer"))
 
-    if (isEnabled && !isMouseSelecting && !hasTextSelection && (update.selectionSet || update.docChanged)) {
+    if (isEnabled && !isPointerSelection && !isMouseSelecting && !hasTextSelection && (update.selectionSet || update.docChanged)) {
       // Use setTimeout to ensure we run after CodeMirror's own scroll handling
       setTimeout(() => maintainTypewriterScroll(this.view), 0)
     }
@@ -193,9 +227,10 @@ export function refreshTypewriterLayout(view) {
  * @param {boolean} enabled - Initial enabled state
  * @returns {Extension[]} - Array of extensions for typewriter mode
  */
-export function createTypewriterExtension(enabled = false) {
+export function createTypewriterExtension(enabled = false, recenterOnClick = false) {
   return [
     typewriterState.init(() => enabled),
+    cursorRecenterOnClickState.init(() => recenterOnClick),
     isSelectingState,
     typewriterPlugin,
     // CSS for typewriter mode
