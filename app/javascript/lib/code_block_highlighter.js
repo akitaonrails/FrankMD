@@ -15,7 +15,7 @@ import { parser as goParser } from "@lezer/go"
 import { parser as pythonParser } from "@lezer/python"
 import { parser as javaParser } from "@lezer/java"
 import { parser as cppParser } from "@lezer/cpp"
-import { csharp } from "@codemirror/legacy-modes/mode/clike"
+import { csharp, kotlin } from "@codemirror/legacy-modes/mode/clike"
 import { ruby } from "@codemirror/legacy-modes/mode/ruby"
 import { shell } from "@codemirror/legacy-modes/mode/shell"
 import { standardSQL, pgSQL, mySQL, mariaDB, sqlite } from "@codemirror/legacy-modes/mode/sql"
@@ -26,6 +26,7 @@ import { terraformHcl } from "./terraform_hcl_stream_parser"
 // Keep parser work and token DOM small enough for synchronous preview renders.
 const MAX_HIGHLIGHTED_CODE_LENGTH = 20_000
 const csharpParser = StreamLanguage.define(csharp).parser
+const kotlinParser = StreamLanguage.define(kotlin).parser
 const rubyParser = StreamLanguage.define(ruby).parser
 const dotenvParser = StreamLanguage.define(shell).parser
 const sqlParser = StreamLanguage.define(standardSQL).parser
@@ -104,7 +105,10 @@ const LANGUAGE_PARSERS = new Map([
   ["hxx", { parser: cppParser, label: "C++" }],
   ["cs", { parser: csharpParser, label: "C#" }],
   ["csharp", { parser: csharpParser, label: "C#" }],
-  ["c#", { parser: csharpParser, label: "C#" }]
+  ["c#", { parser: csharpParser, label: "C#" }],
+  ["kotlin", { parser: kotlinParser, label: "Kotlin" }],
+  ["kt", { parser: kotlinParser, label: "Kotlin" }],
+  ["kts", { parser: kotlinParser, label: "Kotlin" }]
 ])
 
 // Keep these token classes independent from individual theme colors. Lezer's

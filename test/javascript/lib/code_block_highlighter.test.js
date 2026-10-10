@@ -114,6 +114,20 @@ describe("highlightCodeBlocks", () => {
     expect(highlighted).toContain('data-code-language="PHP"')
   })
 
+  it("highlights Kotlin comments, declarations, types, strings, and aliases", () => {
+    const html = '<pre><code class="language-kotlin">// greeting\ndata class Greeter(val name: String) {\n  fun greet() = "Hello, $name"\n}</code></pre>'
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-comment">// greeting</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">data</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">class</span>')
+    expect(highlighted).toContain('<span class="tok-variableName tok-definition">Greeter</span>')
+    expect(highlighted).toContain('<span class="tok-typeName">String</span>')
+    expect(highlighted).toContain('<span class="tok-string">"Hello, $name"</span>')
+    expect(highlighted).toContain('data-code-language="Kotlin"')
+    expect(highlightCodeBlocks('<pre><code class="language-kt">fun main() {}</code></pre>')).toContain('data-code-language="Kotlin"')
+  })
+
   it("highlights Ruby comments, class names, method definitions, strings, and numbers", () => {
     const html = '<pre><code class="language-ruby"># greeting\nclass Greeter\n  def greet(name)\n    puts "hello #{name}"\n    42\n  end\nend</code></pre>'
     const highlighted = highlightCodeBlocks(html)
