@@ -58,6 +58,21 @@ describe("highlightCodeBlocks", () => {
     expect(highlightCodeBlocks('<pre><code class="language-golang">package main</code></pre>')).toContain('data-code-language="Go"')
   })
 
+  it("highlights Python comments, keywords, functions, types, strings, and numbers", () => {
+    const html = '<pre><code class="language-python"># greeting\ndef greet(name: str) -> str:\n    return f"hello {name}"\n\nanswer = 42</code></pre>'
+
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-comment"># greeting</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">def</span>')
+    expect(highlighted).toContain('<span class="tok-function tok-definition">greet</span>')
+    expect(highlighted).toContain('<span class="tok-variableName">str</span>')
+    expect(highlighted).toContain('class="tok-string"')
+    expect(highlighted).toContain('<span class="tok-number">42</span>')
+    expect(highlighted).toContain('data-code-language="Python"')
+    expect(highlightCodeBlocks('<pre><code class="language-py">print(1)</code></pre>')).toContain('data-code-language="Python"')
+  })
+
   it("supports common aliases and the bundled HTML and CSS parsers", () => {
     const cases = [
       ['language-js', "const answer = 42;", "tok-keyword"],
@@ -91,7 +106,7 @@ describe("highlightCodeBlocks", () => {
   })
 
   it("leaves unsupported languages unchanged", () => {
-    const html = '<pre><code class="language-python">print("hello")</code></pre>'
+    const html = '<pre><code class="language-ruby">puts "hello"</code></pre>'
 
     expect(highlightCodeBlocks(html)).toBe(html)
   })

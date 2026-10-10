@@ -23,6 +23,7 @@
     "@codemirror/view": "^6.39.12",
     "@lezer/go": "1.0.1",
     "@lezer/markdown": "^1.6.3",
+    "@lezer/python": "1.1.19",
     "@lezer/rust": "1.0.3"
   }
 }
