@@ -56,6 +56,28 @@ describe("parseWithLineNumbers", () => {
     expect(html).toContain('data-source-line="7"')
   })
 
+  it("highlights supported fenced code without losing its source line", () => {
+    const markdown = "```typescript\nconst x: number = 1;\n```"
+    const lexer = vi.spyOn(marked, "lexer").mockReturnValue([
+      { type: "code", raw: markdown }
+    ])
+    const parse = vi.spyOn(marked, "parse").mockReturnValue(
+      '<pre><code class="language-typescript">const x: number = 1;\n</code></pre>\n'
+    )
+
+    try {
+      const html = parseWithLineNumbers(markdown)
+
+      expect(html).toMatch(/<pre[^>]*data-source-line="1"[^>]*>/)
+      expect(html).toContain('<span class="tok-keyword">const</span>')
+      expect(html).toContain('<span class="tok-number">1</span>')
+      expect(html).toContain('class="language-typescript"')
+    } finally {
+      lexer.mockRestore()
+      parse.mockRestore()
+    }
+  })
+
   it("annotates display math blocks so following preview lines stay aligned", () => {
     const markdown = "Before\n\n$$\nx + y\n$$\n\nAfter"
     const lexer = vi.spyOn(marked, "lexer").mockReturnValue([
