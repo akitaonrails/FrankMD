@@ -9,6 +9,7 @@ import {
 import { htmlLanguage } from "@codemirror/lang-html"
 import { cssLanguage } from "@codemirror/lang-css"
 import { parser as yamlParser } from "@lezer/yaml"
+import { parser as phpParser } from "@lezer/php"
 import { parser as rustParser } from "@lezer/rust"
 import { parser as goParser } from "@lezer/go"
 import { parser as pythonParser } from "@lezer/python"
@@ -57,6 +58,8 @@ const LANGUAGE_PARSERS = new Map([
   ["jsonc", { parser: javascriptLanguage.parser, label: "JSONC" }],
   ["yaml", { parser: yamlParser, label: "YAML" }],
   ["yml", { parser: yamlParser, label: "YAML" }],
+  ["php", { parser: phpParser, label: "PHP" }],
+  ["phtml", { parser: phpParser, label: "PHP" }],
   ["ruby", { parser: rubyParser, label: "Ruby" }],
   ["rb", { parser: rubyParser, label: "Ruby" }],
   ["rake", { parser: rubyParser, label: "Ruby" }],

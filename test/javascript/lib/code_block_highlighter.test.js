@@ -100,6 +100,20 @@ describe("highlightCodeBlocks", () => {
     expect(highlighted).toContain('data-code-language="Java"')
   })
 
+  it("highlights PHP comments, function definitions, types, strings, and calls", () => {
+    const html = '<pre><code class="language-php">&lt;?php\n// greeting\nfunction greet(string $name): string {\n  return "Hello, " . $name;\n}\necho greet("world");</code></pre>'
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-comment">// greeting</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">function</span>')
+    expect(highlighted).toContain('<span class="tok-function tok-definition">greet</span>')
+    expect(highlighted).toContain('<span class="tok-typeName">string</span>')
+    expect(highlighted).toContain('<span class="tok-variableName">$name</span>')
+    expect(highlighted).toContain('<span class="tok-string">"Hello, "</span>')
+    expect(highlighted).toContain('<span class="tok-function">greet</span>')
+    expect(highlighted).toContain('data-code-language="PHP"')
+  })
+
   it("highlights Ruby comments, class names, method definitions, strings, and numbers", () => {
     const html = '<pre><code class="language-ruby"># greeting\nclass Greeter\n  def greet(name)\n    puts "hello #{name}"\n    42\n  end\nend</code></pre>'
     const highlighted = highlightCodeBlocks(html)
