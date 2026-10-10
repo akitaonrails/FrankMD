@@ -944,12 +944,8 @@ export default class extends Controller {
       }
 
       this.checkTableAtCursor()
-
-      // Typewriter scroll centering works regardless of preview
-      const configCtrl = this.getSettingsController()
-      if (configCtrl && configCtrl.typewriterModeEnabled) {
-        this.maintainTypewriterScroll()
-      }
+      // The CodeMirror Typewriter extension centers the cursor on this document update.
+      // Avoid dispatching a second selection transaction here; it can interrupt autocomplete.
     }
   }
 
@@ -1684,16 +1680,6 @@ export default class extends Controller {
     if (this.viewMode !== "single" && previewController && !previewController.isVisible) {
       previewController.show()
     }
-    this.syncTypewriterPreview()
-  }
-
-  maintainTypewriterScroll() {
-    const codemirrorController = this.getCodemirrorController()
-    if (!codemirrorController) return
-
-    // Center cursor in editor (works regardless of preview)
-    codemirrorController.maintainTypewriterScroll()
-
     this.syncTypewriterPreview()
   }
 
