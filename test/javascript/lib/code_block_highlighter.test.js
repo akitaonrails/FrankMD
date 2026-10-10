@@ -29,6 +29,20 @@ describe("highlightCodeBlocks", () => {
     expect(highlighted).toContain('<span class="tok-propertyName tok-definition">name</span>')
   })
 
+  it("highlights Rust keywords, types, functions, strings, and numbers", () => {
+    const html = '<pre><code class="language-rust">// entry point\nfn main() { let answer: i32 = 42; println!("hello"); }</code></pre>'
+
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-comment">// entry point</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">fn</span>')
+    expect(highlighted).toContain('<span class="tok-function tok-definition">main</span>')
+    expect(highlighted).toContain('<span class="tok-typeName">i32</span>')
+    expect(highlighted).toContain('<span class="tok-number">42</span>')
+    expect(highlighted).toContain('<span class="tok-string">"hello"</span>')
+    expect(highlighted).toContain('data-code-language="Rust"')
+  })
+
   it("supports common aliases and the bundled HTML and CSS parsers", () => {
     const cases = [
       ['language-js', "const answer = 42;", "tok-keyword"],

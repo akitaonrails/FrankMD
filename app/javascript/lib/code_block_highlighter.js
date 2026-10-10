@@ -7,6 +7,7 @@ import {
 } from "@codemirror/lang-javascript"
 import { htmlLanguage } from "@codemirror/lang-html"
 import { cssLanguage } from "@codemirror/lang-css"
+import { parser as rustParser } from "@lezer/rust"
 
 // Keep parser work and token DOM small enough for synchronous preview renders.
 const MAX_HIGHLIGHTED_CODE_LENGTH = 20_000
@@ -29,7 +30,9 @@ const LANGUAGE_PARSERS = new Map([
   // JSON's syntax is close enough to JavaScript for useful token coloring;
   // it remains labelled as JSON in the rendered code element.
   ["json", { parser: javascriptLanguage.parser, label: "JSON" }],
-  ["jsonc", { parser: javascriptLanguage.parser, label: "JSONC" }]
+  ["jsonc", { parser: javascriptLanguage.parser, label: "JSONC" }],
+  ["rs", { parser: rustParser, label: "Rust" }],
+  ["rust", { parser: rustParser, label: "Rust" }]
 ])
 
 // Keep these token classes independent from individual theme colors. Lezer's

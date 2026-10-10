@@ -34,6 +34,7 @@ pin "@lezer/css", to: "@lezer--css.js" # @1.3.0
 pin "@lezer/html", to: "@lezer--html.js" # @1.3.13
 pin "@lezer/javascript", to: "@lezer--javascript.js" # @1.5.4
 pin "@lezer/lr", to: "@lezer--lr.js" # @1.4.8
+pin "@lezer/rust", to: "@lezer--rust.js" # @1.0.3
 pin "@marijn/find-cluster-break", to: "@marijn--find-cluster-break.js" # @1.0.2
 pin "crelt" # @1.0.6
 pin "style-mod" # @4.1.3
