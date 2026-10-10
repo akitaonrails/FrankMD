@@ -46,3 +46,4 @@ pin "w3c-keyname" # @2.2.8
 pin "dompurify" # @3.4.16
 pin "@codemirror/legacy-modes/mode/clike", to: "@codemirror--legacy-modes--mode--clike.js" # @6.5.5
 pin "@lezer/yaml", to: "@lezer--yaml.js" # @1.0.4
+pin "@codemirror/legacy-modes/mode/ruby", to: "@codemirror--legacy-modes--mode--ruby.js" # @6.5.5

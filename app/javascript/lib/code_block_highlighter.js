@@ -15,10 +15,12 @@ import { parser as pythonParser } from "@lezer/python"
 import { parser as javaParser } from "@lezer/java"
 import { parser as cppParser } from "@lezer/cpp"
 import { csharp } from "@codemirror/legacy-modes/mode/clike"
+import { ruby } from "@codemirror/legacy-modes/mode/ruby"
 
 // Keep parser work and token DOM small enough for synchronous preview renders.
 const MAX_HIGHLIGHTED_CODE_LENGTH = 20_000
 const csharpParser = StreamLanguage.define(csharp).parser
+const rubyParser = StreamLanguage.define(ruby).parser
 
 // Keep this list explicit: a fence language is untrusted note content, and
 // only parsers that FrankMD already ships should be selected here.
@@ -41,6 +43,9 @@ const LANGUAGE_PARSERS = new Map([
   ["jsonc", { parser: javascriptLanguage.parser, label: "JSONC" }],
   ["yaml", { parser: yamlParser, label: "YAML" }],
   ["yml", { parser: yamlParser, label: "YAML" }],
+  ["ruby", { parser: rubyParser, label: "Ruby" }],
+  ["rb", { parser: rubyParser, label: "Ruby" }],
+  ["rake", { parser: rubyParser, label: "Ruby" }],
   ["rs", { parser: rustParser, label: "Rust" }],
   ["rust", { parser: rustParser, label: "Rust" }],
   ["go", { parser: goParser, label: "Go" }],

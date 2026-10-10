@@ -100,6 +100,21 @@ describe("highlightCodeBlocks", () => {
     expect(highlighted).toContain('data-code-language="Java"')
   })
 
+  it("highlights Ruby comments, class names, method definitions, strings, and numbers", () => {
+    const html = '<pre><code class="language-ruby"># greeting\nclass Greeter\n  def greet(name)\n    puts "hello #{name}"\n    42\n  end\nend</code></pre>'
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-comment"># greeting</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">class</span>')
+    expect(highlighted).toContain('<span class="tok-typeName">Greeter</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">def</span>')
+    expect(highlighted).toContain('<span class="tok-variableName tok-definition">greet</span>')
+    expect(highlighted).toContain('<span class="tok-string">"hello #{</span>')
+    expect(highlighted).toContain('<span class="tok-number">42</span>')
+    expect(highlighted).toContain('data-code-language="Ruby"')
+    expect(highlightCodeBlocks('<pre><code class="language-rb">puts "hi"</code></pre>')).toContain('data-code-language="Ruby"')
+  })
+
   it("highlights C and C++ tokens and common fence aliases", () => {
     const cpp = '<pre><code class="language-cpp">// entry point\nint main() { const int answer = 42; return answer; }</code></pre>'
     const highlightedCpp = highlightCodeBlocks(cpp)
@@ -161,7 +176,7 @@ describe("highlightCodeBlocks", () => {
   })
 
   it("leaves unsupported languages unchanged", () => {
-    const html = '<pre><code class="language-ruby">puts "hello"</code></pre>'
+    const html = '<pre><code class="language-unrecognized">puts "hello"</code></pre>'
 
     expect(highlightCodeBlocks(html)).toBe(html)
   })
