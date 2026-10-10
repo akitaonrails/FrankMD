@@ -174,41 +174,41 @@
   /* Token colors for fenced code blocks, using the active theme palette. */
   .prose pre code .tok-keyword,
   .prose pre code .tok-modifier {
-    color: var(--theme-syntax-keyword, var(--theme-accent));
+    color: var(--theme-syntax-keyword, var(--theme-text-primary));
     font-weight: 600;
   }
 
   .prose pre code .tok-function {
-    color: var(--theme-syntax-function, var(--theme-accent));
+    color: var(--theme-syntax-function, var(--theme-text-primary));
   }
 
   .prose pre code .tok-operator,
   .prose pre code .tok-derefOperator {
-    color: var(--theme-syntax-operator, var(--theme-accent));
+    color: var(--theme-syntax-operator, var(--theme-text-primary));
   }
 
   .prose pre code .tok-string,
   .prose pre code .tok-string2,
   .prose pre code .tok-character,
   .prose pre code .tok-attributeValue {
-    color: var(--theme-syntax-string, var(--theme-heading-3));
+    color: var(--theme-syntax-string, var(--theme-text-primary));
   }
 
   .prose pre code .tok-number,
   .prose pre code .tok-unit {
-    color: var(--theme-syntax-number, var(--theme-heading-2));
+    color: var(--theme-syntax-number, var(--theme-text-primary));
   }
 
   .prose pre code .tok-constant,
   .prose pre code .tok-bool,
   .prose pre code .tok-null,
   .prose pre code .tok-atom {
-    color: var(--theme-syntax-constant, var(--theme-heading-2));
+    color: var(--theme-syntax-constant, var(--theme-text-primary));
   }
 
   .prose pre code .tok-comment,
   .prose pre code .tok-docComment {
-    color: var(--theme-syntax-comment, var(--theme-text-muted));
+    color: var(--theme-syntax-comment, var(--theme-text-primary));
     font-style: italic;
   }
 
@@ -216,7 +216,7 @@
   .prose pre code .tok-className,
   .prose pre code .tok-namespace,
   .prose pre code .tok-tagName {
-    color: var(--theme-syntax-type, var(--theme-heading-1));
+    color: var(--theme-syntax-type, var(--theme-text-primary));
   }
 
   .prose pre code .tok-propertyName,
@@ -235,7 +235,7 @@
   .prose pre code .tok-punctuation,
   .prose pre code .tok-bracket,
   .prose pre code .tok-separator {
-    color: var(--theme-syntax-punctuation, var(--theme-text-muted));
+    color: var(--theme-syntax-punctuation, var(--theme-text-primary));
   }
 
   .prose pre code .tok-invalid {
