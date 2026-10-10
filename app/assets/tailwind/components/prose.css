@@ -178,8 +178,12 @@
     font-weight: 600;
   }
 
+  .prose pre code .tok-function {
+    color: var(--theme-syntax-function, var(--theme-accent));
+  }
+
   .prose pre code .tok-operator,
-  .prose pre code .tok-atom {
+  .prose pre code .tok-derefOperator {
     color: var(--theme-syntax-operator, var(--theme-accent));
   }
 
@@ -190,12 +194,15 @@
     color: var(--theme-syntax-string, var(--theme-heading-3));
   }
 
-  .prose pre code .tok-number {
+  .prose pre code .tok-number,
+  .prose pre code .tok-unit {
     color: var(--theme-syntax-number, var(--theme-heading-2));
   }
 
+  .prose pre code .tok-constant,
   .prose pre code .tok-bool,
-  .prose pre code .tok-null {
+  .prose pre code .tok-null,
+  .prose pre code .tok-atom {
     color: var(--theme-syntax-constant, var(--theme-heading-2));
   }
 
@@ -229,6 +236,12 @@
   .prose pre code .tok-bracket,
   .prose pre code .tok-separator {
     color: var(--theme-syntax-punctuation, var(--theme-text-muted));
+  }
+
+  .prose pre code .tok-invalid {
+    color: var(--theme-syntax-invalid, var(--theme-error));
+    text-decoration: underline wavy currentColor;
+    text-underline-offset: 2px;
   }
 
   /* Code block copy button */
