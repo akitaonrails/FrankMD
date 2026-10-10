@@ -115,6 +115,18 @@ describe("highlightCodeBlocks", () => {
     expect(highlightCodeBlocks('<pre><code class="language-rb">puts "hi"</code></pre>')).toContain('data-code-language="Ruby"')
   })
 
+  it("highlights dotenv comments, variable assignments, strings, and numeric values", () => {
+    const html = '<pre><code class="language-dotenv"># local settings\nDATABASE_URL="postgres://db/app"\nPORT=5432\nDEBUG=true\n</code></pre>'
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-comment"># local settings</span>')
+    expect(highlighted).toContain('<span class="tok-variableName tok-definition">DATABASE_URL</span>')
+    expect(highlighted).toContain('<span class="tok-string">"postgres://db/app"</span>')
+    expect(highlighted).toContain('<span class="tok-number">5432</span>')
+    expect(highlighted).toContain('data-code-language="Dotenv"')
+    expect(highlightCodeBlocks('<pre><code class="language-env">API_KEY=secret</code></pre>')).toContain('data-code-language="Dotenv"')
+  })
+
   it("highlights C and C++ tokens and common fence aliases", () => {
     const cpp = '<pre><code class="language-cpp">// entry point\nint main() { const int answer = 42; return answer; }</code></pre>'
     const highlightedCpp = highlightCodeBlocks(cpp)
