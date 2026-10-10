@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { calculateLineFromScroll, scrollTopForElement } from "lib/scroll_utils"
 import { parseWithLineNumbers, findElementByLine, findLineAtScroll } from "lib/markdown_line_mapper"
 import { renderMathIn } from "lib/math_renderer"
+import { highlightCodeBlocksInElement } from "lib/code_block_highlighter"
 
 // Preview Controller
 // Handles markdown preview panel rendering, zoom, and scroll sync
@@ -229,6 +230,10 @@ export default class extends Controller {
 
     // Parse with line numbers for accurate scroll sync
     this.contentTarget.innerHTML = parseWithLineNumbers(content, frontmatterLines)
+
+    // Highlight in place after the safe HTML render. Less common language
+    // parsers load only when needed and cannot overwrite a newer preview render.
+    void highlightCodeBlocksInElement(this.contentTarget).catch(() => {})
 
     // Render TeX math AFTER sanitization (KaTeX writes its style-heavy output
     // straight to the DOM, so it never has to pass through DOMPurify). See #164.

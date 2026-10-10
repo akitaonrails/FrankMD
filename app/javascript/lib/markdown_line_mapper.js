@@ -5,7 +5,6 @@
 
 import { marked } from "marked"
 import { sanitizeHtml } from "lib/html_sanitizer"
-import { highlightCodeBlocks } from "lib/code_block_highlighter"
 import { lineAtScroll } from "lib/scroll_utils"
 
 // Collect the absolute markdown positions of every list item inside a list
@@ -131,7 +130,7 @@ export function parseWithLineNumbers(markdown, lineOffset = 0) {
   // over marked's raw output, and DOMPurify re-parses the HTML — restructuring
   // invalid nesting into extra elements would consume line slots and shift the
   // mapping. Injecting first keeps the annotation identical to before.
-  return highlightCodeBlocks(sanitizeHtml(result))
+  return sanitizeHtml(result)
 }
 
 /**
