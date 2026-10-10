@@ -127,6 +127,22 @@ describe("highlightCodeBlocks", () => {
     expect(highlightCodeBlocks('<pre><code class="language-env">API_KEY=secret</code></pre>')).toContain('data-code-language="Dotenv"')
   })
 
+  it("highlights Terraform comments, block keywords, attributes, references, and expressions", () => {
+    const html = '<pre><code class="language-tf"># infrastructure\nresource "aws_instance" "web" {\n  ami = "ami-123"\n  instance_type = var.instance_type\n  count = 2\n  enabled = true\n  size = max(1, 3)\n}</code></pre>'
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-comment"># infrastructure</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">resource</span>')
+    expect(highlighted).toContain('<span class="tok-propertyName">ami</span>')
+    expect(highlighted).toContain('<span class="tok-string">"ami-123"</span>')
+    expect(highlighted).toContain('<span class="tok-propertyName">instance_type</span>')
+    expect(highlighted).toContain('<span class="tok-number">2</span>')
+    expect(highlighted).toContain('<span class="tok-constant">true</span>')
+    expect(highlighted).toContain('<span class="tok-function">max</span>')
+    expect(highlighted).toContain('data-code-language="Terraform"')
+    expect(highlightCodeBlocks('<pre><code class="language-hcl">value = 1</code></pre>')).toContain('data-code-language="HCL"')
+  })
+
   it("highlights C and C++ tokens and common fence aliases", () => {
     const cpp = '<pre><code class="language-cpp">// entry point\nint main() { const int answer = 42; return answer; }</code></pre>'
     const highlightedCpp = highlightCodeBlocks(cpp)
