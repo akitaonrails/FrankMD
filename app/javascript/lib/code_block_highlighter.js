@@ -18,6 +18,7 @@ import { csharp } from "@codemirror/legacy-modes/mode/clike"
 import { ruby } from "@codemirror/legacy-modes/mode/ruby"
 import { shell } from "@codemirror/legacy-modes/mode/shell"
 import { standardSQL, pgSQL, mySQL, mariaDB, sqlite } from "@codemirror/legacy-modes/mode/sql"
+import { toml } from "@codemirror/legacy-modes/mode/toml"
 import { terraformHcl } from "./terraform_hcl_stream_parser"
 
 // Keep parser work and token DOM small enough for synchronous preview renders.
@@ -30,6 +31,7 @@ const postgresParser = StreamLanguage.define(pgSQL).parser
 const mysqlParser = StreamLanguage.define(mySQL).parser
 const mariaDBParser = StreamLanguage.define(mariaDB).parser
 const sqliteParser = StreamLanguage.define(sqlite).parser
+const tomlParser = StreamLanguage.define(toml).parser
 const terraformParser = StreamLanguage.define(terraformHcl).parser
 
 // Keep this list explicit: a fence language is untrusted note content, and
@@ -69,6 +71,8 @@ const LANGUAGE_PARSERS = new Map([
   ["mysql", { parser: mysqlParser, label: "MySQL" }],
   ["mariadb", { parser: mariaDBParser, label: "MariaDB" }],
   ["sqlite", { parser: sqliteParser, label: "SQLite" }],
+  ["toml", { parser: tomlParser, label: "TOML" }],
+  ["tml", { parser: tomlParser, label: "TOML" }],
   ["tf", { parser: terraformParser, label: "Terraform" }],
   ["tfvars", { parser: terraformParser, label: "Terraform" }],
   ["terraform", { parser: terraformParser, label: "Terraform" }],

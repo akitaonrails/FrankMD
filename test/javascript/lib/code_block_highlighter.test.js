@@ -155,6 +155,19 @@ describe("highlightCodeBlocks", () => {
     expect(highlightCodeBlocks('<pre><code class="language-mariadb">SELECT 1</code></pre>')).toContain('data-code-language="MariaDB"')
   })
 
+  it("highlights TOML comments, sections, keys, strings, numbers, and aliases", () => {
+    const html = '<pre><code class="language-toml"># server settings\n[server]\nhost = "localhost"\nport = 5432\nenabled = true</code></pre>'
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-comment"># server settings</span>')
+    expect(highlighted).toContain('<span class="tok-constant">[server]</span>')
+    expect(highlighted).toContain('<span class="tok-propertyName">host</span>')
+    expect(highlighted).toContain('<span class="tok-string">"localhost"</span>')
+    expect(highlighted).toContain('<span class="tok-number">5432</span>')
+    expect(highlighted).toContain('<span class="tok-constant">true</span>')
+    expect(highlighted).toContain('data-code-language="TOML"')
+  })
+
   it("highlights Terraform comments, block keywords, attributes, references, and expressions", () => {
     const html = '<pre><code class="language-tf"># infrastructure\nresource "aws_instance" "web" {\n  ami = "ami-123"\n  instance_type = var.instance_type\n  count = 2\n  enabled = true\n  size = max(1, 3)\n}</code></pre>'
     const highlighted = highlightCodeBlocks(html)

@@ -49,3 +49,4 @@ pin "@lezer/yaml", to: "@lezer--yaml.js" # @1.0.4
 pin "@codemirror/legacy-modes/mode/ruby", to: "@codemirror--legacy-modes--mode--ruby.js" # @6.5.5
 pin "@codemirror/legacy-modes/mode/shell", to: "@codemirror--legacy-modes--mode--shell.js" # @6.5.5
 pin "@codemirror/legacy-modes/mode/sql", to: "@codemirror--legacy-modes--mode--sql.js" # @6.5.5
+pin "@codemirror/legacy-modes/mode/toml", to: "@codemirror--legacy-modes--mode--toml.js" # @6.5.5
