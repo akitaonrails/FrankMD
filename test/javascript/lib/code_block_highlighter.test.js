@@ -67,6 +67,20 @@ describe("highlightCodeBlocks", () => {
     expect(highlightCodeBlocks(html)).toBe(html)
   })
 
+  it("keeps large supported fences readable without highlighting them", () => {
+    const source = "const answer = 42;\n".repeat(1100)
+    const html = `<pre><code class="language-javascript">${source}</code></pre>`
+
+    const highlighted = highlightCodeBlocks(html)
+    const template = document.createElement("template")
+    template.innerHTML = highlighted
+    const code = template.content.querySelector("code")
+
+    expect(template.content.querySelector(".tok-keyword")).toBeNull()
+    expect(code.textContent).toBe(source)
+    expect(code.parentElement.dataset.codeLanguage).toBe("JavaScript")
+  })
+
   it("keeps code content as text instead of turning it into markup", () => {
     const html = '<pre><code class="language-javascript">&lt;img src=x onerror=alert(1)&gt;\n</code></pre>'
 

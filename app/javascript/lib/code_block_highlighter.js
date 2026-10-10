@@ -8,6 +8,9 @@ import {
 import { htmlLanguage } from "@codemirror/lang-html"
 import { cssLanguage } from "@codemirror/lang-css"
 
+// Keep parser work and token DOM small enough for synchronous preview renders.
+const MAX_HIGHLIGHTED_CODE_LENGTH = 20_000
+
 // Keep this list explicit: a fence language is untrusted note content, and
 // only parsers that FrankMD already ships should be selected here.
 const LANGUAGE_PARSERS = new Map([
@@ -114,7 +117,17 @@ export function highlightCodeBlocks(sanitizedHtml) {
     if (!language) continue
 
     try {
-      appendHighlightedCode(code, code.textContent || "", language.parser)
+      const source = code.textContent || ""
+
+      // Large blocks remain readable and retain their language label, but skip
+      // parsing and span creation so they cannot stall the preview thread.
+      if (source.length > MAX_HIGHLIGHTED_CODE_LENGTH) {
+        code.parentElement.dataset.codeLanguage = language.label
+        changed = true
+        continue
+      }
+
+      appendHighlightedCode(code, source, language.parser)
       code.parentElement.dataset.codeLanguage = language.label
       changed = true
     } catch {
