@@ -27,6 +27,7 @@
     "@lezer/java": "1.1.5",
     "@lezer/markdown": "^1.6.3",
     "@lezer/python": "1.1.19",
-    "@lezer/rust": "1.0.3"
+    "@lezer/rust": "1.0.3",
+    "@lezer/yaml": "1.0.4"
   }
 }

@@ -8,6 +8,7 @@ import {
 } from "@codemirror/lang-javascript"
 import { htmlLanguage } from "@codemirror/lang-html"
 import { cssLanguage } from "@codemirror/lang-css"
+import { parser as yamlParser } from "@lezer/yaml"
 import { parser as rustParser } from "@lezer/rust"
 import { parser as goParser } from "@lezer/go"
 import { parser as pythonParser } from "@lezer/python"
@@ -38,6 +39,8 @@ const LANGUAGE_PARSERS = new Map([
   // it remains labelled as JSON in the rendered code element.
   ["json", { parser: javascriptLanguage.parser, label: "JSON" }],
   ["jsonc", { parser: javascriptLanguage.parser, label: "JSONC" }],
+  ["yaml", { parser: yamlParser, label: "YAML" }],
+  ["yml", { parser: yamlParser, label: "YAML" }],
   ["rs", { parser: rustParser, label: "Rust" }],
   ["rust", { parser: rustParser, label: "Rust" }],
   ["go", { parser: goParser, label: "Go" }],
@@ -63,7 +66,7 @@ const LANGUAGE_PARSERS = new Map([
 
 // Keep these token classes independent from individual theme colors. Lezer's
 // modifier tags let functions and definitions stay distinct from identifiers.
-const syntaxHighlighter = tagHighlighter([
+const syntaxTags = [
   { tag: tags.keyword, class: "tok-keyword" },
   { tag: tags.function(tags.variableName), class: "tok-function" },
   { tag: tags.function(tags.propertyName), class: "tok-function" },
@@ -87,7 +90,30 @@ const syntaxHighlighter = tagHighlighter([
   { tag: tags.punctuation, class: "tok-punctuation" },
   { tag: tags.comment, class: "tok-comment" },
   { tag: tags.invalid, class: "tok-invalid" }
+]
+
+const syntaxHighlighter = tagHighlighter(syntaxTags)
+const yamlHighlighter = tagHighlighter([
+  ...syntaxTags,
+  // Lezer marks plain YAML scalars as content; make them visible as values.
+  { tag: tags.content, class: "tok-string" }
 ])
+
+function yamlScalarClasses(source, from, to, classes) {
+  if (!classes.includes("tok-string")) return classes
+
+  const token = source.slice(from, to).trim()
+  if (!token || token.startsWith("\"") || token.startsWith("'") || token.startsWith("|") || token.startsWith(">")) {
+    return classes
+  }
+
+  if (/^(?:true|false|null|~)$/i.test(token)) return "tok-constant"
+  if (/^[+-]?(?:(?:0|[1-9][\d_]*)(?:\.[\d_]+)?(?:e[+-]?[\d_]+)?|0x[\da-f_]+|0o[0-7_]+|0b[01_]+)$/i.test(token)) {
+    return "tok-number"
+  }
+
+  return classes
+}
 
 function parserForCodeElement(code) {
   for (const className of code.classList) {
@@ -105,8 +131,9 @@ function appendHighlightedCode(code, source, parser) {
   const document = code.ownerDocument
   const fragment = document.createDocumentFragment()
   let position = 0
+  const highlighter = parser === yamlParser ? yamlHighlighter : syntaxHighlighter
 
-  highlightTree(tree, syntaxHighlighter, (from, to, classes) => {
+  highlightTree(tree, highlighter, (from, to, classes) => {
     if (from > position) {
       fragment.append(document.createTextNode(source.slice(position, from)))
     }
@@ -114,7 +141,7 @@ function appendHighlightedCode(code, source, parser) {
     const span = document.createElement("span")
     // The classes come from the fixed tag mapping above, never from markdown
     // content.
-    span.className = classes
+    span.className = parser === yamlParser ? yamlScalarClasses(source, from, to, classes) : classes
     span.textContent = source.slice(from, to)
     fragment.append(span)
     position = to

@@ -29,6 +29,19 @@ describe("highlightCodeBlocks", () => {
     expect(highlighted).toContain('<span class="tok-propertyName tok-definition">name</span>')
   })
 
+  it("highlights YAML keys, comments, scalar values, and yml fences", () => {
+    const yaml = '<pre><code class="language-yaml"># app settings\napp:\n  port: 3000\n  enabled: true\n  message: "ready"\n</code></pre>'
+    const highlighted = highlightCodeBlocks(yaml)
+
+    expect(highlighted).toContain('<span class="tok-comment"># app settings</span>')
+    expect(highlighted).toContain('<span class="tok-propertyName tok-definition">app</span>')
+    expect(highlighted).toContain('<span class="tok-number">3000</span>')
+    expect(highlighted).toContain('<span class="tok-constant">true</span>')
+    expect(highlighted).toContain('<span class="tok-string">"ready"</span>')
+    expect(highlighted).toContain('data-code-language="YAML"')
+    expect(highlightCodeBlocks('<pre><code class="language-yml">answer: 42</code></pre>')).toContain('data-code-language="YAML"')
+  })
+
   it("highlights Rust keywords, types, functions, strings, and numbers", () => {
     const html = '<pre><code class="language-rust">// entry point\nfn main() { let answer: i32 = 42; println!("hello"); }</code></pre>'
 

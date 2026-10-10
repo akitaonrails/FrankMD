@@ -23,17 +23,17 @@ pin "@codemirror/language", to: "@codemirror--language.js" # @6.12.1
 pin "@codemirror/lang-markdown", to: "@codemirror--lang-markdown.js" # @6.5.0
 pin "@codemirror/commands", to: "@codemirror--commands.js" # @6.10.1
 pin "@codemirror/search", to: "@codemirror--search.js" # @6.6.0
-pin "@lezer/highlight", to: "@lezer--highlight.js" # @1.2.3
+pin "@lezer/highlight", to: "@lezer--highlight.js" # @1.2.5
 pin "@lezer/markdown", to: "@lezer--markdown.js" # @1.6.3
 pin "@codemirror/autocomplete", to: "@codemirror--autocomplete.js" # @6.20.0
 pin "@codemirror/lang-css", to: "@codemirror--lang-css.js" # @6.3.1
 pin "@codemirror/lang-html", to: "@codemirror--lang-html.js" # @6.4.11
 pin "@codemirror/lang-javascript", to: "@codemirror--lang-javascript.js" # @6.2.4
-pin "@lezer/common", to: "@lezer--common.js" # @1.5.0
+pin "@lezer/common", to: "@lezer--common.js" # @1.5.3
 pin "@lezer/css", to: "@lezer--css.js" # @1.3.0
 pin "@lezer/html", to: "@lezer--html.js" # @1.3.13
 pin "@lezer/javascript", to: "@lezer--javascript.js" # @1.5.4
-pin "@lezer/lr", to: "@lezer--lr.js" # @1.4.8
+pin "@lezer/lr", to: "@lezer--lr.js" # @1.4.11
 pin "@lezer/cpp", to: "@lezer--cpp.js" # @1.1.6
 pin "@lezer/go", to: "@lezer--go.js" # @1.0.1
 pin "@lezer/java", to: "@lezer--java.js" # @1.1.5
@@ -45,3 +45,4 @@ pin "style-mod" # @4.1.3
 pin "w3c-keyname" # @2.2.8
 pin "dompurify" # @3.4.16
 pin "@codemirror/legacy-modes/mode/clike", to: "@codemirror--legacy-modes--mode--clike.js" # @6.5.5
+pin "@lezer/yaml", to: "@lezer--yaml.js" # @1.0.4
