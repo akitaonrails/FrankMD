@@ -21,6 +21,7 @@
     "@codemirror/search": "^6.6.0",
     "@codemirror/state": "^6.5.4",
     "@codemirror/view": "^6.39.12",
+    "@lezer/cpp": "1.1.6",
     "@lezer/go": "1.0.1",
     "@lezer/java": "1.1.5",
     "@lezer/markdown": "^1.6.3",

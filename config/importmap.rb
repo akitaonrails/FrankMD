@@ -34,6 +34,7 @@ pin "@lezer/css", to: "@lezer--css.js" # @1.3.0
 pin "@lezer/html", to: "@lezer--html.js" # @1.3.13
 pin "@lezer/javascript", to: "@lezer--javascript.js" # @1.5.4
 pin "@lezer/lr", to: "@lezer--lr.js" # @1.4.8
+pin "@lezer/cpp", to: "@lezer--cpp.js" # @1.1.6
 pin "@lezer/go", to: "@lezer--go.js" # @1.0.1
 pin "@lezer/java", to: "@lezer--java.js" # @1.1.5
 pin "@lezer/python", to: "@lezer--python.js" # @1.1.19

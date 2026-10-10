@@ -87,6 +87,21 @@ describe("highlightCodeBlocks", () => {
     expect(highlighted).toContain('data-code-language="Java"')
   })
 
+  it("highlights C and C++ tokens and common fence aliases", () => {
+    const cpp = '<pre><code class="language-cpp">// entry point\nint main() { const int answer = 42; return answer; }</code></pre>'
+    const highlightedCpp = highlightCodeBlocks(cpp)
+
+    expect(highlightedCpp).toContain('<span class="tok-comment">// entry point</span>')
+    expect(highlightedCpp).toContain('<span class="tok-function tok-definition">main</span>')
+    expect(highlightedCpp).toContain('<span class="tok-number">42</span>')
+    expect(highlightedCpp).toContain('<span class="tok-keyword">return</span>')
+    expect(highlightedCpp).toContain('data-code-language="C++"')
+
+    const highlightedC = highlightCodeBlocks('<pre><code class="language-c">int main() { return 0; }</code></pre>')
+    expect(highlightedC).toContain('<span class="tok-number">0</span>')
+    expect(highlightedC).toContain('data-code-language="C"')
+  })
+
   it("supports common aliases and the bundled HTML and CSS parsers", () => {
     const cases = [
       ['language-js', "const answer = 42;", "tok-keyword"],

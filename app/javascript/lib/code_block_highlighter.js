@@ -11,6 +11,7 @@ import { parser as rustParser } from "@lezer/rust"
 import { parser as goParser } from "@lezer/go"
 import { parser as pythonParser } from "@lezer/python"
 import { parser as javaParser } from "@lezer/java"
+import { parser as cppParser } from "@lezer/cpp"
 
 // Keep parser work and token DOM small enough for synchronous preview renders.
 const MAX_HIGHLIGHTED_CODE_LENGTH = 20_000
@@ -41,7 +42,17 @@ const LANGUAGE_PARSERS = new Map([
   ["py", { parser: pythonParser, label: "Python" }],
   ["python", { parser: pythonParser, label: "Python" }],
   ["python3", { parser: pythonParser, label: "Python" }],
-  ["java", { parser: javaParser, label: "Java" }]
+  ["java", { parser: javaParser, label: "Java" }],
+  ["c", { parser: cppParser, label: "C" }],
+  ["h", { parser: cppParser, label: "C" }],
+  ["ino", { parser: cppParser, label: "C" }],
+  ["cc", { parser: cppParser, label: "C++" }],
+  ["cpp", { parser: cppParser, label: "C++" }],
+  ["c++", { parser: cppParser, label: "C++" }],
+  ["cxx", { parser: cppParser, label: "C++" }],
+  ["hpp", { parser: cppParser, label: "C++" }],
+  ["hh", { parser: cppParser, label: "C++" }],
+  ["hxx", { parser: cppParser, label: "C++" }]
 ])
 
 // Keep these token classes independent from individual theme colors. Lezer's
