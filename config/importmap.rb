@@ -40,3 +40,4 @@ pin "crelt" # @1.0.6
 pin "style-mod" # @4.1.3
 pin "w3c-keyname" # @2.2.8
 pin "dompurify" # @3.4.16
+pin "@lezer/go", to: "@lezer--go.js" # @1.0.1

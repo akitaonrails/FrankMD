@@ -43,6 +43,21 @@ describe("highlightCodeBlocks", () => {
     expect(highlighted).toContain('data-code-language="Rust"')
   })
 
+  it("highlights Go keywords, functions, strings, and numbers", () => {
+    const html = '<pre><code class="language-go">package main\n\nimport "fmt"\n\nfunc Greet(name string) string { return fmt.Sprintf("hello, %s", name) }\nconst answer = 42</code></pre>'
+
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-keyword">package</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">func</span>')
+    expect(highlighted).toContain('<span class="tok-function tok-definition">Greet</span>')
+    expect(highlighted).toContain('<span class="tok-propertyName">Sprintf</span>')
+    expect(highlighted).toContain('<span class="tok-string">"hello, %s"</span>')
+    expect(highlighted).toContain('<span class="tok-number">42</span>')
+    expect(highlighted).toContain('data-code-language="Go"')
+    expect(highlightCodeBlocks('<pre><code class="language-golang">package main</code></pre>')).toContain('data-code-language="Go"')
+  })
+
   it("supports common aliases and the bundled HTML and CSS parsers", () => {
     const cases = [
       ['language-js', "const answer = 42;", "tok-keyword"],
