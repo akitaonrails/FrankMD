@@ -341,6 +341,26 @@ export async function highlightCodeBlocksInElement(root) {
   const lazyLanguages = new Set(candidates.map(({ language }) => language).filter((language) => !language.parser))
   const loadedParsers = new Map()
 
+  const applyHighlighting = (getParser) => {
+    for (const { code, source, language } of candidates) {
+      // A newer preview render may have replaced this block while a parser loaded.
+      if (!root.contains(code)) continue
+
+      const parser = getParser(language)
+      if (!parser) continue
+
+      try {
+        appendHighlightedCode(code, source, parser, language)
+        changed = true
+      } catch {
+        // A malformed snippet must not prevent the rest of the preview rendering.
+      }
+    }
+  }
+
+  // Highlight common languages before waiting for uncommon parser imports.
+  applyHighlighting((language) => language.parser)
+
   if (lazyLanguages.size > 0) {
     await Promise.all([...lazyLanguages].map(async (language) => {
       try {
@@ -352,20 +372,7 @@ export async function highlightCodeBlocksInElement(root) {
     }))
   }
 
-  for (const { code, source, language } of candidates) {
-    // A newer preview render may have replaced this block while a parser loaded.
-    if (!root.contains(code)) continue
-
-    const parser = language.parser || loadedParsers.get(language)
-    if (!parser) continue
-
-    try {
-      appendHighlightedCode(code, source, parser, language)
-      changed = true
-    } catch {
-      // A malformed snippet must not prevent the rest of the preview rendering.
-    }
-  }
+  applyHighlighting((language) => loadedParsers.get(language))
 
   return changed
 }

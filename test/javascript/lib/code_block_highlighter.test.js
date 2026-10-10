@@ -348,6 +348,20 @@ describe("highlightCodeBlocks", () => {
     expect(blocks[100].querySelector(".tok-keyword")).toBeNull()
   })
 
+  it("highlights common languages before lazy parser imports resolve", async () => {
+    const root = document.createElement("div")
+    root.innerHTML = [
+      '<pre><code class="language-js">const immediate = 1;</code></pre>',
+      '<pre><code class="language-tf">value = 1</code></pre>'
+    ].join("")
+
+    const highlighting = highlightCodeBlocksInElement(root)
+
+    expect(root.querySelector("code.language-js .tok-keyword")).not.toBeNull()
+
+    await highlighting
+  })
+
   it("does not apply a lazy parser result to code replaced by a newer render", async () => {
     const root = document.createElement("div")
     root.innerHTML = '<pre><code class="language-tf">value = 1</code></pre>'
