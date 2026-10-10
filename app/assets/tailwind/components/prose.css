@@ -136,6 +136,7 @@
 
   /* Code blocks */
   .prose pre {
+    position: relative;
     background: var(--theme-code-bg);
     color: var(--theme-text-primary);
     border-radius: 0.5rem;
@@ -152,6 +153,95 @@
     padding: 0;
     color: inherit;
     font-weight: normal;
+  }
+
+  .prose pre[data-code-language] {
+    padding-top: 2.25em;
+  }
+
+  .prose pre[data-code-language]::before {
+    content: attr(data-code-language);
+    position: absolute;
+    top: 0.55rem;
+    left: 1rem;
+    color: var(--theme-text-muted);
+    font-size: 0.72em;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Token colors for fenced code blocks, using the active theme palette. */
+  .prose pre code .tok-keyword,
+  .prose pre code .tok-modifier {
+    color: var(--theme-syntax-keyword, var(--theme-text-primary));
+    font-weight: 600;
+  }
+
+  .prose pre code .tok-function {
+    color: var(--theme-syntax-function, var(--theme-text-primary));
+  }
+
+  .prose pre code .tok-operator,
+  .prose pre code .tok-derefOperator {
+    color: var(--theme-syntax-operator, var(--theme-text-primary));
+  }
+
+  .prose pre code .tok-string,
+  .prose pre code .tok-string2,
+  .prose pre code .tok-character,
+  .prose pre code .tok-attributeValue {
+    color: var(--theme-syntax-string, var(--theme-text-primary));
+  }
+
+  .prose pre code .tok-number,
+  .prose pre code .tok-unit {
+    color: var(--theme-syntax-number, var(--theme-text-primary));
+  }
+
+  .prose pre code .tok-constant,
+  .prose pre code .tok-bool,
+  .prose pre code .tok-null,
+  .prose pre code .tok-atom {
+    color: var(--theme-syntax-constant, var(--theme-text-primary));
+  }
+
+  .prose pre code .tok-comment,
+  .prose pre code .tok-docComment {
+    color: var(--theme-syntax-comment, var(--theme-text-primary));
+    font-style: italic;
+  }
+
+  .prose pre code .tok-typeName,
+  .prose pre code .tok-className,
+  .prose pre code .tok-namespace,
+  .prose pre code .tok-tagName {
+    color: var(--theme-syntax-type, var(--theme-text-primary));
+  }
+
+  .prose pre code .tok-propertyName,
+  .prose pre code .tok-attributeName {
+    color: var(--theme-syntax-property, var(--theme-text-primary));
+  }
+
+  .prose pre code .tok-variableName {
+    color: var(--theme-syntax-identifier, var(--theme-text-primary));
+  }
+
+  .prose pre code .tok-definition {
+    font-weight: 600;
+  }
+
+  .prose pre code .tok-punctuation,
+  .prose pre code .tok-bracket,
+  .prose pre code .tok-separator {
+    color: var(--theme-syntax-punctuation, var(--theme-text-primary));
+  }
+
+  .prose pre code .tok-invalid {
+    color: var(--theme-syntax-invalid, var(--theme-error));
+    text-decoration: underline wavy currentColor;
+    text-underline-offset: 2px;
   }
 
   /* Code block copy button */

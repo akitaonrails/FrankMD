@@ -26,4 +26,16 @@
   --theme-folder-icon: #81a1c1;
   --theme-file-icon: #7b88a1;
   --theme-config-icon: #ebcb8b;
+  --theme-syntax-keyword: #d4a8d7;
+  --theme-syntax-function: #f2d08b;
+  --theme-syntax-type: #8fcac3;
+  --theme-syntax-string: #b5d19d;
+  --theme-syntax-number: #f0a676;
+  --theme-syntax-constant: #92b7e2;
+  --theme-syntax-identifier: #eceff4;
+  --theme-syntax-property: #9dccdd;
+  --theme-syntax-operator: #d8dee9;
+  --theme-syntax-comment: #c2c9d5;
+  --theme-syntax-punctuation: #c6ceda;
+  --theme-syntax-invalid: #ff9e9e;
 }

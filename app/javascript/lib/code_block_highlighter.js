@@ -1,0 +1,128 @@
+import { highlightTree, tagHighlighter, tags } from "@lezer/highlight"
+import {
+  javascriptLanguage,
+  jsxLanguage,
+  tsxLanguage,
+  typescriptLanguage
+} from "@codemirror/lang-javascript"
+import { htmlLanguage } from "@codemirror/lang-html"
+import { cssLanguage } from "@codemirror/lang-css"
+
+// Keep this list explicit: a fence language is untrusted note content, and
+// only parsers that FrankMD already ships should be selected here.
+const LANGUAGE_PARSERS = new Map([
+  ["js", { parser: javascriptLanguage.parser, label: "JavaScript" }],
+  ["javascript", { parser: javascriptLanguage.parser, label: "JavaScript" }],
+  ["mjs", { parser: javascriptLanguage.parser, label: "JavaScript" }],
+  ["cjs", { parser: javascriptLanguage.parser, label: "JavaScript" }],
+  ["jsx", { parser: jsxLanguage.parser, label: "JSX" }],
+  ["ts", { parser: typescriptLanguage.parser, label: "TypeScript" }],
+  ["typescript", { parser: typescriptLanguage.parser, label: "TypeScript" }],
+  ["tsx", { parser: tsxLanguage.parser, label: "TSX" }],
+  ["html", { parser: htmlLanguage.parser, label: "HTML" }],
+  ["htm", { parser: htmlLanguage.parser, label: "HTML" }],
+  ["svg", { parser: htmlLanguage.parser, label: "SVG" }],
+  ["css", { parser: cssLanguage.parser, label: "CSS" }],
+  // JSON's syntax is close enough to JavaScript for useful token coloring;
+  // it remains labelled as JSON in the rendered code element.
+  ["json", { parser: javascriptLanguage.parser, label: "JSON" }],
+  ["jsonc", { parser: javascriptLanguage.parser, label: "JSONC" }]
+])
+
+// Keep these token classes independent from individual theme colors. Lezer's
+// modifier tags let functions and definitions stay distinct from identifiers.
+const syntaxHighlighter = tagHighlighter([
+  { tag: tags.keyword, class: "tok-keyword" },
+  { tag: tags.function(tags.variableName), class: "tok-function" },
+  { tag: tags.function(tags.propertyName), class: "tok-function" },
+  { tag: tags.definition(tags.function(tags.variableName)), class: "tok-function tok-definition" },
+  { tag: tags.definition(tags.variableName), class: "tok-variableName tok-definition" },
+  { tag: tags.definition(tags.propertyName), class: "tok-propertyName tok-definition" },
+  { tag: tags.constant(tags.variableName), class: "tok-constant" },
+  { tag: tags.typeName, class: "tok-typeName" },
+  { tag: tags.className, class: "tok-className" },
+  { tag: tags.namespace, class: "tok-namespace" },
+  { tag: tags.tagName, class: "tok-typeName" },
+  { tag: tags.propertyName, class: "tok-propertyName" },
+  { tag: tags.variableName, class: "tok-variableName" },
+  { tag: tags.string, class: "tok-string" },
+  { tag: tags.attributeValue, class: "tok-string" },
+  { tag: tags.regexp, class: "tok-string2" },
+  { tag: tags.number, class: "tok-number" },
+  { tag: tags.unit, class: "tok-number" },
+  { tag: [tags.bool, tags.null, tags.atom], class: "tok-constant" },
+  { tag: [tags.operator, tags.derefOperator], class: "tok-operator" },
+  { tag: tags.punctuation, class: "tok-punctuation" },
+  { tag: tags.comment, class: "tok-comment" },
+  { tag: tags.invalid, class: "tok-invalid" }
+])
+
+function parserForCodeElement(code) {
+  for (const className of code.classList) {
+    if (!className.startsWith("language-")) continue
+
+    const language = className.slice("language-".length).toLowerCase()
+    return LANGUAGE_PARSERS.get(language) || null
+  }
+
+  return null
+}
+
+function appendHighlightedCode(code, source, parser) {
+  const tree = parser.parse(source)
+  const document = code.ownerDocument
+  const fragment = document.createDocumentFragment()
+  let position = 0
+
+  highlightTree(tree, syntaxHighlighter, (from, to, classes) => {
+    if (from > position) {
+      fragment.append(document.createTextNode(source.slice(position, from)))
+    }
+
+    const span = document.createElement("span")
+    // The classes come from the fixed tag mapping above, never from markdown
+    // content.
+    span.className = classes
+    span.textContent = source.slice(from, to)
+    fragment.append(span)
+    position = to
+  })
+
+  if (position < source.length) {
+    fragment.append(document.createTextNode(source.slice(position)))
+  }
+
+  code.replaceChildren(fragment)
+}
+
+/**
+ * Add token spans to sanitized Markdown code blocks for languages with bundled
+ * parsers. The input must already have passed through sanitizeHtml().
+ *
+ * @param {string} sanitizedHtml - Sanitized rendered Markdown
+ * @returns {string} - HTML with syntax-colored spans in supported code blocks
+ */
+export function highlightCodeBlocks(sanitizedHtml) {
+  if (!sanitizedHtml || !globalThis.document?.createElement) return sanitizedHtml
+
+  const template = document.createElement("template")
+  template.innerHTML = sanitizedHtml
+  let changed = false
+
+  for (const code of template.content.querySelectorAll("pre > code[class]")) {
+    const language = parserForCodeElement(code)
+    if (!language) continue
+
+    try {
+      appendHighlightedCode(code, code.textContent || "", language.parser)
+      code.parentElement.dataset.codeLanguage = language.label
+      changed = true
+    } catch {
+      // A malformed or unsupported snippet must not prevent the rest of the
+      // Markdown preview from rendering.
+    }
+  }
+
+  // Avoid serializing unrelated preview HTML when no supported fence exists.
+  return changed ? template.innerHTML : sanitizedHtml
+}

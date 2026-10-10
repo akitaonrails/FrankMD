@@ -75,6 +75,21 @@ class OmarchyThemeService
       sel_bg = c[:selection_background]
       sel_text = c[:selection_text]
       dark = dark_background?(bg)
+      code_bg = dark ? lighten(bg, 7) : darken(bg, 7)
+      syntax_variables = {
+        "--theme-syntax-keyword" => c[:normal_magenta] || c[:normal_red] || "#c792ea",
+        "--theme-syntax-function" => c[:normal_yellow] || c[:bright_yellow] || "#ffd866",
+        "--theme-syntax-type" => c[:normal_cyan] || c[:bright_cyan] || "#65d5cb",
+        "--theme-syntax-string" => c[:normal_green] || c[:bright_green] || "#95d96a",
+        "--theme-syntax-number" => c[:bright_yellow] || c[:normal_yellow] || "#ffad66",
+        "--theme-syntax-constant" => c[:bright_cyan] || c[:normal_cyan] || "#79c0ff",
+        "--theme-syntax-identifier" => fg,
+        "--theme-syntax-property" => bright_blue || blue,
+        "--theme-syntax-operator" => c[:normal_white] || fg,
+        "--theme-syntax-comment" => dim_fg || c[:normal_black] || blend(fg, bg, 0.45),
+        "--theme-syntax-punctuation" => c[:normal_white] || fg,
+        "--theme-syntax-invalid" => c[:normal_red] || "#ff8787"
+      }.transform_values { |color| ensure_contrast(color, code_bg) }
 
       {
         "--theme-bg-primary" => bg,
@@ -96,14 +111,14 @@ class OmarchyThemeService
         "--theme-success" => c[:normal_green] || "#8673d4",
         "--theme-warning" => c[:normal_yellow] || "#ca2edc",
         "--theme-error" => c[:normal_red] || "#ff4da6",
-        "--theme-code-bg" => dark ? lighten(bg, 7) : darken(bg, 7),
+        "--theme-code-bg" => code_bg,
         "--theme-heading-1" => c[:normal_magenta] || "#b683c3",
         "--theme-heading-2" => blue,
         "--theme-heading-3" => c[:normal_cyan] || "#8adb8a",
         "--theme-folder-icon" => blue,
         "--theme-file-icon" => dim_fg || blend(fg, bg, 0.45),
         "--theme-config-icon" => c[:normal_yellow] || "#ca2edc"
-      }
+      }.merge(syntax_variables)
     end
 
     def hex_to_rgb(hex)
@@ -121,6 +136,44 @@ class OmarchyThemeService
       r, g, b = hex_to_rgb(hex)
       luminance = 0.2126 * (r / 255.0) + 0.7152 * (g / 255.0) + 0.0722 * (b / 255.0)
       luminance < 0.5
+    end
+
+    def ensure_contrast(foreground, background)
+      return foreground if contrast_ratio(foreground, background) >= 4.51
+
+      target = contrast_ratio("#ffffff", background) > contrast_ratio("#000000", background) ? "#ffffff" : "#000000"
+      low = 0.0
+      high = 1.0
+
+      24.times do
+        amount = (low + high) / 2.0
+        candidate = blend(foreground, target, amount)
+
+        if contrast_ratio(candidate, background) >= 4.51
+          high = amount
+        else
+          low = amount
+        end
+      end
+
+      blend(foreground, target, high)
+    end
+
+    def contrast_ratio(foreground, background)
+      foreground_luminance = relative_luminance(foreground)
+      background_luminance = relative_luminance(background)
+      lighter, darker = [ foreground_luminance, background_luminance ].max, [ foreground_luminance, background_luminance ].min
+
+      (lighter + 0.05) / (darker + 0.05)
+    end
+
+    def relative_luminance(hex)
+      red, green, blue = hex_to_rgb(hex).map do |channel|
+        value = channel / 255.0
+        value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055)**2.4
+      end
+
+      0.2126 * red + 0.7152 * green + 0.0722 * blue
     end
 
     def lighten(hex, percent)
