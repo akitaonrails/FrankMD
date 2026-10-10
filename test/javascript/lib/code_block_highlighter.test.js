@@ -270,6 +270,21 @@ describe("highlightCodeBlocks", () => {
     }
   })
 
+  it("accepts file-extension-style fence names for config languages", () => {
+    const cases = [
+      [".env", "PORT=3000", "Dotenv"],
+      [".yaml", "answer: 42", "YAML"],
+      [".yml", "answer: 42", "YAML"],
+      [".rb", "puts 42", "Ruby"],
+      [".tf", "count = 1", "Terraform"]
+    ]
+
+    for (const [language, source, label] of cases) {
+      const html = `<pre><code class="language-${language}">${source}</code></pre>`
+      expect(highlightCodeBlocks(html)).toContain(`data-code-language="${label}"`)
+    }
+  })
+
   it("maps HTML attributes and CSS values to their syntax roles", () => {
     const html = '<pre><code class="language-html">&lt;button title="ok"&gt;text&lt;/button&gt;</code></pre>'
     const css = '<pre><code class="language-css">a { color: red; margin: 1px; }</code></pre>'
