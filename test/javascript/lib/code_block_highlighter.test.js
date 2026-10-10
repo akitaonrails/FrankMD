@@ -140,6 +140,21 @@ describe("highlightCodeBlocks", () => {
     expect(highlightCodeBlocks('<pre><code class="language-sh">printf ok</code></pre>')).toContain('data-code-language="Shell"')
   })
 
+  it("highlights SQL comments, keywords, literals, operators, and dialect aliases", () => {
+    const html = '<pre><code class="language-sql">-- active users\nSELECT id, name FROM users WHERE active = TRUE AND score >= 42;</code></pre>'
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-comment">-- active users</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">SELECT</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">FROM</span>')
+    expect(highlighted).toContain('<span class="tok-constant">TRUE</span>')
+    expect(highlighted).toContain('<span class="tok-operator">&gt;=</span>')
+    expect(highlighted).toContain('<span class="tok-number">42</span>')
+    expect(highlighted).toContain('data-code-language="SQL"')
+    expect(highlightCodeBlocks('<pre><code class="language-postgresql">SELECT 1</code></pre>')).toContain('data-code-language="PostgreSQL"')
+    expect(highlightCodeBlocks('<pre><code class="language-mariadb">SELECT 1</code></pre>')).toContain('data-code-language="MariaDB"')
+  })
+
   it("highlights Terraform comments, block keywords, attributes, references, and expressions", () => {
     const html = '<pre><code class="language-tf"># infrastructure\nresource "aws_instance" "web" {\n  ami = "ami-123"\n  instance_type = var.instance_type\n  count = 2\n  enabled = true\n  size = max(1, 3)\n}</code></pre>'
     const highlighted = highlightCodeBlocks(html)

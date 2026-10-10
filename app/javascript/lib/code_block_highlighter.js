@@ -17,6 +17,7 @@ import { parser as cppParser } from "@lezer/cpp"
 import { csharp } from "@codemirror/legacy-modes/mode/clike"
 import { ruby } from "@codemirror/legacy-modes/mode/ruby"
 import { shell } from "@codemirror/legacy-modes/mode/shell"
+import { standardSQL, pgSQL, mySQL, mariaDB, sqlite } from "@codemirror/legacy-modes/mode/sql"
 import { terraformHcl } from "./terraform_hcl_stream_parser"
 
 // Keep parser work and token DOM small enough for synchronous preview renders.
@@ -24,6 +25,11 @@ const MAX_HIGHLIGHTED_CODE_LENGTH = 20_000
 const csharpParser = StreamLanguage.define(csharp).parser
 const rubyParser = StreamLanguage.define(ruby).parser
 const dotenvParser = StreamLanguage.define(shell).parser
+const sqlParser = StreamLanguage.define(standardSQL).parser
+const postgresParser = StreamLanguage.define(pgSQL).parser
+const mysqlParser = StreamLanguage.define(mySQL).parser
+const mariaDBParser = StreamLanguage.define(mariaDB).parser
+const sqliteParser = StreamLanguage.define(sqlite).parser
 const terraformParser = StreamLanguage.define(terraformHcl).parser
 
 // Keep this list explicit: a fence language is untrusted note content, and
@@ -56,6 +62,13 @@ const LANGUAGE_PARSERS = new Map([
   ["bash", { parser: dotenvParser, label: "Shell" }],
   ["sh", { parser: dotenvParser, label: "Shell" }],
   ["zsh", { parser: dotenvParser, label: "Shell" }],
+  ["sql", { parser: sqlParser, label: "SQL" }],
+  ["postgres", { parser: postgresParser, label: "PostgreSQL" }],
+  ["postgresql", { parser: postgresParser, label: "PostgreSQL" }],
+  ["pgsql", { parser: postgresParser, label: "PostgreSQL" }],
+  ["mysql", { parser: mysqlParser, label: "MySQL" }],
+  ["mariadb", { parser: mariaDBParser, label: "MariaDB" }],
+  ["sqlite", { parser: sqliteParser, label: "SQLite" }],
   ["tf", { parser: terraformParser, label: "Terraform" }],
   ["tfvars", { parser: terraformParser, label: "Terraform" }],
   ["terraform", { parser: terraformParser, label: "Terraform" }],
