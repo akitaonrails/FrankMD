@@ -10,6 +10,7 @@ import { cssLanguage } from "@codemirror/lang-css"
 import { parser as rustParser } from "@lezer/rust"
 import { parser as goParser } from "@lezer/go"
 import { parser as pythonParser } from "@lezer/python"
+import { parser as javaParser } from "@lezer/java"
 
 // Keep parser work and token DOM small enough for synchronous preview renders.
 const MAX_HIGHLIGHTED_CODE_LENGTH = 20_000
@@ -39,7 +40,8 @@ const LANGUAGE_PARSERS = new Map([
   ["golang", { parser: goParser, label: "Go" }],
   ["py", { parser: pythonParser, label: "Python" }],
   ["python", { parser: pythonParser, label: "Python" }],
-  ["python3", { parser: pythonParser, label: "Python" }]
+  ["python3", { parser: pythonParser, label: "Python" }],
+  ["java", { parser: javaParser, label: "Java" }]
 ])
 
 // Keep these token classes independent from individual theme colors. Lezer's

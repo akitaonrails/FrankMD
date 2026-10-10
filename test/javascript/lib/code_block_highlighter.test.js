@@ -73,6 +73,20 @@ describe("highlightCodeBlocks", () => {
     expect(highlightCodeBlocks('<pre><code class="language-py">print(1)</code></pre>')).toContain('data-code-language="Python"')
   })
 
+  it("highlights Java comments, keywords, definitions, types, strings, and numbers", () => {
+    const html = '<pre><code class="language-java">// greeting\npublic class Greeter {\n  public static String greet(String name) {\n    int answer = 42;\n    return "Hello, " + name;\n  }\n}</code></pre>'
+
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-comment">// greeting</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">class</span>')
+    expect(highlighted).toContain('<span class="tok-variableName tok-definition">Greeter</span>')
+    expect(highlighted).toContain('<span class="tok-variableName tok-definition">greet</span>')
+    expect(highlighted).toContain('<span class="tok-string">"Hello, "</span>')
+    expect(highlighted).toContain('<span class="tok-number">42</span>')
+    expect(highlighted).toContain('data-code-language="Java"')
+  })
+
   it("supports common aliases and the bundled HTML and CSS parsers", () => {
     const cases = [
       ['language-js', "const answer = 42;", "tok-keyword"],
