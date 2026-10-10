@@ -1,4 +1,5 @@
 import { highlightTree, tagHighlighter, tags } from "@lezer/highlight"
+import { StreamLanguage } from "@codemirror/language"
 import {
   javascriptLanguage,
   jsxLanguage,
@@ -12,9 +13,11 @@ import { parser as goParser } from "@lezer/go"
 import { parser as pythonParser } from "@lezer/python"
 import { parser as javaParser } from "@lezer/java"
 import { parser as cppParser } from "@lezer/cpp"
+import { csharp } from "@codemirror/legacy-modes/mode/clike"
 
 // Keep parser work and token DOM small enough for synchronous preview renders.
 const MAX_HIGHLIGHTED_CODE_LENGTH = 20_000
+const csharpParser = StreamLanguage.define(csharp).parser
 
 // Keep this list explicit: a fence language is untrusted note content, and
 // only parsers that FrankMD already ships should be selected here.
@@ -52,7 +55,10 @@ const LANGUAGE_PARSERS = new Map([
   ["cxx", { parser: cppParser, label: "C++" }],
   ["hpp", { parser: cppParser, label: "C++" }],
   ["hh", { parser: cppParser, label: "C++" }],
-  ["hxx", { parser: cppParser, label: "C++" }]
+  ["hxx", { parser: cppParser, label: "C++" }],
+  ["cs", { parser: csharpParser, label: "C#" }],
+  ["csharp", { parser: csharpParser, label: "C#" }],
+  ["c#", { parser: csharpParser, label: "C#" }]
 ])
 
 // Keep these token classes independent from individual theme colors. Lezer's

@@ -102,6 +102,19 @@ describe("highlightCodeBlocks", () => {
     expect(highlightedC).toContain('data-code-language="C"')
   })
 
+  it("highlights C# keywords, types, definitions, strings, and numbers", () => {
+    const html = '<pre><code class="language-csharp">// greeting\nusing System;\npublic class Greeter {\n  public static string Greet(string name) {\n    const int answer = 42;\n    return "Hello, " + name;\n  }\n}</code></pre>'
+    const highlighted = highlightCodeBlocks(html)
+
+    expect(highlighted).toContain('<span class="tok-comment">// greeting</span>')
+    expect(highlighted).toContain('<span class="tok-keyword">class</span>')
+    expect(highlighted).toContain('<span class="tok-variableName tok-definition">Greeter</span>')
+    expect(highlighted).toContain('<span class="tok-string">"Hello, "</span>')
+    expect(highlighted).toContain('<span class="tok-number">42</span>')
+    expect(highlighted).toContain('data-code-language="C#"')
+    expect(highlightCodeBlocks('<pre><code class="language-cs">public class X {}</code></pre>')).toContain('data-code-language="C#"')
+  })
+
   it("supports common aliases and the bundled HTML and CSS parsers", () => {
     const cases = [
       ['language-js', "const answer = 42;", "tok-keyword"],

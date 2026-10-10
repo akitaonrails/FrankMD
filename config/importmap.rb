@@ -44,3 +44,4 @@ pin "crelt" # @1.0.6
 pin "style-mod" # @4.1.3
 pin "w3c-keyname" # @2.2.8
 pin "dompurify" # @3.4.16
+pin "@codemirror/legacy-modes/mode/clike", to: "@codemirror--legacy-modes--mode--clike.js" # @6.5.5
