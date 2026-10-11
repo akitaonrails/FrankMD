@@ -164,6 +164,15 @@ const EMOTICON_DATA = [
   ["alien", "⊂(◉‿◉)つ", "space extraterrestrial"]
 ]
 
+const SELECTED_ITEM_CLASSES = [
+  "bg-[var(--theme-bg-hover)]",
+  "ring-2",
+  "ring-[var(--theme-accent)]",
+  "ring-offset-1",
+  "ring-offset-[var(--theme-bg-secondary)]"
+]
+const SELECTED_ITEM_CLASS_NAMES = SELECTED_ITEM_CLASSES.join(" ")
+
 export default class extends Controller {
   static targets = [
     "dialog",
@@ -427,8 +436,8 @@ export default class extends Controller {
         return `
           <button
             type="button"
-            class="w-10 h-10 flex items-center justify-center text-2xl rounded hover:bg-[var(--theme-bg-hover)] transition-colors ${
-              isSelected ? 'bg-[var(--theme-accent)] ring-2 ring-[var(--theme-accent)] ring-offset-1 ring-offset-[var(--theme-bg-secondary)]' : ''
+            class="w-10 h-10 flex items-center justify-center text-2xl rounded hover:bg-[var(--theme-bg-hover)] ${
+              isSelected ? SELECTED_ITEM_CLASS_NAMES : ''
             }"
             data-index="${index}"
             data-shortcode="${escapeHtml(shortcode)}"
@@ -449,8 +458,8 @@ export default class extends Controller {
         return `
           <button
             type="button"
-            class="px-2 py-2 flex items-center justify-center text-sm rounded hover:bg-[var(--theme-bg-hover)] transition-colors truncate ${
-              isSelected ? 'bg-[var(--theme-accent)] text-[var(--theme-accent-text)] ring-2 ring-[var(--theme-accent)] ring-offset-1 ring-offset-[var(--theme-bg-secondary)]' : 'text-[var(--theme-text-primary)]'
+            class="px-2 py-2 flex items-center justify-center text-sm rounded text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-hover)] truncate ${
+              isSelected ? SELECTED_ITEM_CLASS_NAMES : ''
             }"
             data-index="${index}"
             data-name="${escapeHtml(name)}"
@@ -471,8 +480,8 @@ export default class extends Controller {
         return `
           <button
             type="button"
-            class="w-10 h-10 flex items-center justify-center text-lg rounded hover:bg-[var(--theme-bg-hover)] transition-colors ${
-              isSelected ? 'bg-[var(--theme-accent)] ring-2 ring-[var(--theme-accent)] ring-offset-1 ring-offset-[var(--theme-bg-secondary)]' : ''
+            class="w-10 h-10 flex items-center justify-center text-lg rounded hover:bg-[var(--theme-bg-hover)] ${
+              isSelected ? SELECTED_ITEM_CLASS_NAMES : ''
             }"
             data-index="${index}"
             data-name="${escapeHtml(name)}"
@@ -590,9 +599,19 @@ export default class extends Controller {
   onHover(event) {
     const index = parseInt(event.currentTarget.dataset.index, 10)
     if (!isNaN(index) && index !== this.selectedIndex) {
+      const previousButton = this.gridTarget.querySelector(`[data-index="${this.selectedIndex}"]`)
+      this.setItemSelected(previousButton, false)
       this.selectedIndex = index
-      this.renderGrid()
+      this.setItemSelected(event.currentTarget, true)
       this.updatePreview()
+    }
+  }
+
+  setItemSelected(button, selected) {
+    if (!button) return
+
+    for (const className of SELECTED_ITEM_CLASSES) {
+      button.classList.toggle(className, selected)
     }
   }
 

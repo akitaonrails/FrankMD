@@ -548,13 +548,68 @@ describe("EmojiPickerController", () => {
     })
 
     describe("onHover()", () => {
-      it("updates selected index on hover", () => {
-        const mockEvent = {
-          currentTarget: { dataset: { index: "5" } }
-        }
-        controller.onHover(mockEvent)
+      it("updates emoji selection in place without scrolling or rebuilding the grid", () => {
+        const previousButton = controller.gridTarget.querySelector('[data-index="0"]')
+        const hoveredButton = controller.gridTarget.querySelector('[data-index="5"]')
+        const renderSpy = vi.spyOn(controller, "renderGrid")
+        const scrollSpy = vi.spyOn(controller, "scrollSelectedIntoView")
+
+        controller.onHover({ currentTarget: hoveredButton })
 
         expect(controller.selectedIndex).toBe(5)
+        expect(controller.gridTarget.querySelector('[data-index="5"]')).toBe(hoveredButton)
+        expect(renderSpy).not.toHaveBeenCalled()
+        expect(scrollSpy).not.toHaveBeenCalled()
+        expect(previousButton.classList.contains("bg-[var(--theme-bg-hover)]")).toBe(false)
+        expect(previousButton.classList.contains("ring-2")).toBe(false)
+        expect(hoveredButton.classList.contains("bg-[var(--theme-bg-hover)]")).toBe(true)
+        expect(hoveredButton.classList.contains("bg-[var(--theme-accent)]")).toBe(false)
+        expect(hoveredButton.classList.contains("ring-2")).toBe(true)
+        expect(hoveredButton.classList.contains("ring-[var(--theme-accent)]")).toBe(true)
+        expect(controller.previewTarget.textContent).toContain(`:${controller.filteredItems[5][0]}:`)
+      })
+
+      it("uses only a subtle selected background and preserves emoticon text color", () => {
+        controller.switchToEmoticons()
+        const previousButton = controller.gridTarget.querySelector('[data-index="0"]')
+        const hoveredButton = controller.gridTarget.querySelector('[data-index="1"]')
+
+        expect(previousButton.classList.contains("bg-[var(--theme-bg-hover)]")).toBe(true)
+        expect(previousButton.classList.contains("bg-[var(--theme-accent)]")).toBe(false)
+        expect(previousButton.classList.contains("ring-2")).toBe(true)
+        expect(previousButton.classList.contains("ring-[var(--theme-accent)]")).toBe(true)
+        expect(previousButton.classList.contains("text-[var(--theme-text-primary)]")).toBe(true)
+
+        controller.onHover({ currentTarget: hoveredButton })
+
+        expect(previousButton.classList.contains("bg-[var(--theme-bg-hover)]")).toBe(false)
+        expect(previousButton.classList.contains("ring-2")).toBe(false)
+        expect(hoveredButton.classList.contains("bg-[var(--theme-bg-hover)]")).toBe(true)
+        expect(hoveredButton.classList.contains("bg-[var(--theme-accent)]")).toBe(false)
+        expect(hoveredButton.classList.contains("ring-2")).toBe(true)
+        expect(hoveredButton.classList.contains("ring-[var(--theme-accent)]")).toBe(true)
+        expect(previousButton.classList.contains("text-[var(--theme-text-primary)]")).toBe(true)
+        expect(hoveredButton.classList.contains("text-[var(--theme-text-primary)]")).toBe(true)
+        expect(hoveredButton.classList.contains("text-[var(--theme-accent-text)]")).toBe(false)
+      })
+
+      it("updates icon selection in place", () => {
+        controller.switchToIcons()
+        const previousButton = controller.gridTarget.querySelector('[data-index="0"]')
+        const hoveredButton = controller.gridTarget.querySelector('[data-index="1"]')
+        const renderSpy = vi.spyOn(controller, "renderGrid")
+
+        controller.onHover({ currentTarget: hoveredButton })
+
+        expect(controller.selectedIndex).toBe(1)
+        expect(controller.gridTarget.querySelector('[data-index="1"]')).toBe(hoveredButton)
+        expect(renderSpy).not.toHaveBeenCalled()
+        expect(previousButton.classList.contains("bg-[var(--theme-bg-hover)]")).toBe(false)
+        expect(previousButton.classList.contains("ring-2")).toBe(false)
+        expect(hoveredButton.classList.contains("bg-[var(--theme-bg-hover)]")).toBe(true)
+        expect(hoveredButton.classList.contains("bg-[var(--theme-accent)]")).toBe(false)
+        expect(hoveredButton.classList.contains("ring-2")).toBe(true)
+        expect(hoveredButton.classList.contains("ring-[var(--theme-accent)]")).toBe(true)
       })
 
       it("does nothing for same index", () => {
@@ -636,7 +691,10 @@ describe("EmojiPickerController", () => {
         controller.renderGrid()
 
         const selectedButton = controller.gridTarget.querySelector('[data-index="0"]')
-        expect(selectedButton.classList.contains("bg-[var(--theme-accent)]")).toBe(true)
+        expect(selectedButton.classList.contains("bg-[var(--theme-bg-hover)]")).toBe(true)
+        expect(selectedButton.classList.contains("bg-[var(--theme-accent)]")).toBe(false)
+        expect(selectedButton.classList.contains("ring-2")).toBe(true)
+        expect(selectedButton.classList.contains("ring-[var(--theme-accent)]")).toBe(true)
       })
     })
 
