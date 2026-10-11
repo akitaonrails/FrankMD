@@ -129,6 +129,20 @@ describe("AppController Typewriter mode", () => {
     expect(previewController.syncToTypewriter).toHaveBeenCalledWith(6, 20)
   })
 
+  it("does not dispatch another selection transaction during a document change", () => {
+    const { app, codemirrorController } = makeTypewriterApp({ fileType: "markdown" })
+    codemirrorController.maintainTypewriterScroll = vi.fn()
+    app.autosaveOutlets = []
+    app.scheduleStatsUpdate = vi.fn()
+    app.checkTableAtCursor = vi.fn()
+
+    expect(app.getSettingsController().typewriterModeEnabled).toBe(true)
+
+    app.onEditorChange({ detail: { docChanged: true } })
+
+    expect(codemirrorController.maintainTypewriterScroll).not.toHaveBeenCalled()
+  })
+
   it.each([true, false])("preserves sidebar visibility (%s)", (sidebarVisible) => {
     const { app } = makeApp(sidebarVisible)
 
