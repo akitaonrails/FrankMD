@@ -1,4 +1,5 @@
 import { highlightTree, tagHighlighter, tags } from "@lezer/highlight"
+import { StreamLanguage } from "@codemirror/language"
 import {
   javascriptLanguage,
   jsxLanguage,
@@ -8,30 +9,212 @@ import {
 import { htmlLanguage } from "@codemirror/lang-html"
 import { cssLanguage } from "@codemirror/lang-css"
 
-// Keep this list explicit: a fence language is untrusted note content, and
-// only parsers that FrankMD already ships should be selected here.
+// Keep parsing, token DOM, and language-mode setup bounded during preview work.
+const MAX_HIGHLIGHTED_CODE_LENGTH = 20_000
+const MAX_HIGHLIGHTED_CODE_LENGTH_PER_RENDER = 50_000
+const MAX_CODE_BLOCKS_PER_RENDER = 100
+
+function staticLanguage(label, parser) {
+  return { label, parser }
+}
+
+function cachedParserLoader(loadParser) {
+  let parserPromise
+
+  return () => {
+    if (!parserPromise) {
+      parserPromise = Promise.resolve()
+        .then(loadParser)
+        .catch((error) => {
+          // Cache successful loads, but allow a transient failed request to retry.
+          parserPromise = null
+          throw error
+        })
+    }
+
+    return parserPromise
+  }
+}
+
+function lazyLanguage(label, loadParser) {
+  return { label, loadParser }
+}
+
+function streamParserLoader(loadMode, modeName) {
+  return cachedParserLoader(async () => {
+    const mode = await loadMode()
+    return StreamLanguage.define(mode[modeName]).parser
+  })
+}
+
+const yamlParser = cachedParserLoader(async () => (await import("@lezer/yaml")).parser)
+const phpParser = cachedParserLoader(async () => (await import("@lezer/php")).parser)
+const rustParser = cachedParserLoader(async () => (await import("@lezer/rust")).parser)
+const goParser = cachedParserLoader(async () => (await import("@lezer/go")).parser)
+const pythonParser = cachedParserLoader(async () => (await import("@lezer/python")).parser)
+const javaParser = cachedParserLoader(async () => (await import("@lezer/java")).parser)
+const cppParser = cachedParserLoader(async () => (await import("@lezer/cpp")).parser)
+const csharpParser = streamParserLoader(
+  () => import("@codemirror/legacy-modes/mode/clike"),
+  "csharp"
+)
+const kotlinParser = streamParserLoader(
+  () => import("@codemirror/legacy-modes/mode/clike"),
+  "kotlin"
+)
+const rubyParser = streamParserLoader(
+  () => import("@codemirror/legacy-modes/mode/ruby"),
+  "ruby"
+)
+const shellParser = streamParserLoader(
+  () => import("@codemirror/legacy-modes/mode/shell"),
+  "shell"
+)
+const standardSQLParser = streamParserLoader(
+  () => import("@codemirror/legacy-modes/mode/sql"),
+  "standardSQL"
+)
+const postgresParser = streamParserLoader(
+  () => import("@codemirror/legacy-modes/mode/sql"),
+  "pgSQL"
+)
+const mysqlParser = streamParserLoader(
+  () => import("@codemirror/legacy-modes/mode/sql"),
+  "mySQL"
+)
+const mariaDBParser = streamParserLoader(
+  () => import("@codemirror/legacy-modes/mode/sql"),
+  "mariaDB"
+)
+const sqliteParser = streamParserLoader(
+  () => import("@codemirror/legacy-modes/mode/sql"),
+  "sqlite"
+)
+const tomlParser = streamParserLoader(
+  () => import("@codemirror/legacy-modes/mode/toml"),
+  "toml"
+)
+const dockerfileParser = streamParserLoader(
+  () => import("@codemirror/legacy-modes/mode/dockerfile"),
+  "dockerFile"
+)
+const terraformParser = cachedParserLoader(async () => {
+  const { terraformHcl } = await import("./terraform_hcl_stream_parser.js")
+  return StreamLanguage.define(terraformHcl).parser
+})
+
+const javascript = staticLanguage("JavaScript", javascriptLanguage.parser)
+const jsx = staticLanguage("JSX", jsxLanguage.parser)
+const typescript = staticLanguage("TypeScript", typescriptLanguage.parser)
+const tsx = staticLanguage("TSX", tsxLanguage.parser)
+const html = staticLanguage("HTML", htmlLanguage.parser)
+const svg = staticLanguage("SVG", htmlLanguage.parser)
+const css = staticLanguage("CSS", cssLanguage.parser)
+const json = staticLanguage("JSON", javascriptLanguage.parser)
+const jsonc = staticLanguage("JSONC", javascriptLanguage.parser)
+const yaml = lazyLanguage("YAML", yamlParser)
+const php = lazyLanguage("PHP", phpParser)
+const ruby = lazyLanguage("Ruby", rubyParser)
+const dotenv = lazyLanguage("Dotenv", shellParser)
+const shell = lazyLanguage("Shell", shellParser)
+const sql = lazyLanguage("SQL", standardSQLParser)
+const postgres = lazyLanguage("PostgreSQL", postgresParser)
+const mysql = lazyLanguage("MySQL", mysqlParser)
+const mariaDB = lazyLanguage("MariaDB", mariaDBParser)
+const sqlite = lazyLanguage("SQLite", sqliteParser)
+const toml = lazyLanguage("TOML", tomlParser)
+const dockerfile = lazyLanguage("Dockerfile", dockerfileParser)
+const terraform = lazyLanguage("Terraform", terraformParser)
+const hcl = lazyLanguage("HCL", terraformParser)
+const rust = lazyLanguage("Rust", rustParser)
+const go = lazyLanguage("Go", goParser)
+const python = lazyLanguage("Python", pythonParser)
+const java = lazyLanguage("Java", javaParser)
+const c = lazyLanguage("C", cppParser)
+const cpp = lazyLanguage("C++", cppParser)
+const csharp = lazyLanguage("C#", csharpParser)
+const kotlin = lazyLanguage("Kotlin", kotlinParser)
+
+// Keep this list explicit: fence names are untrusted note content, and only
+// parsers that FrankMD ships should be selected here.
 const LANGUAGE_PARSERS = new Map([
-  ["js", { parser: javascriptLanguage.parser, label: "JavaScript" }],
-  ["javascript", { parser: javascriptLanguage.parser, label: "JavaScript" }],
-  ["mjs", { parser: javascriptLanguage.parser, label: "JavaScript" }],
-  ["cjs", { parser: javascriptLanguage.parser, label: "JavaScript" }],
-  ["jsx", { parser: jsxLanguage.parser, label: "JSX" }],
-  ["ts", { parser: typescriptLanguage.parser, label: "TypeScript" }],
-  ["typescript", { parser: typescriptLanguage.parser, label: "TypeScript" }],
-  ["tsx", { parser: tsxLanguage.parser, label: "TSX" }],
-  ["html", { parser: htmlLanguage.parser, label: "HTML" }],
-  ["htm", { parser: htmlLanguage.parser, label: "HTML" }],
-  ["svg", { parser: htmlLanguage.parser, label: "SVG" }],
-  ["css", { parser: cssLanguage.parser, label: "CSS" }],
-  // JSON's syntax is close enough to JavaScript for useful token coloring;
-  // it remains labelled as JSON in the rendered code element.
-  ["json", { parser: javascriptLanguage.parser, label: "JSON" }],
-  ["jsonc", { parser: javascriptLanguage.parser, label: "JSONC" }]
+  ["js", javascript],
+  ["javascript", javascript],
+  ["mjs", javascript],
+  ["cjs", javascript],
+  ["jsx", jsx],
+  ["ts", typescript],
+  ["typescript", typescript],
+  ["tsx", tsx],
+  ["html", html],
+  ["htm", html],
+  ["svg", svg],
+  ["css", css],
+  ["json", json],
+  ["jsonc", jsonc],
+  ["yaml", yaml],
+  ["yml", yaml],
+  [".yaml", yaml],
+  [".yml", yaml],
+  ["php", php],
+  ["phtml", php],
+  ["ruby", ruby],
+  ["rb", ruby],
+  [".rb", ruby],
+  ["rake", ruby],
+  ["env", dotenv],
+  [".env", dotenv],
+  ["dotenv", dotenv],
+  ["shell", shell],
+  ["bash", shell],
+  ["sh", shell],
+  ["zsh", shell],
+  ["sql", sql],
+  ["postgres", postgres],
+  ["postgresql", postgres],
+  ["pgsql", postgres],
+  ["mysql", mysql],
+  ["mariadb", mariaDB],
+  ["sqlite", sqlite],
+  ["toml", toml],
+  ["tml", toml],
+  ["dockerfile", dockerfile],
+  ["docker", dockerfile],
+  ["tf", terraform],
+  [".tf", terraform],
+  ["tfvars", terraform],
+  [".tfvars", terraform],
+  ["terraform", terraform],
+  ["hcl", hcl],
+  [".hcl", hcl],
+  ["rs", rust],
+  ["rust", rust],
+  ["go", go],
+  ["golang", go],
+  ["py", python],
+  ["python", python],
+  ["python3", python],
+  ["java", java],
+  ["c", c],
+  ["h", c],
+  ["ino", c],
+  ["cc", cpp],
+  ["cpp", cpp],
+  ["c++", cpp],
+  ["cxx", cpp],
+  ["hpp", cpp],
+  ["hh", cpp],
+  ["hxx", cpp],
+  ["cs", csharp],
+  ["csharp", csharp],
+  ["c#", csharp],
+  ["kotlin", kotlin],
+  ["kt", kotlin],
+  ["kts", kotlin]
 ])
 
-// Keep these token classes independent from individual theme colors. Lezer's
-// modifier tags let functions and definitions stay distinct from identifiers.
-const syntaxHighlighter = tagHighlighter([
+// Lezer's modifier tags keep functions and definitions distinct from names.
+const syntaxTags = [
   { tag: tags.keyword, class: "tok-keyword" },
   { tag: tags.function(tags.variableName), class: "tok-function" },
   { tag: tags.function(tags.propertyName), class: "tok-function" },
@@ -55,7 +238,30 @@ const syntaxHighlighter = tagHighlighter([
   { tag: tags.punctuation, class: "tok-punctuation" },
   { tag: tags.comment, class: "tok-comment" },
   { tag: tags.invalid, class: "tok-invalid" }
+]
+
+const syntaxHighlighter = tagHighlighter(syntaxTags)
+const yamlHighlighter = tagHighlighter([
+  ...syntaxTags,
+  // Lezer marks plain YAML scalars as content; make them visible as values.
+  { tag: tags.content, class: "tok-string" }
 ])
+
+function yamlScalarClasses(source, from, to, classes) {
+  if (!classes.includes("tok-string")) return classes
+
+  const token = source.slice(from, to).trim()
+  if (!token || token.startsWith("\"") || token.startsWith("'") || token.startsWith("|") || token.startsWith(">")) {
+    return classes
+  }
+
+  if (/^(?:true|false|null|~)$/i.test(token)) return "tok-constant"
+  if (/^[+-]?(?:(?:0|[1-9][\d_]*)(?:\.[\d_]+)?(?:e[+-]?[\d_]+)?|0x[\da-f_]+|0o[0-7_]+|0b[01_]+)$/i.test(token)) {
+    return "tok-number"
+  }
+
+  return classes
+}
 
 function parserForCodeElement(code) {
   for (const className of code.classList) {
@@ -68,21 +274,22 @@ function parserForCodeElement(code) {
   return null
 }
 
-function appendHighlightedCode(code, source, parser) {
+function appendHighlightedCode(code, source, parser, language) {
   const tree = parser.parse(source)
   const document = code.ownerDocument
   const fragment = document.createDocumentFragment()
   let position = 0
+  const isYaml = language === yaml
+  const highlighter = isYaml ? yamlHighlighter : syntaxHighlighter
 
-  highlightTree(tree, syntaxHighlighter, (from, to, classes) => {
+  highlightTree(tree, highlighter, (from, to, classes) => {
     if (from > position) {
       fragment.append(document.createTextNode(source.slice(position, from)))
     }
 
     const span = document.createElement("span")
-    // The classes come from the fixed tag mapping above, never from markdown
-    // content.
-    span.className = classes
+    // Classes come from the fixed tag map above, never from Markdown content.
+    span.className = isYaml ? yamlScalarClasses(source, from, to, classes) : classes
     span.textContent = source.slice(from, to)
     fragment.append(span)
     position = to
@@ -96,33 +303,92 @@ function appendHighlightedCode(code, source, parser) {
 }
 
 /**
- * Add token spans to sanitized Markdown code blocks for languages with bundled
- * parsers. The input must already have passed through sanitizeHtml().
+ * Highlight supported code elements in sanitized preview HTML. Less common
+ * parser modules are imported only when a matching fence is present.
+ *
+ * @param {ParentNode} root - A sanitized rendered Markdown root
+ * @returns {Promise<boolean>} - Whether labels or token spans were added
+ */
+export async function highlightCodeBlocksInElement(root) {
+  if (!root?.querySelectorAll) return false
+
+  const candidates = []
+  let remainingCodeLength = MAX_HIGHLIGHTED_CODE_LENGTH_PER_RENDER
+  let inspectedBlockCount = 0
+  let changed = false
+
+  for (const code of root.querySelectorAll("pre > code[class]")) {
+    if (inspectedBlockCount >= MAX_CODE_BLOCKS_PER_RENDER) break
+    inspectedBlockCount += 1
+
+    const language = parserForCodeElement(code)
+    if (!language || !code.parentElement) continue
+
+    if (code.parentElement.dataset.codeLanguage !== language.label) {
+      code.parentElement.dataset.codeLanguage = language.label
+      changed = true
+    }
+
+    if (remainingCodeLength <= 0) continue
+
+    const source = code.textContent || ""
+    if (source.length > MAX_HIGHLIGHTED_CODE_LENGTH || source.length > remainingCodeLength) continue
+
+    remainingCodeLength -= source.length
+    candidates.push({ code, source, language })
+  }
+
+  const lazyLanguages = new Set(candidates.map(({ language }) => language).filter((language) => !language.parser))
+  const loadedParsers = new Map()
+
+  const applyHighlighting = (getParser) => {
+    for (const { code, source, language } of candidates) {
+      // A newer preview render may have replaced this block while a parser loaded.
+      if (!root.contains(code)) continue
+
+      const parser = getParser(language)
+      if (!parser) continue
+
+      try {
+        appendHighlightedCode(code, source, parser, language)
+        changed = true
+      } catch {
+        // A malformed snippet must not prevent the rest of the preview rendering.
+      }
+    }
+  }
+
+  // Highlight common languages before waiting for uncommon parser imports.
+  applyHighlighting((language) => language.parser)
+
+  if (lazyLanguages.size > 0) {
+    await Promise.all([...lazyLanguages].map(async (language) => {
+      try {
+        loadedParsers.set(language, await language.loadParser())
+      } catch {
+        // A missing or offline parser leaves readable, unhighlighted source.
+        loadedParsers.set(language, null)
+      }
+    }))
+  }
+
+  applyHighlighting((language) => loadedParsers.get(language))
+
+  return changed
+}
+
+/**
+ * Add token spans to sanitized Markdown code blocks.
  *
  * @param {string} sanitizedHtml - Sanitized rendered Markdown
- * @returns {string} - HTML with syntax-colored spans in supported code blocks
+ * @returns {Promise<string>} - HTML with syntax-colored spans in supported blocks
  */
-export function highlightCodeBlocks(sanitizedHtml) {
+export async function highlightCodeBlocks(sanitizedHtml) {
   if (!sanitizedHtml || !globalThis.document?.createElement) return sanitizedHtml
 
   const template = document.createElement("template")
   template.innerHTML = sanitizedHtml
-  let changed = false
 
-  for (const code of template.content.querySelectorAll("pre > code[class]")) {
-    const language = parserForCodeElement(code)
-    if (!language) continue
-
-    try {
-      appendHighlightedCode(code, code.textContent || "", language.parser)
-      code.parentElement.dataset.codeLanguage = language.label
-      changed = true
-    } catch {
-      // A malformed or unsupported snippet must not prevent the rest of the
-      // Markdown preview from rendering.
-    }
-  }
-
-  // Avoid serializing unrelated preview HTML when no supported fence exists.
+  const changed = await highlightCodeBlocksInElement(template.content)
   return changed ? template.innerHTML : sanitizedHtml
 }

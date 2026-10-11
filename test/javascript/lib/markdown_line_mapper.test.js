@@ -7,6 +7,7 @@ import {
   findElementByLine,
   findLineAtScroll
 } from "../../../app/javascript/lib/markdown_line_mapper"
+import { highlightCodeBlocks } from "../../../app/javascript/lib/code_block_highlighter"
 import { marked } from "marked"
 
 // Build a container with annotated elements at the given content-relative tops,
@@ -56,7 +57,7 @@ describe("parseWithLineNumbers", () => {
     expect(html).toContain('data-source-line="7"')
   })
 
-  it("highlights supported fenced code without losing its source line", () => {
+  it("highlights supported fenced code without losing its source line", async () => {
     const markdown = "```typescript\nconst x: number = 1;\n```"
     const lexer = vi.spyOn(marked, "lexer").mockReturnValue([
       { type: "code", raw: markdown }
@@ -66,7 +67,7 @@ describe("parseWithLineNumbers", () => {
     )
 
     try {
-      const html = parseWithLineNumbers(markdown)
+      const html = await highlightCodeBlocks(parseWithLineNumbers(markdown))
 
       expect(html).toMatch(/<pre[^>]*data-source-line="1"[^>]*>/)
       expect(html).toContain('<span class="tok-keyword">const</span>')

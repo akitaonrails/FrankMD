@@ -18,9 +18,17 @@
     "@codemirror/commands": "^6.10.1",
     "@codemirror/lang-markdown": "^6.5.0",
     "@codemirror/language": "^6.12.1",
+    "@codemirror/legacy-modes": "6.5.5",
     "@codemirror/search": "^6.6.0",
     "@codemirror/state": "^6.5.4",
     "@codemirror/view": "^6.39.12",
-    "@lezer/markdown": "^1.6.3"
+    "@lezer/cpp": "1.1.6",
+    "@lezer/go": "1.0.1",
+    "@lezer/java": "1.1.5",
+    "@lezer/markdown": "^1.6.3",
+    "@lezer/php": "1.0.6",
+    "@lezer/python": "1.1.19",
+    "@lezer/rust": "1.0.3",
+    "@lezer/yaml": "1.0.4"
   }
 }
