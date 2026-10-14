@@ -237,9 +237,9 @@ describe("LocalImageSource", () => {
         json: () => Promise.resolve({ url: "https://s3.example.com/image.jpg" })
       })
 
-      const result = await source.uploadToS3("photos/cat.jpg", "0.5")
+      const result = await source.saveCopy("photos/cat.jpg", "0.5")
 
-      expect(global.fetch).toHaveBeenCalledWith("/images/upload_to_s3", expect.objectContaining({
+      expect(global.fetch).toHaveBeenCalledWith("/images/import", expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
           "Content-Type": "application/json",
@@ -256,7 +256,7 @@ describe("LocalImageSource", () => {
         json: () => Promise.resolve({ error: "S3 bucket not configured" })
       })
 
-      await expect(source.uploadToS3("test.jpg", ""))
+      await expect(source.saveCopy("test.jpg", ""))
         .rejects.toThrow("S3 bucket not configured")
     })
 
@@ -266,7 +266,7 @@ describe("LocalImageSource", () => {
         json: () => Promise.resolve({})
       })
 
-      await expect(source.uploadToS3("test.jpg", ""))
+      await expect(source.saveCopy("test.jpg", ""))
         .rejects.toThrow("Failed to upload to S3")
     })
   })

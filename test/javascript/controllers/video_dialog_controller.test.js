@@ -67,6 +67,7 @@ describe("VideoDialogController", () => {
   })
 
   afterEach(() => {
+    application.unload("video-dialog")
     application.stop()
     vi.restoreAllMocks()
   })

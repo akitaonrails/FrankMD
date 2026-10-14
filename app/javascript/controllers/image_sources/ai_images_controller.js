@@ -1,7 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { AiImageSource } from "lib/image_sources/ai_images"
 import { encodePath } from "lib/url_utils"
-import { defaultS3Prefix } from "lib/s3_key"
 import { clearInlineError, showInlineError } from "lib/inline_messages"
 
 // AI Images Tab Controller
@@ -12,7 +11,7 @@ export default class extends Controller {
     "configNotice", "form", "model", "prompt", "generateBtn",
     "processing", "processingModel", "result", "preview",
     "revisedPromptContainer", "revisedPrompt",
-    "s3Option", "saveS3", "keyOption", "keyInput",
+    "keyInput",
     "refSection", "refPreviewContainer", "refPreview", "refName",
     "refPicker", "refSearch", "refGrid", "error"
   ]
@@ -54,9 +53,6 @@ export default class extends Controller {
     if (this.hasConfigNoticeTarget && this.hasFormTarget) {
       this.configNoticeTarget.classList.toggle("hidden", enabled)
       this.formTarget.classList.toggle("hidden", !enabled)
-    }
-    if (this.hasS3OptionTarget) {
-      this.s3OptionTarget.classList.toggle("hidden", !s3Enabled)
     }
     if (this.hasModelTarget && this.source.model) {
       this.modelTarget.textContent = this.source.model
@@ -193,20 +189,8 @@ export default class extends Controller {
     this.loadRefImages()
   }
 
-  // Reveal the destination-prefix input when "Save to S3" is picked, pre-filled
-  // with the default prefix. The AI tab owns the whole filename, so this is a
-  // prefix (like external URLs), not a full key.
-  onSaveOptionChange() {
-    const useS3 = this.hasSaveS3Target && this.saveS3Target.checked
-    if (this.hasKeyOptionTarget) this.keyOptionTarget.classList.toggle("hidden", !useS3)
-    if (useS3 && this.hasKeyInputTarget && !this.keyInputTarget.value) {
-      this.keyInputTarget.value = defaultS3Prefix()
-    }
-  }
-
   async getImageUrl() {
-    const uploadToS3 = this.s3EnabledValue && this.hasSaveS3Target && this.saveS3Target.checked
-    const s3Prefix = uploadToS3 && this.hasKeyInputTarget ? this.keyInputTarget.value.trim() : ""
+    const s3Prefix = this.hasKeyInputTarget ? this.keyInputTarget.value.trim() : ""
     const data = await this.source.save(s3Prefix)
     return data.url
   }

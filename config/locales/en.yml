@@ -698,3 +698,12 @@ en:
     folder_deleted: "Folder deleted"
     folder_renamed: "Folder renamed"
     settings_saved: "Settings saved"
+
+  media_storage:
+    label: "Storage for new media"
+    local: "Local folder"
+    s3: "S3"
+    hint: "Shared by all uploads. Existing Library files stay where they are."
+    save_failed: "Could not save the storage provider. The previous selection is still active."
+    load_failed: "Could not load the storage provider."
+    save_copy: "Save a copy in the active storage"

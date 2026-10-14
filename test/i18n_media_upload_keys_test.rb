@@ -11,6 +11,13 @@ class I18nMediaUploadKeysTest < ActiveSupport::TestCase
   LOCALES = %w[en es he ja ko pt-BR pt-PT].freeze
 
   REQUIRED_KEYS = [
+    "media_storage.label",
+    "media_storage.local",
+    "media_storage.s3",
+    "media_storage.hint",
+    "media_storage.save_failed",
+    "media_storage.load_failed",
+    "media_storage.save_copy",
     "dialogs.image_picker.tab_drop",
     "dialogs.image_picker.drop_hint",
     "dialogs.image_picker.drop_rejected",

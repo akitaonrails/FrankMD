@@ -1,7 +1,7 @@
 <!-- Image Picker Dialog -->
 <dialog
   class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] w-[700px] max-w-[90vw] max-h-[90vh] overflow-hidden"
-  data-controller="image-picker"
+  data-controller="image-picker" data-image-picker-media-storage-outlet='[data-controller~="media-storage"]'
   data-image-picker-target="dialog"
   data-slash-command-action="image"
   data-action="image-picker:image-selected->app#onImageSelected close->app#onSlashCommandDialogClose"
@@ -11,6 +11,8 @@
     <div class="flex-shrink-0 px-4 pt-4">
       <%= render "shared/dialog_header", title: t('dialogs.image_picker.title'), close_action: "click->image-picker#closeDialog", margin_bottom: "mb-0" %>
     </div>
+
+    <div class="px-4 mt-3"><%= render "notes/media_storage" %></div>
 
     <!-- Tabs -->
     <div class="flex-shrink-0 flex border-b border-[var(--theme-border)] px-4 mt-2" role="tablist" data-action="wheel->image-picker#onTabWheel">
@@ -628,42 +630,13 @@
                 <p class="text-xs text-[var(--theme-text-secondary)] bg-[var(--theme-bg-tertiary)] p-2 rounded line-clamp-2" data-ai-images-target="revisedPrompt"></p>
               </div>
 
-              <!-- Save Options -->
-              <div class="space-y-2" data-ai-images-target="s3Option">
-                <label class="block text-xs text-[var(--theme-text-muted)] mb-1"><%= t('dialogs.image_picker.save_to') %></label>
-                <label class="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="radio"
-                    name="aiImageSaveOption"
-                    value="local"
-                    checked
-                    data-action="change->ai-images#onSaveOptionChange"
-                    class="text-[var(--theme-accent)] focus:ring-[var(--theme-accent)]"
-                  >
-                  <span><%= t('dialogs.image_picker.save_local') %></span>
+              <div data-media-storage-target="s3Only" class="space-y-2 hidden">
+                <label class="block text-sm">
+                  <span><%= t('dialogs.s3_option.custom_prefix') %></span>
+                  <input type="text" data-ai-images-target="keyInput"
+                         class="mt-1 w-full px-2 py-1 text-sm border border-[var(--theme-border)] rounded bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)]">
                 </label>
-                <label class="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="radio"
-                    name="aiImageSaveOption"
-                    value="s3"
-                    data-ai-images-target="saveS3"
-                    data-action="change->ai-images#onSaveOptionChange"
-                    class="text-[var(--theme-accent)] focus:ring-[var(--theme-accent)]"
-                  >
-                  <span><%= t('dialogs.image_picker.save_s3') %></span>
-                </label>
-                <div class="hidden ml-6" data-ai-images-target="keyOption">
-                  <label class="block text-sm">
-                    <span><%= t('dialogs.s3_option.custom_prefix') %></span>
-                    <input
-                      type="text"
-                      data-ai-images-target="keyInput"
-                      class="mt-1 w-full px-2 py-1 text-sm border border-[var(--theme-border)] rounded bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
-                    >
-                  </label>
-                  <p class="text-xs text-[var(--theme-text-muted)] mt-1"><%= t('dialogs.s3_option.custom_prefix_hint') %></p>
-                </div>
+                <p class="text-xs text-[var(--theme-text-muted)]"><%= t('dialogs.s3_option.custom_prefix_hint') %></p>
               </div>
             </div>
           </div>

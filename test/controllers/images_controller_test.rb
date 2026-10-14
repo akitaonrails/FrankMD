@@ -281,7 +281,6 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :unprocessable_entity
       assert_includes response.parsed_body["error"], "conflicts"
-
     end
 
     test "upload_base64 saves base64 image data to notes/images" do

@@ -120,6 +120,7 @@ describe("SettingsController", () => {
   })
 
   afterEach(() => {
+    application.unload("settings")
     application.stop()
     vi.restoreAllMocks()
     delete window.t

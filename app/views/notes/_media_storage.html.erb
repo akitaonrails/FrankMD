@@ -1,0 +1,12 @@
+<div class="space-y-1">
+  <label class="flex flex-wrap items-center gap-2 text-sm">
+    <span><%= t("media_storage.label") %></span>
+    <select data-media-storage-target="select" data-action="change->media-storage#changeProvider"
+            class="rounded border border-[var(--theme-border)] bg-[var(--theme-bg-primary)] px-2 py-1 text-[var(--theme-text-primary)] focus:ring-2 focus:ring-[var(--theme-accent)]">
+      <option value="local" <%= "selected" if @config_obj.get("media_storage_provider") == "local" %>><%= t("media_storage.local") %></option>
+      <option value="s3" <%= "selected" if @config_obj.get("media_storage_provider") == "s3" %> <%= "disabled" unless @config_obj.feature_available?(:s3_upload) %>><%= t("media_storage.s3") %></option>
+    </select>
+  </label>
+  <p class="text-xs text-[var(--theme-text-muted)]"><%= t("media_storage.hint") %></p>
+  <p class="hidden text-sm text-[var(--theme-error)]" role="alert" data-media-storage-target="error"></p>
+</div>

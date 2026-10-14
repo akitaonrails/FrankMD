@@ -150,7 +150,7 @@ export default class extends Controller {
     item.classList.add("selected")
 
     // Show S3 options if enabled
-    if (this.s3EnabledValue && this.s3Option) {
+    if (this.s3Option) {
       this.s3Option.show()
       this.s3Option.setDefaultKey(defaultS3Key(name))
     }
@@ -168,14 +168,14 @@ export default class extends Controller {
 
   async getImageUrl() {
     const s3 = this.s3Option
-    const uploadToS3 = this.s3EnabledValue && s3?.isChecked
+    const uploadToS3 = s3?.isChecked
     const resizeRatio = s3?.resizeRatio || ""
     const path = this.source.selectedPath
 
     if (!path) return null
 
     if (uploadToS3) {
-      const data = await this.source.uploadToS3(path, resizeRatio, s3?.keyValue || "")
+      const data = await this.source.saveCopy(path, resizeRatio, s3?.keyValue || "")
       return data.url
     }
 

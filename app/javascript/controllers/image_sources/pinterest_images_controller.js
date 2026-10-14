@@ -81,7 +81,7 @@ export default class extends Controller {
     item.classList.add("ring-2", "ring-blue-500")
 
     // Show S3 options if enabled
-    if (this.s3EnabledValue && this.s3Option) {
+    if (this.s3Option) {
       this.s3Option.show()
     }
 
@@ -100,11 +100,11 @@ export default class extends Controller {
     if (!this.selectedImage) return null
 
     const s3 = this.s3Option
-    const reuploadToS3 = this.s3EnabledValue && s3?.isChecked
+    const reuploadToS3 = s3?.isChecked
     const resizeRatio = s3?.resizeRatio || ""
 
     if (reuploadToS3) {
-      const data = await this.webSource.uploadToS3(this.selectedImage.url, resizeRatio, s3?.keyValue || "")
+      const data = await this.webSource.saveCopy(this.selectedImage.url, resizeRatio, s3?.keyValue || "")
       return data.url
     }
 

@@ -372,7 +372,7 @@ describe("FolderImageSource", () => {
       })
 
       const file = new Blob(["test"], { type: "image/jpeg" })
-      const result = await source.upload(file, "0.5", true)
+      const result = await source.upload(file, "0.5")
 
       expect(global.fetch).toHaveBeenCalledWith("/images/upload", expect.objectContaining({
         method: "POST"
@@ -393,7 +393,7 @@ describe("FolderImageSource", () => {
       })
 
       const file = new Blob(["test"])
-      await expect(source.upload(file, "", false))
+      await expect(source.upload(file, ""))
         .rejects.toThrow("File too large")
     })
 
@@ -404,7 +404,7 @@ describe("FolderImageSource", () => {
       })
 
       const file = new Blob(["test"])
-      await expect(source.upload(file, "", false))
+      await expect(source.upload(file, ""))
         .rejects.toThrow("Upload failed")
     })
   })

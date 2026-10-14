@@ -2,7 +2,7 @@
   class="w-[calc(100%-2rem)] max-w-4xl h-[680px] max-h-[85vh] overflow-y-auto p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] text-[var(--theme-text-primary)]"
   id="settings-dialog"
   data-app-target="settingsDialog"
-  data-controller="settings"
+  data-controller="settings" data-settings-media-storage-outlet='[data-controller~="media-storage"]'
   data-action="click->settings#closeOnBackdrop"
   data-settings-codemirror-outlet='[data-controller~="codemirror"]'
   data-settings-preview-outlet='[data-controller~="preview"]'
@@ -38,6 +38,8 @@
         </svg>
       </button>
     </div>
+
+    <div class="mt-4"><%= render "notes/media_storage" %></div>
 
     <div class="mt-6 flex flex-col gap-6 sm:flex-row">
       <!-- Left: category nav -->

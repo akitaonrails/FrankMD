@@ -45,6 +45,7 @@ describe("ImagePickerController#openWithFile", () => {
   })
 
   afterEach(() => {
+    application.unload("image-picker")
     application.stop()
     vi.restoreAllMocks()
   })
@@ -122,5 +123,22 @@ describe("ImagePickerController#openWithFile", () => {
         linkUrl: ""
       }
     })
+  })
+
+  it("waits for a provider save before uploading a pasted or selected image", async () => {
+    let finish
+    const storage = { ready: vi.fn(() => new Promise(resolve => { finish = resolve })) }
+    Object.defineProperty(controller, "hasMediaStorageOutlet", { get: () => true })
+    Object.defineProperty(controller, "mediaStorageOutlet", { get: () => storage })
+    controller.selectedSource = "drop-images"
+    controller.selectedImageData = { name: "pasted.png" }
+    const upload = vi.fn().mockResolvedValue("images/pasted.png")
+    controller.getSourceController = vi.fn(() => ({ getImageUrl: upload }))
+    controller.close = vi.fn()
+    const insert = controller.insertImage()
+    expect(upload).not.toHaveBeenCalled()
+    finish()
+    await insert
+    expect(upload).toHaveBeenCalledOnce()
   })
 })

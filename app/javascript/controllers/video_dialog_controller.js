@@ -11,6 +11,8 @@ const DEFAULT_VIDEO_EXTENSIONS = [".mp4", ".webm", ".mkv", ".mov", ".avi", ".m4v
 // Dispatches video-selected event with embed code
 
 export default class extends Controller {
+  static outlets = ["media-storage"]
+
   static targets = [
     "dialog",
     "tabDrop", "tabUrl", "tabSearch",
@@ -94,6 +96,7 @@ export default class extends Controller {
   }
 
   open() {
+    if (this.hasMediaStorageOutlet) this.mediaStorageOutlet.refresh()
     // Reset drop tab
     this.resetDropTab()
 
@@ -273,13 +276,11 @@ export default class extends Controller {
     this.dropPreviewTarget.innerHTML = `<span class="text-[var(--theme-text-muted)]">${window.t("dialogs.video.uploading")}</span>`
 
     try {
+      if (this.hasMediaStorageOutlet) await this.mediaStorageOutlet.ready()
       const s3 = this.dropS3Option
       const formData = new FormData()
       formData.append("file", file)
-      if (this.s3Enabled && s3?.isChecked) {
-        formData.append("upload_to_s3", "true")
-        if (s3.keyValue) formData.append("s3_prefix", s3.keyValue)
-      }
+      if (s3?.keyValue) formData.append("s3_prefix", s3.keyValue)
 
       const response = await post("/media/upload", { body: formData, responseKind: "json" })
       const data = await response.json
@@ -332,7 +333,7 @@ export default class extends Controller {
     const s3 = this.dropS3Option
     if (s3) {
       s3.reset()
-      if (this.s3Enabled) s3.show(); else s3.hide()
+      s3.show()
     }
   }
 

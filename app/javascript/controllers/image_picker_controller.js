@@ -7,6 +7,8 @@ import { clearInlineError, showInlineError } from "lib/inline_messages"
 // Each tab has its own controller that handles source-specific logic
 
 export default class extends Controller {
+  static outlets = ["media-storage"]
+
   static targets = [
     "dialog",
     // Tab buttons
@@ -79,6 +81,7 @@ export default class extends Controller {
   // Dialog management
   async open() {
     clearInlineError(this.hasErrorTarget ? this.errorTarget : null)
+    if (this.hasMediaStorageOutlet) await this.mediaStorageOutlet.refresh()
     this.resetAll()
     this.switchTab({ currentTarget: { dataset: { tab: "drop" } } })
 
@@ -273,6 +276,7 @@ export default class extends Controller {
       this.showLoading(window.t("dialogs.image_picker.processing_image"))
       this.insertBtnTarget.disabled = true
 
+      if (this.hasMediaStorageOutlet) await this.mediaStorageOutlet.ready()
       const imageUrl = await ctrl.getImageUrl()
       if (!imageUrl) {
         this.hideLoading()
