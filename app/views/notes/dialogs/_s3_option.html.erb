@@ -15,7 +15,7 @@
   key_hint = key_mode == "full" ? t('dialogs.s3_option.custom_key_hint') : t('dialogs.s3_option.custom_prefix_hint')
 %>
 
-<div class="hidden" data-controller="s3-option" data-s3-option-key-mode-value="<%= key_mode %>"
+<div id="<%= local_assigns[:id] %>" class="hidden" data-controller="s3-option" data-s3-option-key-mode-value="<%= key_mode %>"
      data-s3-option-copy-value="<%= mode == 'reupload' %>"
      data-s3-option-media-storage-outlet='[data-controller~="media-storage"]'
      data-action="media-storage:changed@window->s3-option#syncOptions">

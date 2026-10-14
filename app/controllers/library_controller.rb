@@ -1,6 +1,20 @@
 # frozen_string_literal: true
 
 class LibraryController < ApplicationController
+  # GET /library/picker
+  def picker
+    result = ImageLibraryService.new.list(
+      collection: params[:collection].presence || "managed", search: params[:search].to_s,
+      limit: params[:limit].presence || 10, offset: params[:offset]
+    )
+    render turbo_stream: turbo_stream.replace("image-picker-library-results", partial: "notes/dialogs/image_library_results", locals: { result: result })
+  rescue ArgumentError
+    head :bad_request
+  rescue SystemCallError => e
+    Rails.logger.error "Image Library load failed: #{e.class} - #{e.message}"
+    head :unprocessable_entity
+  end
+
   # GET /library
   def index
     render json: MediaLibraryService.new.list

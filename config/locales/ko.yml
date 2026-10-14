@@ -285,7 +285,7 @@ ko:
     # 동영상 다이얼로그
     video:
       title: "동영상 삽입"
-      tab_drop: "드롭"
+      tab_drop: "업로드"
       drop_hint: "여기에 동영상 파일을 끌어다 놓으세요"
       drop_rejected: "%{name}: %{ext}은(는) 허용되지 않는 동영상 형식입니다. 허용: %{list}"
       uploading: "업로드 중..."
@@ -314,12 +314,12 @@ ko:
     # 이미지 선택 다이얼로그
     image_picker:
       title: "이미지 삽입"
-      tab_drop: "드롭"
+      tab_drop: "업로드"
       drop_hint: "여기에 이미지를 끌어다 놓으세요"
       drop_rejected: "%{name}: %{ext}은(는) 허용되지 않는 이미지 형식입니다. 허용: %{list}"
       processing_image_paste: "이미지 처리 중..."
       processing_image: "이미지 처리 중..."
-      tab_local: "로컬"
+      tab_local: "라이브러리"
       tab_folder: "폴더"
       tab_web: "웹 검색"
       tab_google: "Google"
@@ -705,3 +705,6 @@ ko:
     save_failed: "저장 위치를 저장하지 못했습니다. 이전 선택이 유지됩니다."
     load_failed: "저장 위치를 불러오지 못했습니다."
     save_copy: "현재 저장 위치에 사본 저장"
+    collection: "모음"
+    managed_images: "노트 이미지"
+    server_images: "서버 이미지 폴더"

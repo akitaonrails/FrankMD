@@ -285,7 +285,7 @@ pt-BR:
     # Diálogo de vídeo
     video:
       title: "Inserir Vídeo"
-      tab_drop: "Soltar"
+      tab_drop: "Enviar"
       drop_hint: "Arraste e solte um arquivo de vídeo aqui"
       drop_rejected: "%{name}: %{ext} não é um tipo de vídeo aceito. Aceitos: %{list}"
       uploading: "Enviando..."
@@ -314,12 +314,12 @@ pt-BR:
     # Diálogo do seletor de imagens
     image_picker:
       title: "Inserir Imagem"
-      tab_drop: "Soltar"
+      tab_drop: "Enviar"
       drop_hint: "Arraste e solte uma imagem aqui"
       drop_rejected: "%{name}: %{ext} não é um tipo de imagem aceito. Aceitos: %{list}"
       processing_image_paste: "Processando imagem..."
       processing_image: "Processando imagem..."
-      tab_local: "Local"
+      tab_local: "Biblioteca"
       tab_folder: "Pasta"
       tab_web: "Busca Web"
       tab_google: "Google"
@@ -705,3 +705,6 @@ pt-BR:
     save_failed: "Não foi possível salvar o provedor. A seleção anterior continua ativa."
     load_failed: "Não foi possível carregar o provedor de armazenamento."
     save_copy: "Salvar uma cópia no armazenamento ativo"
+    collection: "Coleção"
+    managed_images: "Imagens das notas"
+    server_images: "Pasta de imagens do servidor"

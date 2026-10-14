@@ -285,7 +285,7 @@ he:
     # דיאלוג סרטון
     video:
       title: "הוסף סרטון"
-      tab_drop: "גרירה"
+      tab_drop: "העלאה"
       drop_hint: "גררו ושחררו קובץ וידאו כאן"
       drop_rejected: "%{name}: %{ext} אינו סוג וידאו מקובל. מקובלים: %{list}"
       uploading: "מעלה..."
@@ -314,12 +314,12 @@ he:
     # דיאלוג בוחר תמונות
     image_picker:
       title: "הוסף תמונה"
-      tab_drop: "גרירה"
+      tab_drop: "העלאה"
       drop_hint: "גררו ושחררו תמונה כאן"
       drop_rejected: "%{name}: %{ext} אינו סוג תמונה מקובל. מקובלים: %{list}"
       processing_image_paste: "מעבד תמונה..."
       processing_image: "מעבד תמונה..."
-      tab_local: "מקומי"
+      tab_local: "ספרייה"
       tab_folder: "תיקייה"
       tab_web: "חיפוש באינטרנט"
       tab_google: "Google"
@@ -705,3 +705,6 @@ he:
     save_failed: "לא ניתן לשמור את ספק האחסון. הבחירה הקודמת עדיין פעילה."
     load_failed: "לא ניתן לטעון את ספק האחסון."
     save_copy: "שמירת עותק באחסון הפעיל"
+    collection: "אוסף"
+    managed_images: "תמונות ההערות"
+    server_images: "תיקיית תמונות בשרת"

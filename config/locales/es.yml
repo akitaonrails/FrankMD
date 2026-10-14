@@ -285,7 +285,7 @@ es:
     # Video dialog
     video:
       title: "Insertar Video"
-      tab_drop: "Soltar"
+      tab_drop: "Subir"
       drop_hint: "Arrastra y suelta un archivo de vídeo aquí"
       drop_rejected: "%{name}: %{ext} no es un tipo de vídeo aceptado. Aceptados: %{list}"
       uploading: "Subiendo..."
@@ -314,12 +314,12 @@ es:
     # Image picker dialog
     image_picker:
       title: "Insertar Imagen"
-      tab_drop: "Soltar"
+      tab_drop: "Subir"
       drop_hint: "Arrastra y suelta una imagen aquí"
       drop_rejected: "%{name}: %{ext} no es un tipo de imagen aceptado. Aceptados: %{list}"
       processing_image_paste: "Procesando imagen..."
       processing_image: "Procesando imagen..."
-      tab_local: "Local"
+      tab_local: "Biblioteca"
       tab_folder: "Carpeta"
       tab_web: "Búsqueda Web"
       tab_google: "Google"
@@ -705,3 +705,6 @@ es:
     save_failed: "No se pudo guardar el proveedor. La selección anterior sigue activa."
     load_failed: "No se pudo cargar el proveedor de almacenamiento."
     save_copy: "Guardar una copia en el almacenamiento activo"
+    collection: "Colección"
+    managed_images: "Imágenes de las notas"
+    server_images: "Carpeta de imágenes del servidor"

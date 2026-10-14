@@ -286,7 +286,7 @@ en:
     # Video dialog
     video:
       title: "Insert Video"
-      tab_drop: "Drop"
+      tab_drop: "Upload"
       tab_url: "URL / File"
       tab_search: "YouTube Search"
       drop_hint: "Drag & drop a video file here"
@@ -315,8 +315,8 @@ en:
     # Image picker dialog
     image_picker:
       title: "Insert Image"
-      tab_drop: "Drop"
-      tab_local: "Local"
+      tab_drop: "Upload"
+      tab_local: "Library"
       tab_folder: "Folder"
       tab_web: "Web Search"
       tab_google: "Google"
@@ -707,3 +707,6 @@ en:
     save_failed: "Could not save the storage provider. The previous selection is still active."
     load_failed: "Could not load the storage provider."
     save_copy: "Save a copy in the active storage"
+    collection: "Collection"
+    managed_images: "Note images"
+    server_images: "Server image folder"

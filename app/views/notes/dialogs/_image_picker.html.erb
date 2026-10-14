@@ -129,86 +129,33 @@
       <%= render "notes/dialogs/s3_option", mode: "upload", key_mode: "full" %>
     </div>
 
-    <!-- Tab Content: Local Images (server-side images_path) -->
-    <div
-      class="p-4 hidden"
-      data-image-picker-target="panelLocal"
-      data-controller="local-images"
-      data-action="local-images:selected->image-picker#onSourceSelected"
-    >
-      <!-- Configuration Required Notice -->
-      <div class="hidden" data-local-images-target="configNotice">
-        <div class="p-4 bg-[var(--theme-bg-tertiary)] rounded-lg text-center">
-          <svg class="w-10 h-10 mx-auto mb-3 text-[var(--theme-text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <h4 class="text-sm font-semibold mb-2"><%= t('dialogs.image_picker.local_path_required') %></h4>
-          <p class="text-xs text-[var(--theme-text-muted)] mb-3">
-            <%= t('dialogs.image_picker.local_path_description') %>
-          </p>
-          <div class="text-xs text-left bg-[var(--theme-bg-primary)] p-3 rounded border border-[var(--theme-border)] mb-3">
-            <p class="mb-2"><strong><%= t('dialogs.video.quick_setup') %></strong></p>
-            <ol class="list-decimal list-inside space-y-1 text-[var(--theme-text-muted)]">
-              <li><%= t('dialogs.image_picker.local_setup_step_1') %></li>
-              <li><%= t('dialogs.image_picker.local_setup_step_2') %></li>
-            </ol>
-          </div>
-        </div>
+    <!-- Local Library: managed note images and the configured server folder. -->
+    <div class="p-4 hidden" data-image-picker-target="panelLocal" data-controller="local-images"
+         data-local-images-s3-option-outlet="#image-library-copy"
+         data-action="local-images:selected->image-picker#onSourceSelected local-images:deselected->image-picker#onSourceDeselected">
+      <p class="hidden mb-2 text-sm text-[var(--theme-error)]" role="alert" data-local-images-target="error"></p>
+      <div class="flex flex-wrap gap-2 mb-3 text-sm">
+        <label class="flex items-center gap-2">
+          <span><%= t("media_storage.collection") %></span>
+          <select data-local-images-target="collection" data-action="change->local-images#onCollectionChange"
+                  class="px-2 py-1 rounded border border-[var(--theme-border)] bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)]">
+            <option value="managed"><%= t("media_storage.managed_images") %></option>
+            <option value="server" <%= "disabled" unless @config_obj.feature_available?(:local_images) %>><%= t("media_storage.server_images") %></option>
+          </select>
+        </label>
+        <label class="flex items-center gap-2">
+          <span><%= t("dialogs.image_picker.per_page") %></span>
+          <select data-local-images-target="perPage" data-action="change->local-images#onPerPageChange"
+                  class="px-2 py-1 rounded border border-[var(--theme-border)] bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)]">
+            <% [10, 25, 50].each do |limit| %><option value="<%= limit %>"><%= limit %></option><% end %>
+          </select>
+        </label>
       </div>
-
-      <!-- Search Form (shown when configured) -->
-      <div data-local-images-target="form">
-        <p class="hidden mb-2 text-sm text-[var(--theme-error)]" role="alert" data-local-images-target="error"></p>
-        <div class="mb-3">
-          <input
-            type="text"
-            data-local-images-target="search"
-            data-action="input->local-images#onSearch"
-            class="w-full px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
-            placeholder="<%= t('dialogs.image_picker.search_images_placeholder') %>"
-          >
-        </div>
-
-        <!-- Image Grid -->
-        <div class="grid grid-cols-5 gap-2 mb-2 min-h-[200px] max-h-[300px] overflow-y-auto" data-local-images-target="grid">
-          <!-- Images will be rendered by JavaScript -->
-        </div>
-
-        <!-- Pagination -->
-        <div class="flex items-center justify-between gap-2 mb-4 text-xs text-[var(--theme-text-muted)]">
-          <button
-            type="button"
-            data-local-images-target="prevPage"
-            data-action="click->local-images#prevPage"
-            class="px-2 py-1 rounded border border-[var(--theme-border)] hover:bg-[var(--theme-bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <%= t('dialogs.image_picker.prev_page') %>
-          </button>
-          <span data-local-images-target="pageStatus"></span>
-          <button
-            type="button"
-            data-local-images-target="nextPage"
-            data-action="click->local-images#nextPage"
-            class="px-2 py-1 rounded border border-[var(--theme-border)] hover:bg-[var(--theme-bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <%= t('dialogs.image_picker.next_page') %>
-          </button>
-          <label class="flex items-center gap-1">
-            <%= t('dialogs.image_picker.per_page') %>
-            <select
-              data-local-images-target="perPage"
-              data-action="change->local-images#onPerPageChange"
-              class="px-1 py-0.5 border border-[var(--theme-border)] rounded bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)]"
-            >
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <%= render "notes/dialogs/s3_option", mode: "upload", key_mode: "full" %>
+      <input type="search" data-local-images-target="search" data-action="input->local-images#onSearch"
+             aria-label="<%= t('dialogs.image_picker.search_images_placeholder') %>" placeholder="<%= t('dialogs.image_picker.search_images_placeholder') %>"
+             class="mb-3 w-full px-3 py-2 text-sm rounded border border-[var(--theme-border)] bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)]">
+      <div id="image-picker-library-results" data-local-images-target="results"></div>
+      <%= render "notes/dialogs/s3_option", mode: "reupload", key_mode: "full", id: "image-library-copy" %>
     </div>
 
     <!-- Tab Content: Folder (browser folder picker) -->
