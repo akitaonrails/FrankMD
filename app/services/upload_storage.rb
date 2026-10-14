@@ -29,6 +29,21 @@ module UploadStorage
 
   module_function
 
+  # Resolve once before writing any bytes. Old callers may state their expected
+  # destination, but cannot override the persisted provider.
+  def provider(legacy_s3: nil)
+    cfg = Config.new
+    selected = cfg.get("media_storage_provider")
+    raise RejectedError, "Unknown media storage provider" unless %w[local s3].include?(selected)
+    if !legacy_s3.nil? && ActiveModel::Type::Boolean.new.cast(legacy_s3) != (selected == "s3")
+      raise RejectedError, "Upload destination conflicts with the active media storage provider"
+    end
+    if selected == "s3" && !%w[aws_access_key_id aws_secret_access_key aws_s3_bucket].all? { |key| cfg.get(key).present? }
+      raise RejectedError, "S3 is not configured"
+    end
+    selected
+  end
+
   # Validate the uploaded file's extension against the configured allow-list.
   # Returns the normalized (downcased) extension, or raises RejectedError with
   # a user-facing message. `kind` is "image" or "video" for the message.

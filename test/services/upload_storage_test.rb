@@ -11,11 +11,27 @@ class UploadStorageTest < ActiveSupport::TestCase
   def setup
     @config_stub = stub("config")
     @config_stub.stubs(:get).returns(nil)
+    @config_stub.stubs(:get).with("media_storage_provider").returns("local")
     @config_stub.stubs(:upload_extensions).with("image_upload_extensions").returns([ ".png", ".jpg" ])
     Config.stubs(:new).returns(@config_stub)
   end
 
   # === validate_extension! ===
+
+  test "provider uses the saved preference and rejects conflicting legacy requests" do
+    assert_equal "local", UploadStorage.provider
+    assert_equal "local", UploadStorage.provider(legacy_s3: false)
+    assert_raises(UploadStorage::RejectedError) { UploadStorage.provider(legacy_s3: "true") }
+    @config_stub.stubs(:get).with("media_storage_provider").returns("s3")
+    assert_raises(UploadStorage::RejectedError) { UploadStorage.provider }
+    %w[aws_access_key_id aws_secret_access_key aws_s3_bucket].each do |key|
+      @config_stub.stubs(:get).with(key).returns("configured")
+    end
+    assert_equal "s3", UploadStorage.provider
+    assert_raises(UploadStorage::RejectedError) { UploadStorage.provider(legacy_s3: "false") }
+    @config_stub.stubs(:get).with("media_storage_provider").returns("invalid")
+    assert_raises(UploadStorage::RejectedError) { UploadStorage.provider }
+  end
 
   test "validate_extension! returns the normalized extension for an allowed file" do
     ext = UploadStorage.validate_extension!(Uploaded.new(original_filename: "a.PNG"), "image_upload_extensions", "image")

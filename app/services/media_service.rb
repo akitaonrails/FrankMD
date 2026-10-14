@@ -22,14 +22,15 @@ class MediaService
   class << self
     # Save an uploaded video file locally or to S3.
     # Returns { url: "..." } on success or { error: "..." } on failure.
-    def save_upload(uploaded_file, upload_to_s3: false, s3_prefix: nil)
+    def save_upload(uploaded_file, upload_to_s3: nil, s3_prefix: nil)
       return { error: "No file provided" } unless uploaded_file
+      provider = UploadStorage.provider(legacy_s3: upload_to_s3)
 
       UploadStorage.enforce_size!(uploaded_file)
       extension = UploadStorage.validate_extension!(uploaded_file, "video_upload_extensions", "video")
 
       UploadStorage.with_temp_copy(uploaded_file, extension) do |temp_path|
-        if upload_to_s3 && ImagesService.s3_enabled?
+        if provider == "s3"
           store_s3(temp_path, uploaded_file.original_filename, custom_prefix: s3_prefix)
         else
           store_local(temp_path, uploaded_file.original_filename)

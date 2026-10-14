@@ -5,7 +5,7 @@ class MediaController < ApplicationController
   # Upload a video file from browser drag-and-drop
   def upload
     file = params[:file]
-    upload_to_s3 = params[:upload_to_s3] == "true"
+    upload_to_s3 = params[:upload_to_s3]
 
     unless file.present?
       return render json: { error: t("errors.no_file_upload") }, status: :unprocessable_entity

@@ -109,6 +109,7 @@ class ImagesService
 
     def upload_to_s3(path, resize: nil, custom_key: nil)
       return nil unless s3_enabled?
+      UploadStorage.provider(legacy_s3: true)
 
       full_path = find_image(path)
       return nil unless full_path
@@ -152,8 +153,9 @@ class ImagesService
 
     # Upload a file from browser (local folder picker)
     # Saves to notes/images/ directory or uploads to S3
-    def upload_file(uploaded_file, resize: nil, upload_to_s3: false, s3_key: nil)
+    def upload_file(uploaded_file, resize: nil, upload_to_s3: nil, s3_key: nil)
       return { error: "No file provided" } unless uploaded_file
+      provider = UploadStorage.provider(legacy_s3: upload_to_s3)
 
       # Enforce the same allow-list + size cap as video uploads. Without this,
       # an HTML/SVG file dropped here would be stored under the notes directory
@@ -164,7 +166,7 @@ class ImagesService
       extension = UploadStorage.validate_extension!(uploaded_file, "image_upload_extensions", "image")
 
       UploadStorage.with_temp_copy(uploaded_file, extension) do |temp_path|
-        if upload_to_s3 && s3_enabled?
+        if provider == "s3"
           upload_temp_to_s3(temp_path, uploaded_file.original_filename, resize: resize, custom_key: s3_key)
         else
           save_to_notes_directory(temp_path, uploaded_file.original_filename, resize: resize)
@@ -175,10 +177,12 @@ class ImagesService
     end
 
     # Upload base64 encoded image data (e.g., from AI image generation)
-    def upload_base64_data(base64_data, mime_type: nil, filename: nil, upload_to_s3: false, s3_prefix: nil)
+    def upload_base64_data(base64_data, mime_type: nil, filename: nil, upload_to_s3: nil, s3_prefix: nil)
       require "base64"
       require "securerandom"
       require "fileutils"
+
+      provider = UploadStorage.provider(legacy_s3: upload_to_s3)
 
       UploadStorage.enforce_base64_size!(base64_data.bytesize)
 
@@ -210,11 +214,11 @@ class ImagesService
       # Create temp file
       temp_dir = Rails.root.join("tmp", "uploads")
       FileUtils.mkdir_p(temp_dir)
-      temp_path = temp_dir.join("#{SecureRandom.hex(8)}_#{filename}")
+      temp_path = temp_dir.join("#{SecureRandom.hex(16)}#{extension}")
       File.binwrite(temp_path, file_content)
 
       begin
-        if upload_to_s3 && s3_enabled?
+        if provider == "s3"
           upload_temp_to_s3(temp_path, filename, resize: nil, custom_prefix: s3_prefix)
         else
           save_to_notes_directory(temp_path, filename, resize: nil)
@@ -228,6 +232,7 @@ class ImagesService
 
     def download_and_upload_to_s3(url, resize: nil, custom_prefix: nil)
       return nil unless s3_enabled?
+      UploadStorage.provider(legacy_s3: true)
 
       require "aws-sdk-s3"
       require "net/http"

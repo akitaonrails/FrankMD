@@ -58,7 +58,7 @@ class ImagesController < ApplicationController
   def upload
     file = params[:file]
     resize = params[:resize].presence
-    upload_to_s3 = params[:upload_to_s3] == "true"
+    upload_to_s3 = params[:upload_to_s3]
 
     unless file.present?
       return render json: { error: t("errors.no_file_upload") }, status: :unprocessable_entity
@@ -128,7 +128,7 @@ class ImagesController < ApplicationController
     data = params[:data].to_s
     mime_type = params[:mime_type].to_s
     filename = params[:filename].to_s
-    upload_to_s3 = params[:upload_to_s3] == true || params[:upload_to_s3] == "true"
+    upload_to_s3 = params[:upload_to_s3]
 
     if data.blank?
       return render json: { error: t("errors.no_image_data") }, status: :bad_request
