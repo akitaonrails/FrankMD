@@ -23,6 +23,7 @@ class UploadCsrfTest < ActionDispatch::IntegrationTest
     "/images/upload_to_s3",
     "/images/upload_external_to_s3",
     "/images/upload_base64",
+    "/images/import",
     "/media/upload",
     "/ai/fix_grammar",
     "/ai/generate_image"

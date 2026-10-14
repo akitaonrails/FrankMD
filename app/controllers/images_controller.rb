@@ -4,7 +4,7 @@ require "net/http"
 require "json"
 
 class ImagesController < ApplicationController
-  before_action :require_images_enabled, except: [ :status, :upload, :upload_base64, :search_web, :search_google, :search_pinterest ]
+  before_action :require_images_enabled, except: [ :status, :upload, :upload_base64, :import, :search_web, :search_google, :search_pinterest ]
 
   # GET /images/config
   def status
@@ -120,6 +120,22 @@ class ImagesController < ApplicationController
   rescue StandardError => e
     Rails.logger.error "External S3 upload error: #{e.class} - #{e.message}"
     render json: { error: "#{e.class}: #{e.message}" }, status: :unprocessable_entity
+  end
+
+  # POST /images/upload_base64
+  def import
+    result = ImagesService.import_image(
+      url: params[:url], path: params[:path], resize: parse_resize_ratio(params[:resize]),
+      s3_key: params[:s3_key], s3_prefix: params[:s3_prefix], upload_to_s3: params[:upload_to_s3]
+    )
+    if result[:url]
+      render json: result
+    else
+      render json: { error: result[:error] }, status: :unprocessable_entity
+    end
+  rescue StandardError => e
+    Rails.logger.error "Image import error: #{e.class} - #{e.message}"
+    render json: { error: t("errors.upload_failed") }, status: :unprocessable_entity
   end
 
   # POST /images/upload_base64

@@ -298,7 +298,54 @@ class ImagesService
       nil
     end
 
+    def import_image(url: nil, path: nil, resize: nil, s3_key: nil, s3_prefix: nil, upload_to_s3: nil)
+      provider = UploadStorage.provider(legacy_s3: upload_to_s3)
+      unless [ url, path ].count(&:present?) == 1 && [ url, path ].compact.all? { |value| value.is_a?(String) }
+        return { error: "Provide exactly one image URL or server image path" }
+      end
+
+      if path.present?
+        source = find_image(path)
+        return { error: "Image not found" } unless source
+        UploadStorage.validate_filename!(source.basename.to_s, "image_upload_extensions", "image")
+        UploadStorage.enforce_bytes!(source.size)
+        return store_import(source, source.basename.to_s, provider, resize: resize, s3_key: s3_key, s3_prefix: s3_prefix)
+      end
+
+      result = fetch_external_image(url)
+      return { error: "Image download failed" } unless result
+      mime_type = result[:content_type].to_s.split(";").first.to_s.downcase
+      unless %w[image/jpeg image/png image/gif image/webp image/bmp image/x-ms-bmp].include?(mime_type)
+        return { error: "Unsupported image content type" }
+      end
+      extension = extension_for_content_type(mime_type)
+      UploadStorage.validate_filename!("image#{extension}", "image_upload_extensions", "image")
+      name = File.basename(result[:uri].path).gsub(UploadStorage::SANITIZE_RE, "_")
+      name = "#{File.basename(name, File.extname(name)).presence || 'image'}#{extension}"
+
+      require "tempfile"
+      Tempfile.create([ "frankmd-import", extension ]) do |file|
+        file.binmode
+        file.write(result[:body])
+        file.flush
+        store_import(Pathname.new(file.path), name, provider, resize: resize, s3_key: s3_key, s3_prefix: s3_prefix)
+      end
+    rescue UploadStorage::RejectedError => e
+      { error: e.message }
+    rescue EgressPolicy::BlockedError => e
+      Rails.logger.warn "Refused to import external image: #{e.message}"
+      { error: "Image download failed" }
+    end
+
     private
+
+    def store_import(source, filename, provider, resize:, s3_key:, s3_prefix:)
+      if provider == "s3"
+        upload_temp_to_s3(source, filename, resize: resize, custom_key: s3_key, custom_prefix: s3_prefix) || { error: "Image upload failed" }
+      else
+        save_to_notes_directory(source, filename, resize: resize)
+      end
+    end
 
     def resolved_images_path
       # Config handles: .fed file > IMAGES_PATH env > default (nil)

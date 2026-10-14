@@ -207,7 +207,7 @@ export default class extends Controller {
   async getImageUrl() {
     const uploadToS3 = this.s3EnabledValue && this.hasSaveS3Target && this.saveS3Target.checked
     const s3Prefix = uploadToS3 && this.hasKeyInputTarget ? this.keyInputTarget.value.trim() : ""
-    const data = await this.source.save(uploadToS3, s3Prefix)
+    const data = await this.source.save(s3Prefix)
     return data.url
   }
 

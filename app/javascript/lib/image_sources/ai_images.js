@@ -153,55 +153,23 @@ export class AiImageSource {
     container.innerHTML = html
   }
 
-  async save(uploadToS3, s3Prefix = "") {
+  async save(s3Prefix = "") {
     if (!this.generatedData) {
       return { error: imagePickerText("ai_no_generated_data", {}, "No generated image data available") }
     }
 
-    try {
-      if (this.generatedData.data) {
-        // Base64 image data
-        const body = {
-          data: this.generatedData.data,
-          mime_type: this.generatedData.mime_type,
-          filename: `ai_${Date.now()}.png`,
-          upload_to_s3: uploadToS3
-        }
-        if (uploadToS3 && s3Prefix) body.s3_prefix = s3Prefix
-        const response = await post("/images/upload_base64", {
-          body,
-          responseKind: "json"
-        })
-
-        if (!response.ok) {
-          const data = await response.json
-          throw new Error(data.error || imagePickerText("ai_save_failed", {}, "Failed to save image"))
-        }
-
-        return await response.json
-      } else if (this.generatedData.url) {
-        // URL image
-        if (uploadToS3) {
-          const body = { url: this.generatedData.url }
-          if (s3Prefix) body.s3_prefix = s3Prefix
-          const response = await post("/images/upload_external_to_s3", {
-            body,
-            responseKind: "json"
-          })
-
-          if (!response.ok) {
-            const data = await response.json
-            throw new Error(data.error || imagePickerText("image_upload_failed", {}, "Failed to upload to S3"))
-          }
-
-          return await response.json
-        } else {
-          return { url: this.generatedData.url }
-        }
-      }
-    } catch (error) {
-      console.error("Error saving AI-generated image:", error)
-      throw error
+    const body = this.generatedData.data ? {
+      data: this.generatedData.data,
+      mime_type: this.generatedData.mime_type,
+      filename: `ai_${Date.now()}.png`
+    } : { url: this.generatedData.url }
+    if (s3Prefix) body.s3_prefix = s3Prefix
+    const endpoint = this.generatedData.data ? "/images/upload_base64" : "/images/import"
+    const response = await post(endpoint, { body, responseKind: "json" })
+    const data = await response.json
+    if (!response.ok) {
+      throw new Error(data.error || imagePickerText("ai_save_failed", {}, "Failed to save image"))
     }
+    return data
   }
 }
