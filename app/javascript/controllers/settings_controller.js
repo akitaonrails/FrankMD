@@ -261,7 +261,7 @@ export default class extends Controller {
       if (!response.ok) return
 
       const data = await response.json
-      if (this.hasMediaStorageOutlet && !this.mediaStorageOutlet.pending) this.mediaStorageOutlet.apply(data)
+      if (this.hasMediaStorageOutlet) await this.mediaStorageOutlet.refresh()
       const settings = data?.settings || {}
       this.assignIfChanged("fontValue", settings.editor_font)
       this.assignIfChanged("fontSizeValue", settings.editor_font_size, Number)
