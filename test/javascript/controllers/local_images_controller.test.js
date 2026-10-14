@@ -37,7 +37,9 @@ describe("local Library picker", () => {
   })
 
   it("loads managed images by default as a server-rendered Turbo Stream", async () => {
+    controller.collectionTarget.focus()
     await controller.activate()
+    expect(document.activeElement).toBe(controller.collectionTarget)
     expect(global.fetch).toHaveBeenCalledWith("/library/picker?collection=managed&search=&limit=10&offset=0", expect.objectContaining({
       method: "GET", headers: { Accept: "text/vnd.turbo-stream.html, text/html, application/xhtml+xml" }
     }))

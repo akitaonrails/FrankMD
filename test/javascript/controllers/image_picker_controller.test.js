@@ -19,6 +19,12 @@ describe("ImagePickerController#openWithFile", () => {
 
     document.body.innerHTML = `
       <div data-controller="image-picker">
+        <div role="tablist">
+          <button data-image-picker-target="tabDrop">Upload</button>
+          <button data-image-picker-target="tabLocal">Library</button>
+        </div>
+        <div data-image-picker-target="panelDrop"></div>
+        <div data-image-picker-target="panelLocal" class="hidden"></div>
         <dialog data-image-picker-target="dialog"></dialog>
         <div data-image-picker-target="loading" class="hidden">
           <span data-image-picker-target="loadingText"></span>
@@ -64,6 +70,15 @@ describe("ImagePickerController#openWithFile", () => {
     expect(showLoading).toHaveBeenCalledWith("dialogs.image_picker.processing_image_paste")
     expect(dropCtrl.loadExternalFile).toHaveBeenCalledWith(file)
     expect(hideLoading).toHaveBeenCalled()
+  })
+
+  it("moves keyboard focus and selected state to the Library tab", () => {
+    controller.onTabKeydown({ key: "ArrowRight", preventDefault: vi.fn() })
+    expect(controller.currentTab).toBe("local")
+    expect(document.activeElement).toBe(controller.tabLocalTarget)
+    expect(controller.tabLocalTarget.getAttribute("aria-selected")).toBe("true")
+    expect(controller.tabDropTarget.tabIndex).toBe(-1)
+    expect(controller.panelLocalTarget.classList.contains("hidden")).toBe(false)
   })
 
   it("bails without loading when the Drop source is unavailable", async () => {

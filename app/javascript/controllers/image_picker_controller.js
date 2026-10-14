@@ -155,6 +155,8 @@ export default class extends Controller {
 
       if (tabTarget) {
         tabTarget.className = `px-4 py-2 text-sm font-medium border-b-2 ${tab === t.toLowerCase() ? activeClasses : inactiveClasses}`
+        tabTarget.setAttribute("aria-selected", String(tab === t.toLowerCase()))
+        tabTarget.tabIndex = tab === t.toLowerCase() ? 0 : -1
       }
       if (panelTarget) {
         panelTarget.classList.toggle("hidden", tab !== t.toLowerCase())
@@ -202,8 +204,9 @@ export default class extends Controller {
 
   // Focus the tab button for a given tab name
   focusTab(tabName) {
-    const targetName = `tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Target`
-    if (this[`has${targetName.replace('Target', '')}Target`]) {
+    const name = tabName.charAt(0).toUpperCase() + tabName.slice(1)
+    const targetName = `tab${name}Target`
+    if (this[`hasTab${name}Target`]) {
       this[targetName].focus()
     }
   }

@@ -47,7 +47,6 @@ export default class extends Controller {
 
   async activate() {
     await this.loadImages()
-    if (this.hasSearchTarget) this.searchTarget.focus()
   }
 
   async loadImages() {
