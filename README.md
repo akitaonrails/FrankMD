@@ -336,6 +336,9 @@ typewriter_mode = false
 # Local images path
 images_path = /home/user/Pictures
 
+# Destination for new images and videos: local (default) or s3
+media_storage_provider = local
+
 # AWS S3 (overrides environment variables)
 aws_access_key_id = your-key
 aws_secret_access_key = your-secret
@@ -395,6 +398,7 @@ The `.fed` file appears in the explorer panel with a gear icon. You can click it
 | `typewriter_mode` | boolean | false | Enable typewriter mode on startup |
 | `vim_mode` | boolean | false | Enable Vim mode on startup |
 | `images_path` | string | - | Local images directory path |
+| `media_storage_provider` | string | `local` | Destination for new media uploads: `local` or `s3`; S3 requires its credentials and bucket |
 | `image_upload_extensions` | string | `.jpg,.jpeg,.png,.gif,.webp,.bmp` | Comma-separated file extensions accepted by the image drag-and-drop upload |
 | `video_upload_extensions` | string | `.mp4,.webm,.mkv,.mov,.avi,.m4v,.ogv` | Comma-separated file extensions accepted by the video drag-and-drop upload |
 | `aws_access_key_id` | string | - | AWS access key for S3 |
@@ -434,7 +438,7 @@ Environment variables are global defaults. Use them for Docker deployments or wh
 
 ### Optional: Image Hosting (AWS S3)
 
-To upload images to S3 instead of using local paths:
+Configure these values to make S3 available, then select **S3** in Settings or an upload dialog. Both controls update the same `media_storage_provider` preference in the notes directory's `.fed` file. Configuring credentials alone does not change the default Local destination.
 
 | Variable | Description |
 |----------|-------------|
@@ -442,6 +446,21 @@ To upload images to S3 instead of using local paths:
 | `AWS_SECRET_ACCESS_KEY` | Your AWS secret key |
 | `AWS_S3_BUCKET` | S3 bucket name |
 | `AWS_REGION` | AWS region (e.g., `us-east-1`) |
+
+### Media Storage and the Library
+
+The active destination applies to image and video uploads, browser-folder uploads, dropped files, pasted images, AI-generated images, and optional saved copies. Local uploads are stored under `NOTES_PATH/images` or `NOTES_PATH/videos`. AI images returned as URLs are downloaded into the selected storage, just like generated image data. Web, Google, and Pinterest results can still be inserted as direct links; select **Save a copy in the active storage** to keep a copy.
+
+If S3 is selected but its configuration is missing or an upload fails, FrankMD reports an error without saving a permanent local copy. Temporary files may be used during processing and are cleaned up. Switching providers affects future uploads; it does not move existing files or rewrite note references.
+
+The image picker's **Upload** tab accepts new files. Its **Library** tab browses two local collections:
+
+- **Note images**: managed files under `NOTES_PATH/images`, shown by default.
+- **Server image folder**: existing images under `images_path` / `IMAGES_PATH`, available when configured.
+
+Inserting an existing Library image keeps its existing reference even when S3 is active. The main Library continues to manage local images and videos. Browsing, deleting, and renaming S3 objects are not supported by this change.
+
+For API clients, upload endpoints use the persisted provider when `upload_to_s3` is omitted. A legacy flag that conflicts with that provider returns a validation error. `POST /images/import` saves exactly one `url` or configured server-image `path` to the active provider, with optional `resize`, `s3_key`, and `s3_prefix` parameters. The older S3-specific upload endpoints require S3 to be the active provider.
 
 ### Optional: YouTube Search
 
