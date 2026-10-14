@@ -14,7 +14,6 @@ class I18nMediaUploadKeysTest < ActiveSupport::TestCase
     "media_storage.label",
     "media_storage.local",
     "media_storage.s3",
-    "media_storage.hint",
     "media_storage.save_failed",
     "media_storage.load_failed",
     "media_storage.save_copy",

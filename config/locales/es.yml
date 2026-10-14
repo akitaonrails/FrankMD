@@ -699,9 +699,8 @@ es:
 
   media_storage:
     label: "Almacenamiento de nuevos archivos multimedia"
-    local: "Carpeta local"
+    local: "Local"
     s3: "S3"
-    hint: "Compartido por todas las cargas. Los archivos existentes de la Biblioteca permanecen donde están."
     save_failed: "No se pudo guardar el proveedor. La selección anterior sigue activa."
     load_failed: "No se pudo cargar el proveedor de almacenamiento."
     save_copy: "Guardar una copia en el almacenamiento activo"

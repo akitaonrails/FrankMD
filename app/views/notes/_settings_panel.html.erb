@@ -39,8 +39,6 @@
       </button>
     </div>
 
-    <div class="mt-4"><%= render "notes/media_storage" %></div>
-
     <div class="mt-6 flex flex-col gap-6 sm:flex-row">
       <!-- Left: category nav -->
       <nav class="settings-nav shrink-0 sm:w-44" aria-label="<%= t('settings.categories') %>">
@@ -111,6 +109,10 @@
         <!-- General -->
         <div class="settings-section" data-settings-target="section" data-category="general">
           <h2 class="settings-section-title"><%= t('settings.general') %></h2>
+
+          <div class="settings-card">
+            <%= render "notes/media_storage", settings: true %>
+          </div>
 
           <div class="settings-card">
             <div class="min-w-0">

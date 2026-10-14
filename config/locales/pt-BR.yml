@@ -699,9 +699,8 @@ pt-BR:
 
   media_storage:
     label: "Armazenamento de novas mídias"
-    local: "Pasta local"
+    local: "Local"
     s3: "S3"
-    hint: "Compartilhado por todos os envios. Os arquivos existentes da Biblioteca permanecem onde estão."
     save_failed: "Não foi possível salvar o provedor. A seleção anterior continua ativa."
     load_failed: "Não foi possível carregar o provedor de armazenamento."
     save_copy: "Salvar uma cópia no armazenamento ativo"
