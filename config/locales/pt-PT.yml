@@ -698,6 +698,7 @@ pt-PT:
     settings_saved: "Definições guardadas"
 
   media_storage:
+    not_configured: "Este fornecedor não está configurado."
     label: "Armazenamento de novos ficheiros multimédia"
     local: "Local"
     s3: "S3"

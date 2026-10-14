@@ -71,7 +71,10 @@ export default class extends Controller {
   }
 
   changeProvider(event) {
-    const provider = event.currentTarget.value
+    return this.setProvider(event.currentTarget.value)
+  }
+
+  setProvider(provider) {
     return this.run(async () => {
       const response = await patch("/config", { body: { media_storage_provider: provider }, responseKind: "json" })
       if (!response.ok) throw new Error(window.t("media_storage.save_failed"))

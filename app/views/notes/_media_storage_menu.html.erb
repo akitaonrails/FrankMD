@@ -1,0 +1,32 @@
+<div class="settings-card flex-wrap" data-controller="media-storage-menu"
+     data-media-storage-menu-unavailable-message-value="<%= t("media_storage.not_configured") %>"
+     data-media-storage-menu-media-storage-outlet='[data-controller~="media-storage"]'
+     data-action="media-storage:changed@window->media-storage-menu#sync click@document->media-storage-menu#closeOutside keydown.esc->media-storage-menu#close keydown->media-storage-menu#navigate">
+  <p class="text-sm font-medium" id="media-storage-label"><%= t("media_storage.label") %></p>
+  <div class="relative shrink-0">
+    <button type="button" data-media-storage-menu-target="button" data-action="click->media-storage-menu#toggle"
+            aria-labelledby="media-storage-label media-storage-current" aria-expanded="false" aria-controls="media-storage-menu"
+            class="flex w-40 items-center justify-between gap-2 rounded-md border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-2 text-sm text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-hover)]">
+      <span class="truncate" id="media-storage-current" data-media-storage-menu-target="current"><%= t("media_storage.#{@config_obj.get('media_storage_provider')}") %></span>
+      <svg class="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+    <div id="media-storage-menu" data-media-storage-menu-target="menu"
+         class="hidden frankmd-menu absolute right-0 mt-1 w-48 rounded-lg shadow-lg bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] py-1 z-50">
+      <% %w[local s3].each do |provider| %>
+        <button type="button" value="<%= provider %>" data-media-storage-menu-target="option"
+                data-action="click->media-storage-menu#select" aria-pressed="<%= @config_obj.get('media_storage_provider') == provider %>"
+                title="<%= t("media_storage.not_configured") if provider == "s3" && !@config_obj.feature_available?(:s3_upload) %>"
+                <%= "disabled" if provider == "s3" && !@config_obj.feature_available?(:s3_upload) %>
+                class="w-full px-3 py-2 text-left text-sm hover:bg-[var(--theme-bg-hover)] flex items-center justify-between gap-2 disabled:opacity-50">
+          <span><%= t("media_storage.#{provider}") %></span>
+          <svg class="w-4 h-4 checkmark <%= 'opacity-0' unless @config_obj.get('media_storage_provider') == provider %>" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </button>
+      <% end %>
+    </div>
+  </div>
+  <p class="hidden w-full text-sm text-[var(--theme-error)]" role="alert" data-media-storage-target="error"></p>
+</div>

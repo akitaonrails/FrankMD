@@ -700,6 +700,7 @@ en:
     settings_saved: "Settings saved"
 
   media_storage:
+    not_configured: "This provider is not configured."
     label: "Storage for new media"
     local: "Local"
     s3: "S3"

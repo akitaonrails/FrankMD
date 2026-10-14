@@ -698,6 +698,7 @@ ja:
     settings_saved: "設定を保存しました"
 
   media_storage:
+    not_configured: "このプロバイダーは設定されていません。"
     label: "新しいメディアの保存先"
     local: "ローカル"
     s3: "S3"

@@ -698,6 +698,7 @@ ko:
     settings_saved: "설정이 저장되었습니다"
 
   media_storage:
+    not_configured: "이 공급자가 구성되지 않았습니다."
     label: "새 미디어 저장 위치"
     local: "로컬"
     s3: "S3"

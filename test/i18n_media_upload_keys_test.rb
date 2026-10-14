@@ -12,6 +12,7 @@ class I18nMediaUploadKeysTest < ActiveSupport::TestCase
 
   REQUIRED_KEYS = [
     "media_storage.label",
+    "media_storage.not_configured",
     "media_storage.local",
     "media_storage.s3",
     "media_storage.save_failed",

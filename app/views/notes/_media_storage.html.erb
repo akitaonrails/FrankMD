@@ -1,5 +1,5 @@
-<div class="w-full space-y-1">
-  <label class="flex flex-wrap items-center gap-2 text-sm <%= "justify-between" if local_assigns[:settings] %>">
+<div class="space-y-1">
+  <label class="flex flex-wrap items-center gap-2 text-sm">
     <span><%= t("media_storage.label") %></span>
     <select data-media-storage-target="select" data-action="change->media-storage#changeProvider"
             class="rounded border border-[var(--theme-border)] bg-[var(--theme-bg-primary)] px-2 py-1 text-[var(--theme-text-primary)] focus:ring-2 focus:ring-[var(--theme-accent)]">

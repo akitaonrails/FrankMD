@@ -698,6 +698,7 @@ pt-BR:
     settings_saved: "Configurações salvas"
 
   media_storage:
+    not_configured: "Este provedor não está configurado."
     label: "Armazenamento de novas mídias"
     local: "Local"
     s3: "S3"

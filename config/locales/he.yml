@@ -698,6 +698,7 @@ he:
     settings_saved: "ההגדרות נשמרו"
 
   media_storage:
+    not_configured: "ספק זה אינו מוגדר."
     label: "אחסון למדיה חדשה"
     local: "מקומי"
     s3: "S3"

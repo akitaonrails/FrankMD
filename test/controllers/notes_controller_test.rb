@@ -32,6 +32,18 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "General settings renders the shared storage menu" do
+    get root_url
+    assert_response :success
+
+    assert_select "#settings-dialog [data-category='general'] [data-controller='media-storage-menu']" do
+      assert_select "button[aria-controls='media-storage-menu'][aria-expanded='false']"
+      assert_select "button[value='local'][aria-pressed='true']", text: /Local/
+      assert_select "button[value='s3']", text: /S3/
+      assert_select "p[data-media-storage-target='error'][role='alert']"
+    end
+  end
+
   test "image picker has an inline alert target for folder browsing errors" do
     get root_url
     assert_response :success
