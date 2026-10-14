@@ -76,6 +76,25 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
 
   # === update ===
 
+  test "media provider is exposed and persisted through configuration endpoints" do
+    get config_url, as: :json
+    assert_equal "local", response.parsed_body["settings"]["media_storage_provider"]
+    patch config_url, params: { media_storage_provider: "local" }, as: :json
+    assert_response :success
+    assert_equal "local", Config.new.get("media_storage_provider")
+    get images_config_url, as: :json
+    assert_equal "local", response.parsed_body["media_storage_provider"]
+  end
+
+  test "media provider rejects unknown providers and unconfigured S3" do
+    Config.any_instance.stubs(:feature_available?).with(:s3_upload).returns(false)
+    %w[unknown s3].each do |provider|
+      patch config_url, params: { media_storage_provider: provider }, as: :json
+      assert_response :unprocessable_entity
+      assert_equal "local", Config.new.get("media_storage_provider")
+    end
+  end
+
   test "update saves UI settings" do
     patch config_url, params: { theme: "dark", editor_font_size: 18 }, as: :json
     assert_response :success

@@ -12,6 +12,7 @@ class ImagesController < ApplicationController
     render json: {
       enabled: ImagesService.enabled?,
       s3_enabled: ImagesService.s3_enabled?,
+      media_storage_provider: cfg.get("media_storage_provider"),
       web_search_enabled: true,    # Uses DuckDuckGo/Bing (no API needed)
       google_enabled: google_api_configured?,  # Requires API keys
       pinterest_enabled: true,     # Uses DuckDuckGo with site filter (no API needed)
