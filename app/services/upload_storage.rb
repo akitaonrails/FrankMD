@@ -60,6 +60,8 @@ module UploadStorage
   # Only definitive configuration/authentication failures warrant changing the
   # preference. Timeouts, transport errors, throttling and 5xx responses do not.
   def invalid_s3_configuration_error?(error)
+    return true if defined?(Aws::Errors::InvalidRegionError) && error.is_a?(Aws::Errors::InvalidRegionError)
+
     defined?(Aws::S3::Errors::ServiceError) && error.is_a?(Aws::S3::Errors::ServiceError) &&
       %w[InvalidAccessKeyId SignatureDoesNotMatch InvalidToken ExpiredToken
          TokenRefreshRequired AccessDenied NoSuchBucket InvalidBucketName

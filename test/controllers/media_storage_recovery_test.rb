@@ -91,6 +91,21 @@ class MediaStorageRecoveryTest < ActionDispatch::IntegrationTest
       assert @test_notes_dir.join(response.parsed_body["url"]).file?
     end
 
+    test "#{endpoint} recovers an invalid SDK region without retrying the upload" do
+      @config.set("aws_region", "bad_region")
+      post endpoint, params: upload_params(endpoint)
+      assert_response :unprocessable_entity
+      assert_equal true, response.parsed_body["media_storage_fallback"]
+      assert_equal "local", Config.new.get("media_storage_provider")
+      refute @test_notes_dir.join("images").exist?
+      refute @test_notes_dir.join("videos").exist?
+      get "/config", as: :json
+      assert_equal true, response.parsed_body["media_storage_fallback"]
+      post endpoint, params: upload_params(endpoint)
+      assert_response :success
+      assert @test_notes_dir.join(response.parsed_body["url"]).file?
+    end
+
     test "#{endpoint} recovers rejected S3 credentials without retrying the upload" do
       client = stub("s3")
       client.expects(:put_object).once.raises(Aws::S3::Errors::InvalidAccessKeyId.new(nil, "invalid credentials"))

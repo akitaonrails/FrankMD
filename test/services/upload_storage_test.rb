@@ -40,6 +40,7 @@ class UploadStorageTest < ActiveSupport::TestCase
     %w[SlowDown InternalError ServiceUnavailable PreconditionFailed].each do |code|
       refute UploadStorage.invalid_s3_configuration_error?(Aws::S3::Errors.const_get(code).new(nil, "temporary"))
     end
+    assert UploadStorage.invalid_s3_configuration_error?(Aws::Errors::InvalidRegionError.new)
     refute UploadStorage.invalid_s3_configuration_error?(Timeout::Error.new("timeout"))
   end
 
