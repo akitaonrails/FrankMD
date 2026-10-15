@@ -588,9 +588,9 @@ describe("SettingsController", () => {
       const storage = { refresh: vi.fn().mockResolvedValue(true), apply: vi.fn() }
       Object.defineProperty(controller, "hasMediaStorageOutlet", { get: () => true })
       Object.defineProperty(controller, "mediaStorageOutlet", { get: () => storage })
-      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ settings: { media_storage_provider: "local" } }) })
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ settings: { media_storage_provider: "local" }, media_storage_fallback: true }) })
       await controller.reload()
-      expect(storage.refresh).toHaveBeenCalledOnce()
+      expect(storage.refresh).toHaveBeenCalledWith(true)
       expect(storage.apply).not.toHaveBeenCalled()
     })
 

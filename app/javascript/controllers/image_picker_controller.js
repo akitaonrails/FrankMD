@@ -300,6 +300,7 @@ export default class extends Controller {
       this.dispatch("image-selected", { detail: { markdown, imageUrl, altText, linkUrl } })
       this.close()
     } catch (error) {
+      if (this.hasMediaStorageOutlet && this.mediaStorageOutlet.providerValue === "s3") await this.mediaStorageOutlet.refresh()
       console.error("Error inserting image:", error)
       showInlineError(this.hasErrorTarget ? this.errorTarget : null,
         window.t("dialogs.image_picker.insert_failed", { error: error.message }))

@@ -451,7 +451,7 @@ Configure these values to make S3 available, then select **S3** in Settings or a
 
 The active destination applies to image and video uploads, browser-folder uploads, dropped files, pasted images, AI-generated images, and optional saved copies. Local uploads are stored under `NOTES_PATH/images` or `NOTES_PATH/videos`. AI images returned as URLs are downloaded into the selected storage, just like generated image data. Web, Google, and Pinterest results can still be inserted as direct links; select **Save a copy in the active storage** to keep a copy.
 
-If S3 is selected but its configuration is missing or an upload fails, FrankMD reports an error without saving a permanent local copy. Temporary files may be used during processing and are cleaned up. Switching providers affects future uploads; it does not move existing files or rewrite note references.
+If selected S3 settings are removed or invalid, FrankMD saves Local as the upload provider and briefly shows a warning. Rejected S3 credentials, a missing bucket, or denied upload access trigger the same recovery. An upload that discovers the problem stops without saving a permanent local copy; retry it to use Local. Temporary connection failures, throttling, and server errors leave S3 selected and report an upload error. If the preference cannot be saved, S3 remains selected and uploads stay blocked. Temporary processing files are cleaned up. Switching providers affects future uploads; it does not move existing files or rewrite note references.
 
 The image picker's **Upload** tab accepts new files. Its **Library** tab browses two local collections:
 

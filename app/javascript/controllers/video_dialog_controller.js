@@ -286,6 +286,7 @@ export default class extends Controller {
       const data = await response.json
 
       if (!response.ok) {
+        if (this.hasMediaStorageOutlet && this.mediaStorageOutlet.providerValue === "s3") await this.mediaStorageOutlet.refresh()
         this.showDropFeedback(data.error || window.t("status.upload_failed"))
         this.dropPreviewTarget.classList.add("hidden")
         return

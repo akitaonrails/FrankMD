@@ -103,6 +103,9 @@ describe("ImagePickerController#openWithFile", () => {
 
   it("keeps insert failures inline in the open image picker", async () => {
     global.alert = vi.fn()
+    const storage = { ready: vi.fn(), providerValue: "s3", refresh: vi.fn().mockResolvedValue(true) }
+    Object.defineProperty(controller, "hasMediaStorageOutlet", { get: () => true })
+    Object.defineProperty(controller, "mediaStorageOutlet", { get: () => storage })
     controller.selectedSource = "local-images"
     controller.selectedImageData = { name: "photo.png" }
     controller.getSourceController = vi.fn(() => ({
@@ -115,6 +118,7 @@ describe("ImagePickerController#openWithFile", () => {
     expect(controller.errorTarget.textContent).toBe("dialogs.image_picker.insert_failed")
     expect(controller.errorTarget.classList.contains("hidden")).toBe(false)
     expect(global.alert).not.toHaveBeenCalled()
+    expect(storage.refresh).toHaveBeenCalledOnce()
   })
 
   it("includes the uploaded image URL and Markdown options in its selection event", async () => {

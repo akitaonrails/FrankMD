@@ -15,18 +15,22 @@ describe("shared media storage", () => {
     document.body.innerHTML = `<div data-controller="media-storage" data-media-storage-s3-available-value="true">
       ${[1, 2, 3].map(() => `<select data-media-storage-target="select"><option value="local">Local</option><option value="s3">S3</option></select><p data-media-storage-target="error"></p>`).join("")}
       <div data-media-storage-target="s3Only"></div>
+      <dialog data-media-storage-target="warningDialog"></dialog>
     </div>`
     application = Application.start()
     application.register("media-storage", MediaStorageController)
     await new Promise(resolve => setTimeout(resolve, 0))
     controller = application.getControllerForElementAndIdentifier(document.querySelector("[data-controller]"), "media-storage")
     selects = [...document.querySelectorAll("select")]
+    controller.warningDialogTarget.showModal = vi.fn(() => { controller.warningDialogTarget.open = true })
+    controller.warningDialogTarget.close = vi.fn(() => { controller.warningDialogTarget.open = false })
   })
 
   afterEach(() => {
     application.stop()
     document.body.replaceChildren()
     vi.restoreAllMocks()
+    vi.useRealTimers()
   })
 
   it("saves immediately, blocks consumers, and updates every selector after acknowledgement", async () => {
@@ -60,14 +64,64 @@ describe("shared media storage", () => {
     expect(controller.errorTargets.every(target => target.textContent === "media_storage.save_failed")).toBe(true)
   })
 
-  it("refreshes a saved S3 selection even when credentials have disappeared", async () => {
+  it("retains saved S3 when the server cannot persist recovery", async () => {
     global.fetch = vi.fn().mockResolvedValue(response("s3", false))
     await controller.refresh()
     expect(selects.every(select => select.value === "s3" && select.querySelector('[value="s3"]').disabled)).toBe(true)
     expect(controller.s3OnlyTargets[0].classList.contains("hidden")).toBe(false)
+    expect(controller.warningDialogTarget.showModal).not.toHaveBeenCalled()
     global.fetch.mockResolvedValue(response("local", true))
     await controller.refresh()
     expect(selects.every(select => select.value === "local")).toBe(true)
+  })
+
+  it("synchronizes Local and shows one brief warning after acknowledged recovery", async () => {
+    vi.useFakeTimers()
+    controller.providerValue = "s3"
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ...settings("local", false), media_storage_fallback: true }) })
+    await controller.refresh()
+    expect(selects.every(select => select.value === "local")).toBe(true)
+    expect(selects[0].querySelector('[value="s3"]').disabled).toBe(true)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(controller.warningDialogTarget.showModal).toHaveBeenCalledOnce()
+    controller.apply({ ...settings("local", false), media_storage_fallback: true })
+    expect(controller.warningDialogTarget.showModal).toHaveBeenCalledOnce()
+    await vi.advanceTimersByTimeAsync(6000)
+    expect(controller.warningDialogTarget.open).toBe(false)
+    global.fetch.mockResolvedValue(response("local", false))
+    await controller.refresh()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(controller.warningDialogTarget.showModal).toHaveBeenCalledOnce()
+  })
+
+  it("shows recovery reported by the initial page and supports early dismissal", async () => {
+    vi.useFakeTimers()
+    controller.fallbackValue = true
+    controller.connect()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(controller.warningDialogTarget.open).toBe(true)
+    controller.dismissWarning()
+    expect(controller.warningDialogTarget.open).toBe(false)
+    await vi.advanceTimersByTimeAsync(6000)
+    expect(controller.warningDialogTarget.close).toHaveBeenCalledOnce()
+  })
+
+  it("keeps a recovery warning consumed by Settings' first configuration request", async () => {
+    vi.useFakeTimers()
+    global.fetch = vi.fn().mockResolvedValue(response("local", false))
+    await controller.refresh(true)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(controller.warningDialogTarget.open).toBe(true)
+  })
+
+  it("does not warn for an explicit switch to Local or a failed refresh", async () => {
+    vi.useFakeTimers()
+    global.fetch = vi.fn().mockResolvedValue(response("local"))
+    await controller.setProvider("local")
+    global.fetch.mockResolvedValue({ ok: false })
+    await controller.refresh(true)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(controller.warningDialogTarget.showModal).not.toHaveBeenCalled()
   })
 
   it("reports network failures without changing the acknowledged provider", async () => {

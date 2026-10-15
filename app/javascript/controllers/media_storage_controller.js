@@ -3,11 +3,34 @@ import { get, patch } from "@rails/request.js"
 
 // One acknowledged preference for all controls and upload entry points.
 export default class extends Controller {
-  static targets = ["select", "error", "s3Only"]
-  static values = { provider: { type: String, default: "local" }, s3Available: Boolean }
+  static targets = ["select", "error", "s3Only", "warningDialog"]
+  static values = { provider: { type: String, default: "local" }, s3Available: Boolean, fallback: Boolean }
 
   connect() {
     this.syncControls()
+    if (this.fallbackValue) this.showRecoveryWarning()
+  }
+
+  disconnect() {
+    this.dismissWarning()
+  }
+
+  showRecoveryWarning() {
+    if (!this.hasWarningDialogTarget || this.warningDialogTarget.open || this.warningTimer) return
+    // Dialog consumers may be opening themselves after awaiting refresh().
+    // Show the warning on top once that work has finished.
+    this.warningTimer = setTimeout(() => {
+      this.warningTimer = null
+      this.warningDialogTarget.showModal()
+      this.dismissTimer = setTimeout(() => this.dismissWarning(), 6000)
+    }, 0)
+  }
+
+  dismissWarning() {
+    clearTimeout(this.warningTimer)
+    clearTimeout(this.dismissTimer)
+    this.warningTimer = null
+    if (this.hasWarningDialogTarget && this.warningDialogTarget.open) this.warningDialogTarget.close()
   }
 
   selectTargetConnected() {
@@ -37,6 +60,7 @@ export default class extends Controller {
     this.providerValue = data.settings.media_storage_provider
     this.s3AvailableValue = Boolean(data.features?.s3_upload ?? this.s3AvailableValue)
     this.syncControls()
+    if (data.media_storage_fallback && this.providerValue === "local") this.showRecoveryWarning()
   }
 
   showError(message = "") {
@@ -83,12 +107,14 @@ export default class extends Controller {
     })
   }
 
-  refresh() {
-    return this.run(async () => {
+  async refresh(recovered = false) {
+    const success = await this.run(async () => {
       const response = await get("/config", { responseKind: "json" })
       if (!response.ok) throw new Error(window.t("media_storage.load_failed"))
       this.apply(await response.json)
     })
+    if (success && recovered && this.providerValue === "local") this.showRecoveryWarning()
+    return success
   }
 
   async ready() {

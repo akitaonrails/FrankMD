@@ -559,7 +559,10 @@ describe("VideoDialogController", () => {
       expect(controller.dropInsertBtnTarget.disabled).toBe(false)
     })
 
-    it("surfaces the server error when upload fails", async () => {
+    it("surfaces the server error and refreshes storage after an S3 upload fails", async () => {
+      const storage = { ready: vi.fn(), providerValue: "s3", refresh: vi.fn().mockResolvedValue(true) }
+      Object.defineProperty(controller, "hasMediaStorageOutlet", { get: () => true })
+      Object.defineProperty(controller, "mediaStorageOutlet", { get: () => storage })
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         json: () => Promise.resolve({ error: "boom" })
@@ -569,6 +572,7 @@ describe("VideoDialogController", () => {
 
       expect(controller.detectedVideoType).toBeNull()
       expect(controller.dropFeedbackTarget.textContent).toBe("boom")
+      expect(storage.refresh).toHaveBeenCalledOnce()
     })
 
     it("shows the localized uploading label, not a raw status key", async () => {
