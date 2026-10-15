@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class ConfigController < ApplicationController
+  include MediaStorageRecovery
   # Disable automatic parameter wrapping (Rails wraps JSON params under controller name)
   wrap_parameters false
 
@@ -16,8 +17,10 @@ class ConfigController < ApplicationController
   # GET /config
   # Returns UI settings and feature availability
   def show
+    fallback = recover_media_storage(@config, consume: true)
     render json: {
       settings: @config.ui_settings,
+      media_storage_fallback: fallback,
       features: {
         s3_upload: @config.feature_available?(:s3_upload),
         youtube_search: @config.feature_available?(:youtube_search),
@@ -51,6 +54,7 @@ class ConfigController < ApplicationController
     end
 
     if @config.update(updates)
+      session.delete(:media_storage_fallback) if updates.key?("media_storage_provider")
       render json: {
         settings: @config.ui_settings,
         message: t("success.settings_saved")

@@ -698,6 +698,9 @@ ko:
     settings_saved: "설정이 저장되었습니다"
 
   media_storage:
+    recovery_title: "업로드 저장 위치 변경"
+    recovered: "S3를 더 이상 사용할 수 없어 업로드 저장 위치가 로컬로 변경되었습니다."
+    retry_local: "S3를 더 이상 사용할 수 없습니다. 업로드 저장 위치가 로컬로 변경되었습니다. 다시 업로드해 주세요."
     not_configured: "이 공급자가 구성되지 않았습니다."
     label: "새 미디어 저장 위치"
     local: "로컬"

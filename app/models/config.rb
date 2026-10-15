@@ -365,9 +365,7 @@ class Config
   def feature_available?(feature)
     case feature.to_s
     when "s3_upload"
-      get("aws_access_key_id").present? &&
-        get("aws_secret_access_key").present? &&
-        get("aws_s3_bucket").present?
+      UploadStorage.s3_configured?(self)
     when "youtube_search"
       get("youtube_api_key").present?
     when "google_search"

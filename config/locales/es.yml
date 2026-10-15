@@ -698,6 +698,9 @@ es:
     settings_saved: "Configuración guardada"
 
   media_storage:
+    recovery_title: "Almacenamiento de cargas actualizado"
+    recovered: "S3 ya no está disponible. El proveedor de cargas se ha cambiado a Local."
+    retry_local: "S3 ya no está disponible. El proveedor de cargas ahora es Local. Vuelve a intentar la carga."
     not_configured: "Este proveedor no está configurado."
     label: "Almacenamiento de nuevos archivos multimedia"
     local: "Local"

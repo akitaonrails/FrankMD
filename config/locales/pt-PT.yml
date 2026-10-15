@@ -698,6 +698,9 @@ pt-PT:
     settings_saved: "Definições guardadas"
 
   media_storage:
+    recovery_title: "Armazenamento de carregamentos atualizado"
+    recovered: "O S3 já não está disponível. O fornecedor de carregamentos foi alterado para Local."
+    retry_local: "O S3 já não está disponível. O fornecedor de carregamentos é agora Local. Tente carregar novamente."
     not_configured: "Este fornecedor não está configurado."
     label: "Armazenamento de novos ficheiros multimédia"
     local: "Local"

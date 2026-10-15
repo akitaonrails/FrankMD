@@ -33,6 +33,16 @@ class UploadStorageTest < ActiveSupport::TestCase
     assert_raises(UploadStorage::RejectedError) { UploadStorage.provider }
   end
 
+  test "only definitive S3 configuration errors trigger recovery" do
+    %w[InvalidAccessKeyId SignatureDoesNotMatch InvalidToken ExpiredToken AccessDenied NoSuchBucket AuthorizationHeaderMalformed].each do |code|
+      assert UploadStorage.invalid_s3_configuration_error?(Aws::S3::Errors.const_get(code).new(nil, "invalid"))
+    end
+    %w[SlowDown InternalError ServiceUnavailable PreconditionFailed].each do |code|
+      refute UploadStorage.invalid_s3_configuration_error?(Aws::S3::Errors.const_get(code).new(nil, "temporary"))
+    end
+    refute UploadStorage.invalid_s3_configuration_error?(Timeout::Error.new("timeout"))
+  end
+
   test "validate_extension! returns the normalized extension for an allowed file" do
     ext = UploadStorage.validate_extension!(Uploaded.new(original_filename: "a.PNG"), "image_upload_extensions", "image")
     assert_equal ".png", ext

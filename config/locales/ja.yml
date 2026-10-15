@@ -698,6 +698,9 @@ ja:
     settings_saved: "設定を保存しました"
 
   media_storage:
+    recovery_title: "アップロード先を変更しました"
+    recovered: "S3 が利用できなくなったため、アップロード先をローカルに変更しました。"
+    retry_local: "S3 が利用できません。アップロード先をローカルに変更しました。もう一度アップロードしてください。"
     not_configured: "このプロバイダーは設定されていません。"
     label: "新しいメディアの保存先"
     local: "ローカル"

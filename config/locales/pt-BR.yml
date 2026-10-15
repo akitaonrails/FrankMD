@@ -698,6 +698,9 @@ pt-BR:
     settings_saved: "Configurações salvas"
 
   media_storage:
+    recovery_title: "Armazenamento de envios atualizado"
+    recovered: "O S3 não está mais disponível. Seu provedor de envios foi alterado para Local."
+    retry_local: "O S3 não está mais disponível. O provedor de envios agora é Local. Tente enviar novamente."
     not_configured: "Este provedor não está configurado."
     label: "Armazenamento de novas mídias"
     local: "Local"

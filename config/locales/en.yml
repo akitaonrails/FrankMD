@@ -700,6 +700,9 @@ en:
     settings_saved: "Settings saved"
 
   media_storage:
+    recovery_title: "Upload storage changed"
+    recovered: "S3 is no longer available. Your upload provider has been switched to Local."
+    retry_local: "S3 is no longer available. The upload provider is now Local. Please retry the upload."
     not_configured: "This provider is not configured."
     label: "Storage for new media"
     local: "Local"
