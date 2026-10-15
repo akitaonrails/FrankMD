@@ -405,7 +405,7 @@ class ImagesService
       when "image/gif" then ".gif"
       when "image/webp" then ".webp"
       when "image/svg+xml" then ".svg"
-      when "image/bmp" then ".bmp"
+      when "image/bmp", "image/x-ms-bmp" then ".bmp"
       else ".jpg"
       end
     end

@@ -53,6 +53,38 @@ class ImageImportTest < ActionDispatch::IntegrationTest
     refute @test_notes_dir.join("images").exist?
   end
 
+  %w[image/bmp image/x-ms-bmp].each do |content_type|
+    test "#{content_type} imports locally with a BMP-only allowlist" do
+      @config.set("image_upload_extensions", ".bmp")
+      body = Base64.strict_decode64("Qk06AAAAAAAAADYAAAAoAAAAAQAAAAEAAAABABgAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAA////AA==")
+      stub_request(:get, "https://example.com/photo.bmp").to_return(body: body, headers: { "Content-Type" => content_type })
+
+      post "/images/import", params: { url: "https://example.com/photo.bmp" }, as: :json
+
+      assert_response :success
+      assert_equal ".bmp", File.extname(response.parsed_body["url"])
+      assert_equal body, @test_notes_dir.join(response.parsed_body["url"]).binread
+    end
+
+    test "#{content_type} imports to S3 with BMP extension and content type" do
+      use_s3
+      @config.set("image_upload_extensions", ".bmp")
+      body = Base64.strict_decode64("Qk06AAAAAAAAADYAAAAoAAAAAQAAAAEAAAABABgAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAA////AA==")
+      stub_request(:get, "https://example.com/photo.bmp").to_return(body: body, headers: { "Content-Type" => content_type })
+      client = stub("s3")
+      client.expects(:put_object).with do |args|
+        args[:content_type] == "image/bmp" && args[:key].end_with?(".bmp") && args[:body] == body
+      end
+      Aws::S3::Client.stubs(:new).returns(client)
+
+      post "/images/import", params: { url: "https://example.com/photo.bmp" }, as: :json
+
+      assert_response :success
+      assert_equal ".bmp", File.extname(response.parsed_body["url"])
+      refute @test_notes_dir.join("images").exist?
+    end
+  end
+
   test "server images can be copied locally without changing the original" do
     @images.join("photo.png").binwrite("original")
     post "/images/import", params: { path: "photo.png" }, as: :json
