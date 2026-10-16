@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
-import { destroy, get } from "@rails/request.js"
-import { appConfirm } from "lib/app_prompt"
+import { destroy, get, patch } from "@rails/request.js"
+import { appConfirm, appTextPrompt } from "lib/app_prompt"
 import { escapeHtml } from "lib/text_utils"
 import { encodePath } from "lib/url_utils"
 
@@ -49,7 +49,7 @@ export default class extends Controller {
         if (entry.isIntersecting) {
           this.visibleUsageCards.add(entry.target)
           this.updateUsageLabel(entry.target)
-          if (this.usageStatus === "idle") this.loadUsageIndex()
+          if (this.usageStatus === "idle" && this.itemForPath(entry.target.dataset.usagePath)?.provider !== "s3") this.loadUsageIndex()
         } else {
           this.visibleUsageCards.delete(entry.target)
         }
@@ -159,8 +159,7 @@ export default class extends Controller {
   render() {
     this.usageObserver?.disconnect()
     this.visibleUsageCards.clear()
-    const visible = this.items
-      .filter((item) => item.path.startsWith(`${this.category}/`))
+    const visible = this.items.filter((item) => item.type === (this.category === "images" ? "image" : "video"))
 
     this.countTarget.textContent = window.t("library.item_count", { count: visible.length })
 
@@ -182,6 +181,8 @@ export default class extends Controller {
     const preview = item.type === "video"
       ? `<video src="${url}" muted preload="metadata" aria-hidden="true"></video><span class="library-card-play" aria-hidden="true">▶</span>`
       : `<img src="${url}" alt="${name}" loading="lazy">`
+    const usageState = item.provider === "s3" ? "unknown" : "checking"
+    const usageText = item.provider === "s3" ? window.t("library.usage_unknown") : window.t("library.usage_checking")
 
     return `
       <article class="library-card" data-usage-path="${path}">
@@ -191,8 +192,9 @@ export default class extends Controller {
         <div class="library-card-details">
           <p class="truncate text-sm font-medium" title="${name}">${name}</p>
           <p class="mt-1 text-xs text-[var(--theme-text-muted)]">${size} <span aria-hidden="true">·</span> ${date}</p>
-          <p class="library-usage mt-1 text-xs text-[var(--theme-text-muted)]" data-library-usage-label data-usage-state="checking" aria-live="polite">${escapeHtml(window.t("library.usage_checking"))}</p>
+          <p class="library-usage mt-1 text-xs text-[var(--theme-text-muted)]" data-library-usage-label data-usage-state="${usageState}" aria-live="polite">${escapeHtml(usageText)}</p>
           <div class="mt-2 flex flex-wrap justify-end gap-2">
+            ${item.provider === "s3" ? `<button type="button" data-path="${path}" data-action="click->library#renameItem" class="rounded-md border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-secondary)] hover:bg-[var(--theme-bg-hover)]">${escapeHtml(window.t("library.rename"))}</button>` : ""}
             <button type="button" data-path="${path}" data-action="click->library#deleteItem" class="rounded-md border border-[var(--theme-error)] px-3 py-2 text-sm text-[var(--theme-error)] hover:bg-[var(--theme-bg-hover)]">${escapeHtml(window.t("library.delete"))}</button>
             <button type="button" data-path="${path}" data-action="click->library#insertItem" class="rounded-md bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-[var(--theme-accent-text)] hover:opacity-90">${escapeHtml(window.t("library.insert"))}</button>
           </div>
@@ -205,7 +207,8 @@ export default class extends Controller {
     const label = card.querySelector("[data-library-usage-label]")
     if (!label) return
 
-    if (this.usageStatus === "unknown") {
+    const item = this.itemForPath(card.dataset.usagePath)
+    if (item?.provider === "s3" || this.usageStatus === "unknown") {
       label.textContent = window.t("library.usage_unknown")
       label.dataset.usageState = "unknown"
       return
@@ -237,6 +240,12 @@ export default class extends Controller {
     if (!item) {
       label.replaceChildren()
       delete label.dataset.usageState
+      return
+    }
+
+    if (item.provider === "s3") {
+      label.textContent = window.t("library.usage_unknown")
+      label.dataset.usageState = "unknown"
       return
     }
 
@@ -477,8 +486,7 @@ export default class extends Controller {
     this.clearError()
     try {
       if (!navigator.clipboard?.writeText) throw new Error(window.t("library.copy_failed"))
-      // The API path is already relative to NOTES_PATH (images/... or videos/...).
-      await navigator.clipboard.writeText(item.path)
+      await navigator.clipboard.writeText(item.provider === "s3" ? item.url : item.path)
       this.showStatus(window.t("library.copied"))
     } catch (error) {
       this.showError(error.message || window.t("library.copy_failed"))
@@ -520,6 +528,31 @@ export default class extends Controller {
     }
   }
 
+  async renameItem(event) {
+    event?.stopPropagation?.()
+    const item = this.itemForPath(event.currentTarget.dataset.path)
+    if (!item || item.provider !== "s3") return
+
+    const name = await appTextPrompt(window.t("library.rename_prompt"), {
+      defaultValue: item.name,
+      acceptLabel: window.t("library.rename")
+    })
+    if (!name || name === item.name) return
+
+    this.clearError()
+    try {
+      const response = await patch(`/library/file/${encodePath(item.path)}`, { body: { name }, responseKind: "json" })
+      const data = await response.json
+      if (!response.ok) throw new Error(data.error || window.t("library.rename_failed"))
+      Object.assign(item, data)
+      if (this.previewItem === item) this.closePreview()
+      this.render()
+      this.showStatus(window.t("library.renamed"))
+    } catch (error) {
+      this.showError(error.message || window.t("library.rename_failed"))
+    }
+  }
+
   closePreview(event) {
     event?.stopPropagation?.()
     this.previewDialogTarget.classList.add("hidden")
@@ -549,13 +582,23 @@ export default class extends Controller {
   isValidItem(item) {
     if (!item || typeof item.name !== "string" || typeof item.path !== "string") return false
     if (item.type !== "image" && item.type !== "video") return false
-    const expectedRoot = item.type === "image" ? "images" : "videos"
     const segments = item.path.split("/")
-    return segments[0] === expectedRoot && segments.length > 1 && segments.every((segment) => segment && segment !== "." && segment !== ".." && !segment.includes("\\"))
+    const safePath = segments.length > 1 && segments.every((segment) => segment && segment !== "." && segment !== ".." && !segment.includes("\\"))
+    if (!safePath) return false
+    if (item.provider === "s3") {
+      try {
+        const url = new URL(item.url)
+        return segments[0] === "frankmd" && ["http:", "https:"].includes(url.protocol) && !url.username && !url.password
+      } catch {
+        return false
+      }
+    }
+    const expectedRoot = item.type === "image" ? "images" : "videos"
+    return !item.provider && segments[0] === expectedRoot
   }
 
   mediaUrl(item) {
-    return `/notes/${encodePath(item.path)}`
+    return item.provider === "s3" ? item.url : `/notes/${encodePath(item.path)}`
   }
 
   showError(message) {

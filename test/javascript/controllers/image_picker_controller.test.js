@@ -19,6 +19,12 @@ describe("ImagePickerController#openWithFile", () => {
 
     document.body.innerHTML = `
       <div data-controller="image-picker">
+        <div role="tablist">
+          <button data-image-picker-target="tabDrop">Upload</button>
+          <button data-image-picker-target="tabLocal">Library</button>
+        </div>
+        <div data-image-picker-target="panelDrop"></div>
+        <div data-image-picker-target="panelLocal" class="hidden"></div>
         <dialog data-image-picker-target="dialog"></dialog>
         <div data-image-picker-target="loading" class="hidden">
           <span data-image-picker-target="loadingText"></span>
@@ -45,6 +51,7 @@ describe("ImagePickerController#openWithFile", () => {
   })
 
   afterEach(() => {
+    application.unload("image-picker")
     application.stop()
     vi.restoreAllMocks()
   })
@@ -63,6 +70,15 @@ describe("ImagePickerController#openWithFile", () => {
     expect(showLoading).toHaveBeenCalledWith("dialogs.image_picker.processing_image_paste")
     expect(dropCtrl.loadExternalFile).toHaveBeenCalledWith(file)
     expect(hideLoading).toHaveBeenCalled()
+  })
+
+  it("moves keyboard focus and selected state to the Library tab", () => {
+    controller.onTabKeydown({ key: "ArrowRight", preventDefault: vi.fn() })
+    expect(controller.currentTab).toBe("local")
+    expect(document.activeElement).toBe(controller.tabLocalTarget)
+    expect(controller.tabLocalTarget.getAttribute("aria-selected")).toBe("true")
+    expect(controller.tabDropTarget.tabIndex).toBe(-1)
+    expect(controller.panelLocalTarget.classList.contains("hidden")).toBe(false)
   })
 
   it("bails without loading when the Drop source is unavailable", async () => {
@@ -87,6 +103,9 @@ describe("ImagePickerController#openWithFile", () => {
 
   it("keeps insert failures inline in the open image picker", async () => {
     global.alert = vi.fn()
+    const storage = { ready: vi.fn(), providerValue: "s3", refresh: vi.fn().mockResolvedValue(true) }
+    Object.defineProperty(controller, "hasMediaStorageOutlet", { get: () => true })
+    Object.defineProperty(controller, "mediaStorageOutlet", { get: () => storage })
     controller.selectedSource = "local-images"
     controller.selectedImageData = { name: "photo.png" }
     controller.getSourceController = vi.fn(() => ({
@@ -99,6 +118,7 @@ describe("ImagePickerController#openWithFile", () => {
     expect(controller.errorTarget.textContent).toBe("dialogs.image_picker.insert_failed")
     expect(controller.errorTarget.classList.contains("hidden")).toBe(false)
     expect(global.alert).not.toHaveBeenCalled()
+    expect(storage.refresh).toHaveBeenCalledOnce()
   })
 
   it("includes the uploaded image URL and Markdown options in its selection event", async () => {
@@ -122,5 +142,22 @@ describe("ImagePickerController#openWithFile", () => {
         linkUrl: ""
       }
     })
+  })
+
+  it("waits for a provider save before uploading a pasted or selected image", async () => {
+    let finish
+    const storage = { ready: vi.fn(() => new Promise(resolve => { finish = resolve })) }
+    Object.defineProperty(controller, "hasMediaStorageOutlet", { get: () => true })
+    Object.defineProperty(controller, "mediaStorageOutlet", { get: () => storage })
+    controller.selectedSource = "drop-images"
+    controller.selectedImageData = { name: "pasted.png" }
+    const upload = vi.fn().mockResolvedValue("images/pasted.png")
+    controller.getSourceController = vi.fn(() => ({ getImageUrl: upload }))
+    controller.close = vi.fn()
+    const insert = controller.insertImage()
+    expect(upload).not.toHaveBeenCalled()
+    finish()
+    await insert
+    expect(upload).toHaveBeenCalledOnce()
   })
 })

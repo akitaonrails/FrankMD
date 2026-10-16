@@ -23,6 +23,7 @@ class UploadCsrfTest < ActionDispatch::IntegrationTest
     "/images/upload_to_s3",
     "/images/upload_external_to_s3",
     "/images/upload_base64",
+    "/images/import",
     "/media/upload",
     "/ai/fix_grammar",
     "/ai/generate_image"
@@ -46,5 +47,10 @@ class UploadCsrfTest < ActionDispatch::IntegrationTest
       assert_response :unprocessable_entity,
         "#{path} must enforce CSRF protection"
     end
+  end
+
+  test "/library/file rejects a PATCH without a CSRF token" do
+    patch "/library/file/frankmd/example.png", params: { name: "renamed.png" }
+    assert_response :unprocessable_entity
   end
 end

@@ -4,7 +4,7 @@
 # Provides defaults from ENV variables that can be overridden per-folder.
 class Config
   CONFIG_FILE = ".fed"
-  CONFIG_VERSION = 3  # Increment when adding new settings
+  CONFIG_VERSION = 4  # Increment when adding new settings
 
   # All configurable options with their defaults and types
   SCHEMA = {
@@ -28,6 +28,7 @@ class Config
     "images_path" => { default: nil, type: :string, env: "IMAGES_PATH" },
 
     # Accepted drag-and-drop upload extensions (comma-separated)
+    "media_storage_provider" => { default: "local", type: :string, env: nil },
     "image_upload_extensions" => { default: ".jpg,.jpeg,.png,.gif,.webp,.bmp", type: :string, env: "IMAGE_UPLOAD_EXTENSIONS" },
     "video_upload_extensions" => { default: ".mp4,.webm,.mkv,.mov,.avi,.m4v,.ogv", type: :string, env: "VIDEO_UPLOAD_EXTENSIONS" },
 
@@ -103,6 +104,7 @@ class Config
     editor_indent
     editor_line_numbers
     editor_width
+    media_storage_provider
   ].freeze
 
   # AI provider priority (default order when ai_provider = "auto")
@@ -177,6 +179,9 @@ class Config
       lines: [
         "",
         "# Media Uploads (drag-and-drop)",
+        "",
+        "# Destination for new media: local or s3 (requires AWS S3 configuration).",
+        "# media_storage_provider = local",
         "",
         "# Comma-separated file extensions accepted by the image/video drop tabs.",
         "# image_upload_extensions = .jpg,.jpeg,.png,.gif,.webp,.bmp",
@@ -360,9 +365,7 @@ class Config
   def feature_available?(feature)
     case feature.to_s
     when "s3_upload"
-      get("aws_access_key_id").present? &&
-        get("aws_secret_access_key").present? &&
-        get("aws_s3_bucket").present?
+      UploadStorage.s3_configured?(self)
     when "youtube_search"
       get("youtube_api_key").present?
     when "google_search"
@@ -582,6 +585,11 @@ class Config
   end
 
   def format_value(key, value)
+    if key == "media_storage_provider"
+      raise ArgumentError, "Unknown media storage provider" unless %w[local s3].include?(value)
+      raise ArgumentError, "S3 is not configured" if value == "s3" && !feature_available?(:s3_upload)
+    end
+
     case SCHEMA[key][:type]
     when :string
       if value.to_s.match?(/["\r\n]/)

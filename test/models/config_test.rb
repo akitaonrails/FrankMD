@@ -64,6 +64,34 @@ class ConfigTest < ActiveSupport::TestCase
 
   # === Initialization ===
 
+  test "media storage defaults to local even with S3 configured" do
+    ENV["AWS_ACCESS_KEY_ID"] = "key"
+    ENV["AWS_SECRET_ACCESS_KEY"] = "secret"
+    ENV["AWS_S3_BUCKET"] = "bucket"
+
+    assert_equal "local", Config.new.get("media_storage_provider")
+  end
+
+  test "media storage rejects invalid or unavailable providers without changing settings" do
+    config = Config.new
+    refute config.set("media_storage_provider", "unknown")
+    refute config.update("media_storage_provider" => "s3", "theme" => "dark")
+    assert_equal "local", Config.new.get("media_storage_provider")
+    assert_nil Config.new.get("theme")
+  end
+
+  test "media storage persists and retains S3 selection after credentials disappear" do
+    ENV["AWS_ACCESS_KEY_ID"] = "key"
+    ENV["AWS_SECRET_ACCESS_KEY"] = "secret"
+    ENV["AWS_S3_BUCKET"] = "bucket"
+    assert Config.new.set("media_storage_provider", "s3")
+    assert_equal "s3", Config.new.ui_settings["media_storage_provider"]
+
+    ENV.delete("AWS_ACCESS_KEY_ID")
+    assert_equal "s3", Config.new.get("media_storage_provider")
+    assert Config.new.set("media_storage_provider", "local")
+  end
+
   test "creates config file on initialization if it does not exist" do
     config = Config.new(base_path: @test_dir)
 

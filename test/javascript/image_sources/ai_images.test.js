@@ -345,7 +345,7 @@ describe("AiImageSource", () => {
     it("returns error when no generated data", async () => {
       source.generatedData = null
 
-      const result = await source.save(false)
+      const result = await source.save()
 
       expect(result.error).toBe("No generated image data available")
     })
@@ -361,7 +361,7 @@ describe("AiImageSource", () => {
         json: () => Promise.resolve({ url: "/images/ai_123.png" })
       })
 
-      const result = await source.save(false)
+      const result = await source.save()
 
       expect(global.fetch).toHaveBeenCalledWith("/images/upload_base64", expect.objectContaining({
         method: "POST",
@@ -385,22 +385,23 @@ describe("AiImageSource", () => {
         json: () => Promise.resolve({ url: "https://s3.example.com/ai_123.png" })
       })
 
-      const result = await source.save(true)
+      const result = await source.save()
 
       const body = JSON.parse(global.fetch.mock.calls[0][1].body)
-      expect(body.upload_to_s3).toBe(true)
+      expect(body).not.toHaveProperty("upload_to_s3")
       expect(result.url).toBe("https://s3.example.com/ai_123.png")
     })
 
-    it("returns URL directly when URL-based and not uploading to S3", async () => {
-      source.generatedData = {
-        url: "https://ai-service.com/generated.jpg",
-        data: null
-      }
-
-      const result = await source.save(false)
-
-      expect(result.url).toBe("https://ai-service.com/generated.jpg")
+    it("downloads URL results into the active provider", async () => {
+      source.generatedData = { url: "https://ai-service.com/generated.jpg" }
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true, json: () => Promise.resolve({ url: "images/generated.jpg" })
+      })
+      const result = await source.save()
+      expect(global.fetch).toHaveBeenCalledWith("/images/import", expect.objectContaining({
+        method: "POST", body: JSON.stringify({ url: source.generatedData.url })
+      }))
+      expect(result.url).toBe("images/generated.jpg")
     })
 
     it("uploads URL image to S3", async () => {
@@ -414,9 +415,9 @@ describe("AiImageSource", () => {
         json: () => Promise.resolve({ url: "https://s3.example.com/ai_123.jpg" })
       })
 
-      const result = await source.save(true)
+      const result = await source.save()
 
-      expect(global.fetch).toHaveBeenCalledWith("/images/upload_external_to_s3", expect.objectContaining({
+      expect(global.fetch).toHaveBeenCalledWith("/images/import", expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
           "Content-Type": "application/json",
@@ -435,7 +436,7 @@ describe("AiImageSource", () => {
         json: () => Promise.resolve({ error: "Disk full" })
       })
 
-      await expect(source.save(false)).rejects.toThrow("Disk full")
+      await expect(source.save()).rejects.toThrow("Disk full")
     })
 
     it("handles save error for S3 URL upload", async () => {
@@ -446,7 +447,7 @@ describe("AiImageSource", () => {
         json: () => Promise.resolve({ error: "S3 error" })
       })
 
-      await expect(source.save(true)).rejects.toThrow("S3 error")
+      await expect(source.save()).rejects.toThrow("S3 error")
     })
   })
 })

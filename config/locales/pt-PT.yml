@@ -74,6 +74,10 @@ pt-PT:
     insert: "Inserir"
     copy_path: "Copiar caminho relativo"
     delete: "Eliminar"
+    rename: "Mudar nome"
+    rename_prompt: "Novo nome do ficheiro multimédia"
+    rename_failed: "Não foi possível mudar o nome deste ficheiro multimédia."
+    renamed: "O nome do ficheiro multimédia foi alterado. Poderá ser necessário atualizar as referências nas notas."
     copied: "Caminho relativo copiado."
     copy_failed: "Não foi possível copiar o caminho relativo."
     delete_confirm: "Eliminar %{name}? As referências existentes nas notas deixarão de funcionar."
@@ -285,7 +289,7 @@ pt-PT:
     # Diálogo de vídeo
     video:
       title: "Inserir Vídeo"
-      tab_drop: "Largar"
+      tab_drop: "Carregar"
       drop_hint: "Arraste e largue um ficheiro de vídeo aqui"
       drop_rejected: "%{name}: %{ext} não é um tipo de vídeo aceite. Aceites: %{list}"
       uploading: "A enviar..."
@@ -314,12 +318,12 @@ pt-PT:
     # Diálogo do seletor de imagens
     image_picker:
       title: "Inserir Imagem"
-      tab_drop: "Largar"
+      tab_drop: "Carregar"
       drop_hint: "Arraste e largue uma imagem aqui"
       drop_rejected: "%{name}: %{ext} não é um tipo de imagem aceite. Aceites: %{list}"
       processing_image_paste: "A processar imagem..."
       processing_image: "A processar imagem..."
-      tab_local: "Local"
+      tab_local: "Biblioteca"
       tab_folder: "Pasta"
       tab_web: "Pesquisa Web"
       tab_google: "Google"
@@ -696,3 +700,18 @@ pt-PT:
     folder_deleted: "Pasta eliminada"
     folder_renamed: "Pasta renomeada"
     settings_saved: "Definições guardadas"
+
+  media_storage:
+    recovery_title: "Armazenamento de carregamentos atualizado"
+    recovered: "O S3 já não está disponível. O fornecedor de carregamentos foi alterado para Local."
+    retry_local: "O S3 já não está disponível. O fornecedor de carregamentos é agora Local. Tente carregar novamente."
+    not_configured: "Este fornecedor não está configurado."
+    label: "Armazenamento de novos ficheiros multimédia"
+    local: "Local"
+    s3: "S3"
+    save_failed: "Não foi possível guardar o fornecedor. A seleção anterior continua ativa."
+    load_failed: "Não foi possível carregar o fornecedor de armazenamento."
+    save_copy: "Guardar uma cópia no armazenamento ativo"
+    collection: "Coleção"
+    managed_images: "Imagens das notas"
+    server_images: "Pasta de imagens do servidor"

@@ -139,7 +139,7 @@ describe("DropImagesController", () => {
 
       const url = await controller.getImageUrl()
 
-      expect(uploadSpy).toHaveBeenCalledWith(controller.selectedImage.file, "", true, "blog/hero.png")
+      expect(uploadSpy).toHaveBeenCalledWith(controller.selectedImage.file, "", "blog/hero.png")
       expect(url).toBe("https://s3/x")
     })
   })

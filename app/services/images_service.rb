@@ -17,12 +17,7 @@ class ImagesService
     end
 
     def s3_enabled?
-      cfg = Config.new
-      [
-        cfg.get("aws_access_key_id"),
-        cfg.get("aws_secret_access_key"),
-        cfg.get("aws_s3_bucket")
-      ].all?(&:present?)
+      UploadStorage.s3_configured?(Config.new)
     end
 
     def images_path
@@ -109,6 +104,7 @@ class ImagesService
 
     def upload_to_s3(path, resize: nil, custom_key: nil)
       return nil unless s3_enabled?
+      UploadStorage.provider(legacy_s3: true)
 
       full_path = find_image(path)
       return nil unless full_path
@@ -152,8 +148,9 @@ class ImagesService
 
     # Upload a file from browser (local folder picker)
     # Saves to notes/images/ directory or uploads to S3
-    def upload_file(uploaded_file, resize: nil, upload_to_s3: false, s3_key: nil)
+    def upload_file(uploaded_file, resize: nil, upload_to_s3: nil, s3_key: nil)
       return { error: "No file provided" } unless uploaded_file
+      provider = UploadStorage.provider(legacy_s3: upload_to_s3)
 
       # Enforce the same allow-list + size cap as video uploads. Without this,
       # an HTML/SVG file dropped here would be stored under the notes directory
@@ -164,7 +161,7 @@ class ImagesService
       extension = UploadStorage.validate_extension!(uploaded_file, "image_upload_extensions", "image")
 
       UploadStorage.with_temp_copy(uploaded_file, extension) do |temp_path|
-        if upload_to_s3 && s3_enabled?
+        if provider == "s3"
           upload_temp_to_s3(temp_path, uploaded_file.original_filename, resize: resize, custom_key: s3_key)
         else
           save_to_notes_directory(temp_path, uploaded_file.original_filename, resize: resize)
@@ -175,10 +172,12 @@ class ImagesService
     end
 
     # Upload base64 encoded image data (e.g., from AI image generation)
-    def upload_base64_data(base64_data, mime_type: nil, filename: nil, upload_to_s3: false, s3_prefix: nil)
+    def upload_base64_data(base64_data, mime_type: nil, filename: nil, upload_to_s3: nil, s3_prefix: nil)
       require "base64"
       require "securerandom"
       require "fileutils"
+
+      provider = UploadStorage.provider(legacy_s3: upload_to_s3)
 
       UploadStorage.enforce_base64_size!(base64_data.bytesize)
 
@@ -210,11 +209,11 @@ class ImagesService
       # Create temp file
       temp_dir = Rails.root.join("tmp", "uploads")
       FileUtils.mkdir_p(temp_dir)
-      temp_path = temp_dir.join("#{SecureRandom.hex(8)}_#{filename}")
+      temp_path = temp_dir.join("#{SecureRandom.hex(16)}#{extension}")
       File.binwrite(temp_path, file_content)
 
       begin
-        if upload_to_s3 && s3_enabled?
+        if provider == "s3"
           upload_temp_to_s3(temp_path, filename, resize: nil, custom_prefix: s3_prefix)
         else
           save_to_notes_directory(temp_path, filename, resize: nil)
@@ -228,6 +227,7 @@ class ImagesService
 
     def download_and_upload_to_s3(url, resize: nil, custom_prefix: nil)
       return nil unless s3_enabled?
+      UploadStorage.provider(legacy_s3: true)
 
       require "aws-sdk-s3"
       require "net/http"
@@ -293,7 +293,54 @@ class ImagesService
       nil
     end
 
+    def import_image(url: nil, path: nil, resize: nil, s3_key: nil, s3_prefix: nil, upload_to_s3: nil)
+      provider = UploadStorage.provider(legacy_s3: upload_to_s3)
+      unless [ url, path ].count(&:present?) == 1 && [ url, path ].compact.all? { |value| value.is_a?(String) }
+        return { error: "Provide exactly one image URL or server image path" }
+      end
+
+      if path.present?
+        source = find_image(path)
+        return { error: "Image not found" } unless source
+        UploadStorage.validate_filename!(source.basename.to_s, "image_upload_extensions", "image")
+        UploadStorage.enforce_bytes!(source.size)
+        return store_import(source, source.basename.to_s, provider, resize: resize, s3_key: s3_key, s3_prefix: s3_prefix)
+      end
+
+      result = fetch_external_image(url)
+      return { error: "Image download failed" } unless result
+      mime_type = result[:content_type].to_s.split(";").first.to_s.downcase
+      unless %w[image/jpeg image/png image/gif image/webp image/bmp image/x-ms-bmp].include?(mime_type)
+        return { error: "Unsupported image content type" }
+      end
+      extension = extension_for_content_type(mime_type)
+      UploadStorage.validate_filename!("image#{extension}", "image_upload_extensions", "image")
+      name = File.basename(result[:uri].path).gsub(UploadStorage::SANITIZE_RE, "_")
+      name = "#{File.basename(name, File.extname(name)).presence || 'image'}#{extension}"
+
+      require "tempfile"
+      Tempfile.create([ "frankmd-import", extension ]) do |file|
+        file.binmode
+        file.write(result[:body])
+        file.flush
+        store_import(Pathname.new(file.path), name, provider, resize: resize, s3_key: s3_key, s3_prefix: s3_prefix)
+      end
+    rescue UploadStorage::RejectedError => e
+      { error: e.message }
+    rescue EgressPolicy::BlockedError => e
+      Rails.logger.warn "Refused to import external image: #{e.message}"
+      { error: "Image download failed" }
+    end
+
     private
+
+    def store_import(source, filename, provider, resize:, s3_key:, s3_prefix:)
+      if provider == "s3"
+        upload_temp_to_s3(source, filename, resize: resize, custom_key: s3_key, custom_prefix: s3_prefix) || { error: "Image upload failed" }
+      else
+        save_to_notes_directory(source, filename, resize: resize)
+      end
+    end
 
     def resolved_images_path
       # Config handles: .fed file > IMAGES_PATH env > default (nil)
@@ -353,7 +400,7 @@ class ImagesService
       when "image/gif" then ".gif"
       when "image/webp" then ".webp"
       when "image/svg+xml" then ".svg"
-      when "image/bmp" then ".bmp"
+      when "image/bmp", "image/x-ms-bmp" then ".bmp"
       else ".jpg"
       end
     end

@@ -62,6 +62,17 @@ function encodeRelativeMediaPath(path) {
   ).join("/")
 }
 
+function safeRemoteMediaUrl(value) {
+  if (typeof value !== "string") return null
+  try {
+    const url = new URL(value)
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) return null
+    return url.href.replace(/[()]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)
+  } catch {
+    return null
+  }
+}
+
 function escapeMarkdownAlt(value) {
   const specialCharacters = new Set(["\\", "[", "]"])
   return String(value).replace(/[\r\n]+/g, " ").split("").map((character) =>
@@ -1547,9 +1558,10 @@ export default class extends Controller {
     const codemirror = this.getCodemirrorController()
     if (!codemirror) return reject("editor_unavailable", "library.insertion_failed")
 
-    const relativePath = relativeMediaPath(this.currentFile, item.path)
-    if (!relativePath) return reject("invalid_media", "library.insertion_failed")
-    const encodedPath = encodeRelativeMediaPath(relativePath)
+    const encodedPath = item.provider === "s3"
+      ? safeRemoteMediaUrl(item.url)
+      : encodeRelativeMediaPath(relativeMediaPath(this.currentFile, item.path) || "")
+    if (!encodedPath) return reject("invalid_media", "library.insertion_failed")
 
     try {
       if (item.type === "image") {
@@ -1578,9 +1590,13 @@ export default class extends Controller {
     if (!item || typeof item.name !== "string" || typeof item.path !== "string") return false
     if (item.type !== "image" && item.type !== "video") return false
     const segments = item.path.split("/")
-    const expectedRoot = item.type === "image" ? "images" : "videos"
-    return segments[0] === expectedRoot && segments.length > 1 &&
+    const safePath = segments.length > 1 &&
       segments.every((segment) => segment && segment !== "." && segment !== ".." && !segment.includes("\\"))
+    if (!safePath) return false
+    if (item.provider === "s3") return segments[0] === "frankmd" && safeRemoteMediaUrl(item.url) !== null
+
+    const expectedRoot = item.type === "image" ? "images" : "videos"
+    return !item.provider && segments[0] === expectedRoot
   }
 
   // === Typewriter Mode - Delegates to typewriter_controller ===

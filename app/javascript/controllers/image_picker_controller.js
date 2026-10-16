@@ -7,6 +7,8 @@ import { clearInlineError, showInlineError } from "lib/inline_messages"
 // Each tab has its own controller that handles source-specific logic
 
 export default class extends Controller {
+  static outlets = ["media-storage"]
+
   static targets = [
     "dialog",
     // Tab buttons
@@ -79,6 +81,7 @@ export default class extends Controller {
   // Dialog management
   async open() {
     clearInlineError(this.hasErrorTarget ? this.errorTarget : null)
+    if (this.hasMediaStorageOutlet) await this.mediaStorageOutlet.refresh()
     this.resetAll()
     this.switchTab({ currentTarget: { dataset: { tab: "drop" } } })
 
@@ -152,6 +155,8 @@ export default class extends Controller {
 
       if (tabTarget) {
         tabTarget.className = `px-4 py-2 text-sm font-medium border-b-2 ${tab === t.toLowerCase() ? activeClasses : inactiveClasses}`
+        tabTarget.setAttribute("aria-selected", String(tab === t.toLowerCase()))
+        tabTarget.tabIndex = tab === t.toLowerCase() ? 0 : -1
       }
       if (panelTarget) {
         panelTarget.classList.toggle("hidden", tab !== t.toLowerCase())
@@ -199,8 +204,9 @@ export default class extends Controller {
 
   // Focus the tab button for a given tab name
   focusTab(tabName) {
-    const targetName = `tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Target`
-    if (this[`has${targetName.replace('Target', '')}Target`]) {
+    const name = tabName.charAt(0).toUpperCase() + tabName.slice(1)
+    const targetName = `tab${name}Target`
+    if (this[`hasTab${name}Target`]) {
       this[targetName].focus()
     }
   }
@@ -273,6 +279,7 @@ export default class extends Controller {
       this.showLoading(window.t("dialogs.image_picker.processing_image"))
       this.insertBtnTarget.disabled = true
 
+      if (this.hasMediaStorageOutlet) await this.mediaStorageOutlet.ready()
       const imageUrl = await ctrl.getImageUrl()
       if (!imageUrl) {
         this.hideLoading()
@@ -293,6 +300,7 @@ export default class extends Controller {
       this.dispatch("image-selected", { detail: { markdown, imageUrl, altText, linkUrl } })
       this.close()
     } catch (error) {
+      if (this.hasMediaStorageOutlet && this.mediaStorageOutlet.providerValue === "s3") await this.mediaStorageOutlet.refresh()
       console.error("Error inserting image:", error)
       showInlineError(this.hasErrorTarget ? this.errorTarget : null,
         window.t("dialogs.image_picker.insert_failed", { error: error.message }))

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class NotesController < ApplicationController
+  include MediaStorageRecovery
   before_action :reject_config_file, only: [ :index, :show, :create, :update, :destroy, :rename ]
   before_action :set_note, only: [ :update, :destroy, :rename ]
 
@@ -9,6 +10,7 @@ class NotesController < ApplicationController
     @initial_path = params[:file]
     @initial_note = load_initial_note if @initial_path.present?
     @config_obj = Config.new
+    @media_storage_fallback = recover_media_storage(@config_obj, consume: true)
     @config = load_config
     @expanded_folders = Set.new
     @selected_file = @initial_path || ""
@@ -47,6 +49,7 @@ class NotesController < ApplicationController
     @initial_path = path
     @initial_note = load_initial_note
     @config_obj = Config.new
+    @media_storage_fallback = recover_media_storage(@config_obj, consume: true)
     @config = load_config
     @expanded_folders = Set.new
     @selected_file = path

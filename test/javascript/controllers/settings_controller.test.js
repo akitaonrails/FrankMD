@@ -120,6 +120,7 @@ describe("SettingsController", () => {
   })
 
   afterEach(() => {
+    application.unload("settings")
     application.stop()
     vi.restoreAllMocks()
     delete window.t
@@ -583,6 +584,16 @@ describe("SettingsController", () => {
   })
 
   describe("reload()", () => {
+    it("refreshes shared storage instead of applying a potentially stale settings response", async () => {
+      const storage = { refresh: vi.fn().mockResolvedValue(true), apply: vi.fn() }
+      Object.defineProperty(controller, "hasMediaStorageOutlet", { get: () => true })
+      Object.defineProperty(controller, "mediaStorageOutlet", { get: () => storage })
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ settings: { media_storage_provider: "local" }, media_storage_fallback: true }) })
+      await controller.reload()
+      expect(storage.refresh).toHaveBeenCalledWith(true)
+      expect(storage.apply).not.toHaveBeenCalled()
+    })
+
     it("re-syncs values from GET /config and updates the controls", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,

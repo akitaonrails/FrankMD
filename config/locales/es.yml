@@ -74,6 +74,10 @@ es:
     insert: "Insertar"
     copy_path: "Copiar ruta relativa"
     delete: "Eliminar"
+    rename: "Renombrar"
+    rename_prompt: "Nuevo nombre del archivo multimedia"
+    rename_failed: "No se pudo renombrar este archivo multimedia."
+    renamed: "Archivo multimedia renombrado. Es posible que debas actualizar las referencias en las notas."
     copied: "Ruta relativa copiada."
     copy_failed: "No se pudo copiar la ruta relativa."
     delete_confirm: "¿Eliminar %{name}? Las referencias existentes en las notas dejarán de funcionar."
@@ -285,7 +289,7 @@ es:
     # Video dialog
     video:
       title: "Insertar Video"
-      tab_drop: "Soltar"
+      tab_drop: "Subir"
       drop_hint: "Arrastra y suelta un archivo de vídeo aquí"
       drop_rejected: "%{name}: %{ext} no es un tipo de vídeo aceptado. Aceptados: %{list}"
       uploading: "Subiendo..."
@@ -314,12 +318,12 @@ es:
     # Image picker dialog
     image_picker:
       title: "Insertar Imagen"
-      tab_drop: "Soltar"
+      tab_drop: "Subir"
       drop_hint: "Arrastra y suelta una imagen aquí"
       drop_rejected: "%{name}: %{ext} no es un tipo de imagen aceptado. Aceptados: %{list}"
       processing_image_paste: "Procesando imagen..."
       processing_image: "Procesando imagen..."
-      tab_local: "Local"
+      tab_local: "Biblioteca"
       tab_folder: "Carpeta"
       tab_web: "Búsqueda Web"
       tab_google: "Google"
@@ -696,3 +700,18 @@ es:
     folder_deleted: "Carpeta eliminada"
     folder_renamed: "Carpeta renombrada"
     settings_saved: "Configuración guardada"
+
+  media_storage:
+    recovery_title: "Almacenamiento de cargas actualizado"
+    recovered: "S3 ya no está disponible. El proveedor de cargas se ha cambiado a Local."
+    retry_local: "S3 ya no está disponible. El proveedor de cargas ahora es Local. Vuelve a intentar la carga."
+    not_configured: "Este proveedor no está configurado."
+    label: "Almacenamiento de nuevos archivos multimedia"
+    local: "Local"
+    s3: "S3"
+    save_failed: "No se pudo guardar el proveedor. La selección anterior sigue activa."
+    load_failed: "No se pudo cargar el proveedor de almacenamiento."
+    save_copy: "Guardar una copia en el almacenamiento activo"
+    collection: "Colección"
+    managed_images: "Imágenes de las notas"
+    server_images: "Carpeta de imágenes del servidor"

@@ -1,0 +1,31 @@
+<div id="image-picker-library-results" data-local-images-target="results" data-total="<%= result[:total] %>">
+  <% if result[:collection] == "server" && !result[:server_available] %>
+    <p class="my-4 text-sm text-[var(--theme-text-muted)]"><%= t("dialogs.image_picker.local_path_required") %></p>
+  <% end %>
+  <div class="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-2 min-h-[160px] max-h-[250px] overflow-y-auto" data-local-images-target="grid">
+    <% result[:images].each do |image| %>
+      <div class="image-grid-item relative rounded border border-[var(--theme-border)] bg-[var(--theme-bg-primary)]">
+        <button type="button" class="block w-full aspect-square overflow-hidden rounded focus:ring-2 focus:ring-[var(--theme-accent)]"
+                data-action="click->local-images#select" data-path="<%= image[:path] %>" data-name="<%= image[:name] %>"
+                data-url="<%= image[:url] %>" data-collection="<%= result[:collection] %>" title="<%= image[:name] %>">
+          <img src="<%= image[:preview_url] %>" alt="<%= image[:name] %>" class="w-full h-full object-cover" loading="lazy">
+        </button>
+        <button type="button" class="absolute top-1 right-1 rounded bg-[var(--theme-bg-primary)] p-1 text-[var(--theme-error)] focus:ring-2 focus:ring-[var(--theme-accent)]"
+                data-action="click->local-images#deleteImage" data-path="<%= image[:path] %>" data-name="<%= image[:name] %>"
+                data-collection="<%= result[:collection] %>" aria-label="<%= t('dialogs.image_picker.delete_image') %>">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6m4-6v6" /></svg>
+        </button>
+      </div>
+    <% end %>
+    <% if result[:images].empty? %>
+      <p class="col-span-full py-6 text-center text-sm text-[var(--theme-text-muted)]"><%= t("dialogs.image_picker.no_images_found") %></p>
+    <% end %>
+  </div>
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-3 text-xs text-[var(--theme-text-muted)]" aria-live="polite">
+    <button type="button" data-action="click->local-images#prevPage" <%= "disabled" if result[:offset].zero? %>
+            class="px-2 py-1 rounded border border-[var(--theme-border)] disabled:opacity-50"><%= t("dialogs.image_picker.prev_page") %></button>
+    <span><%= t("dialogs.image_picker.page_status", from: result[:total].zero? ? 0 : result[:offset] + 1, to: [result[:offset] + result[:limit], result[:total]].min, total: result[:total]) %></span>
+    <button type="button" data-action="click->local-images#nextPage" <%= "disabled" if result[:offset] + result[:limit] >= result[:total] %>
+            class="px-2 py-1 rounded border border-[var(--theme-border)] disabled:opacity-50"><%= t("dialogs.image_picker.next_page") %></button>
+  </div>
+</div>

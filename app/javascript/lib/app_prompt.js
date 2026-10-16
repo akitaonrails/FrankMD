@@ -71,6 +71,15 @@ function showNextPrompt() {
   message.className = "text-sm text-[var(--theme-text-secondary)] whitespace-pre-wrap break-words"
   message.textContent = prompt.message
 
+  let input
+  if (prompt.input) {
+    input = document.createElement("input")
+    input.type = "text"
+    input.value = prompt.defaultValue
+    input.className = "mt-3 w-full rounded-md border border-[var(--theme-border)] bg-[var(--theme-bg-primary)] px-3 py-2 text-sm text-[var(--theme-text-primary)]"
+    input.setAttribute("aria-label", prompt.message)
+  }
+
   const actions = document.createElement("div")
   actions.className = "flex justify-end gap-2 mt-4"
 
@@ -81,9 +90,16 @@ function showNextPrompt() {
   }
 
   const acceptButton = createButton(prompt.acceptLabel, true, prompt.destructive)
-  acceptButton.addEventListener("click", () => finishPrompt(prompt, prompt.confirm ? true : undefined))
+  acceptButton.addEventListener("click", () => finishPrompt(prompt, prompt.input ? input.value : (prompt.confirm ? true : undefined)))
+  input?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return
+    event.preventDefault()
+    finishPrompt(prompt, input.value)
+  })
   actions.append(acceptButton)
-  content.append(title, message, actions)
+  content.append(title, message)
+  if (input) content.append(input)
+  content.append(actions)
   dialog.append(content)
 
   dialog.addEventListener("cancel", (event) => {
@@ -95,13 +111,13 @@ function showNextPrompt() {
   activePrompt = prompt
   document.body.append(dialog)
   dialog.showModal()
-  const initialFocus = prompt.confirm && prompt.destructive
+  const initialFocus = input || (prompt.confirm && prompt.destructive
     ? dialog
-    : (prompt.confirm ? actions.firstElementChild : acceptButton)
+    : (prompt.confirm ? actions.firstElementChild : acceptButton))
   initialFocus.focus()
 }
 
-function enqueuePrompt(message, { confirm = false, acceptLabel, cancelLabel, destructive = false } = {}) {
+function enqueuePrompt(message, { confirm = false, acceptLabel, cancelLabel, destructive = false, input = false, defaultValue = "" } = {}) {
   return new Promise((resolve) => {
     if (promptFocusOrigin === undefined) {
       promptFocusOrigin = document.activeElement
@@ -113,6 +129,8 @@ function enqueuePrompt(message, { confirm = false, acceptLabel, cancelLabel, des
       acceptLabel: acceptLabel || translation(confirm ? "common.confirm" : "common.ok"),
       cancelLabel: cancelLabel || translation("common.cancel"),
       destructive,
+      input,
+      defaultValue,
       resolve
     })
     showNextPrompt()
@@ -125,4 +143,8 @@ export function appAlert(message) {
 
 export function appConfirm(message, options = {}) {
   return enqueuePrompt(message, { ...options, confirm: true })
+}
+
+export function appTextPrompt(message, options = {}) {
+  return enqueuePrompt(message, { ...options, confirm: true, input: true })
 }

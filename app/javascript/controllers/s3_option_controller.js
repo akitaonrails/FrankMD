@@ -7,31 +7,38 @@ import { defaultS3Prefix } from "lib/s3_key"
 // the video dialog.
 
 export default class extends Controller {
+  static outlets = ["media-storage"]
+
   static targets = ["checkbox", "resizeOption", "resizeSelect", "keyOption", "keyInput"]
 
   static values = {
     enabled: { type: Boolean, default: false },
+    copy: { type: Boolean, default: true },
     // "full": input holds the whole object key incl. filename (client knows it).
     // "prefix": input holds only the folder; the server appends the filename.
     keyMode: { type: String, default: "prefix" }
   }
 
   connect() {
-    // Initial state - resize and key options hidden
-    if (this.hasResizeOptionTarget) {
-      this.resizeOptionTarget.classList.add("hidden")
-    }
-    if (this.hasKeyOptionTarget) {
-      this.keyOptionTarget.classList.add("hidden")
-    }
-    // Set by the parent for "full" mode; "prefix" mode computes its own default.
     this.defaultKey = null
     this.keyDirty = false
+    this.syncOptions()
+  }
+
+  syncOptions() {
+    if (this.hasResizeOptionTarget) this.resizeOptionTarget.classList.toggle("hidden", !this.isChecked)
+    if (this.hasKeyOptionTarget) this.keyOptionTarget.classList.toggle("hidden", !this.isChecked || !this.s3Active)
+    if (this.isChecked && this.s3Active) this.fillDefaultKey()
+  }
+
+  get s3Active() {
+    return this.hasMediaStorageOutlet ? this.mediaStorageOutlet.providerValue === "s3" : true
   }
 
   // Called by parent to show/hide this component
   show() {
     this.element.classList.remove("hidden")
+    this.syncOptions()
   }
 
   hide() {
@@ -41,15 +48,14 @@ export default class extends Controller {
 
   // Toggle resize + destination-key options based on the checkbox.
   onCheckboxChange(event) {
-    if (this.hasResizeOptionTarget) {
-      this.resizeOptionTarget.classList.toggle("hidden", !event.target.checked)
-      if (!event.target.checked && this.hasResizeSelectTarget) {
-        this.resizeSelectTarget.value = "0.5"
-      }
-    }
-    if (this.hasKeyOptionTarget) {
-      this.keyOptionTarget.classList.toggle("hidden", !event.target.checked)
-      if (event.target.checked) this.fillDefaultKey()
+    this.checkboxTarget.checked = event.target.checked
+    if (!event.target.checked) this.resetResize()
+    this.syncOptions()
+  }
+
+  resetResize() {
+    if (this.hasResizeSelectTarget) {
+      this.resizeSelectTarget.value = [...this.resizeSelectTarget.options].find(option => option.defaultSelected)?.value || ""
     }
   }
 
@@ -78,7 +84,7 @@ export default class extends Controller {
 
   // Get current values (called by parent controller)
   get isChecked() {
-    return this.hasCheckboxTarget && this.checkboxTarget.checked
+    return !this.copyValue || (this.hasCheckboxTarget && this.checkboxTarget.checked)
   }
 
   get resizeRatio() {
@@ -88,14 +94,14 @@ export default class extends Controller {
 
   // The destination key/prefix the user chose, or "" to keep the server default.
   get keyValue() {
-    if (!this.isChecked || !this.hasKeyInputTarget) return ""
+    if (!this.isChecked || !this.s3Active || !this.hasKeyInputTarget) return ""
     return this.keyInputTarget.value.trim()
   }
 
   reset() {
     if (this.hasCheckboxTarget) this.checkboxTarget.checked = false
     if (this.hasResizeOptionTarget) this.resizeOptionTarget.classList.add("hidden")
-    if (this.hasResizeSelectTarget) this.resizeSelectTarget.value = "0.5"
+    this.resetResize()
     if (this.hasKeyOptionTarget) this.keyOptionTarget.classList.add("hidden")
     if (this.hasKeyInputTarget) this.keyInputTarget.value = ""
     this.defaultKey = null

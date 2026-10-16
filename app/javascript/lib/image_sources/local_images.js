@@ -97,10 +97,10 @@ export class LocalImageSource {
     return await response.json
   }
 
-  async uploadToS3(path, resize, s3Key = "") {
+  async saveCopy(path, resize, s3Key = "") {
     const body = { path, resize }
     if (s3Key) body.s3_key = s3Key
-    const response = await post("/images/upload_to_s3", {
+    const response = await post("/images/import", {
       body,
       responseKind: "json"
     })

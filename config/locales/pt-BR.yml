@@ -74,6 +74,10 @@ pt-BR:
     insert: "Inserir"
     copy_path: "Copiar caminho relativo"
     delete: "Excluir"
+    rename: "Renomear"
+    rename_prompt: "Novo nome do arquivo de mídia"
+    rename_failed: "Não foi possível renomear este arquivo de mídia."
+    renamed: "Arquivo de mídia renomeado. Talvez seja necessário atualizar as referências nas notas."
     copied: "Caminho relativo copiado."
     copy_failed: "Não foi possível copiar o caminho relativo."
     delete_confirm: "Excluir %{name}? As referências existentes nas notas deixarão de funcionar."
@@ -285,7 +289,7 @@ pt-BR:
     # Diálogo de vídeo
     video:
       title: "Inserir Vídeo"
-      tab_drop: "Soltar"
+      tab_drop: "Enviar"
       drop_hint: "Arraste e solte um arquivo de vídeo aqui"
       drop_rejected: "%{name}: %{ext} não é um tipo de vídeo aceito. Aceitos: %{list}"
       uploading: "Enviando..."
@@ -314,12 +318,12 @@ pt-BR:
     # Diálogo do seletor de imagens
     image_picker:
       title: "Inserir Imagem"
-      tab_drop: "Soltar"
+      tab_drop: "Enviar"
       drop_hint: "Arraste e solte uma imagem aqui"
       drop_rejected: "%{name}: %{ext} não é um tipo de imagem aceito. Aceitos: %{list}"
       processing_image_paste: "Processando imagem..."
       processing_image: "Processando imagem..."
-      tab_local: "Local"
+      tab_local: "Biblioteca"
       tab_folder: "Pasta"
       tab_web: "Busca Web"
       tab_google: "Google"
@@ -696,3 +700,18 @@ pt-BR:
     folder_deleted: "Pasta excluída"
     folder_renamed: "Pasta renomeada"
     settings_saved: "Configurações salvas"
+
+  media_storage:
+    recovery_title: "Armazenamento de envios atualizado"
+    recovered: "O S3 não está mais disponível. Seu provedor de envios foi alterado para Local."
+    retry_local: "O S3 não está mais disponível. O provedor de envios agora é Local. Tente enviar novamente."
+    not_configured: "Este provedor não está configurado."
+    label: "Armazenamento de novas mídias"
+    local: "Local"
+    s3: "S3"
+    save_failed: "Não foi possível salvar o provedor. A seleção anterior continua ativa."
+    load_failed: "Não foi possível carregar o provedor de armazenamento."
+    save_copy: "Salvar uma cópia no armazenamento ativo"
+    collection: "Coleção"
+    managed_images: "Imagens das notas"
+    server_images: "Pasta de imagens do servidor"

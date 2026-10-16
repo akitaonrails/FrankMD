@@ -74,6 +74,10 @@ he:
     insert: "הוסף"
     copy_path: "העתק נתיב יחסי"
     delete: "מחק"
+    rename: "שנה שם"
+    rename_prompt: "שם חדש לקובץ המדיה"
+    rename_failed: "לא ניתן לשנות את שם קובץ המדיה."
+    renamed: "שם קובץ המדיה שונה. ייתכן שיש לעדכן הפניות בפתקים."
     copied: "הנתיב היחסי הועתק."
     copy_failed: "לא ניתן להעתיק את הנתיב היחסי."
     delete_confirm: "למחוק את %{name}? הפניות קיימות בפתקים יפסיקו לעבוד."
@@ -285,7 +289,7 @@ he:
     # דיאלוג סרטון
     video:
       title: "הוסף סרטון"
-      tab_drop: "גרירה"
+      tab_drop: "העלאה"
       drop_hint: "גררו ושחררו קובץ וידאו כאן"
       drop_rejected: "%{name}: %{ext} אינו סוג וידאו מקובל. מקובלים: %{list}"
       uploading: "מעלה..."
@@ -314,12 +318,12 @@ he:
     # דיאלוג בוחר תמונות
     image_picker:
       title: "הוסף תמונה"
-      tab_drop: "גרירה"
+      tab_drop: "העלאה"
       drop_hint: "גררו ושחררו תמונה כאן"
       drop_rejected: "%{name}: %{ext} אינו סוג תמונה מקובל. מקובלים: %{list}"
       processing_image_paste: "מעבד תמונה..."
       processing_image: "מעבד תמונה..."
-      tab_local: "מקומי"
+      tab_local: "ספרייה"
       tab_folder: "תיקייה"
       tab_web: "חיפוש באינטרנט"
       tab_google: "Google"
@@ -696,3 +700,18 @@ he:
     folder_deleted: "התיקייה נמחקה"
     folder_renamed: "שם התיקייה שונה"
     settings_saved: "ההגדרות נשמרו"
+
+  media_storage:
+    recovery_title: "אחסון ההעלאות השתנה"
+    recovered: "S3 אינו זמין עוד. ספק ההעלאות שלך הוחלף למקומי."
+    retry_local: "S3 אינו זמין עוד. ספק ההעלאות הוא כעת מקומי. יש לנסות להעלות שוב."
+    not_configured: "ספק זה אינו מוגדר."
+    label: "אחסון למדיה חדשה"
+    local: "מקומי"
+    s3: "S3"
+    save_failed: "לא ניתן לשמור את ספק האחסון. הבחירה הקודמת עדיין פעילה."
+    load_failed: "לא ניתן לטעון את ספק האחסון."
+    save_copy: "שמירת עותק באחסון הפעיל"
+    collection: "אוסף"
+    managed_images: "תמונות ההערות"
+    server_images: "תיקיית תמונות בשרת"

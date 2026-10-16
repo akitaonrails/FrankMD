@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { appAlert, appConfirm } from "../../../app/javascript/lib/app_prompt.js"
+import { appAlert, appConfirm, appTextPrompt } from "../../../app/javascript/lib/app_prompt.js"
 
 describe("app prompts", () => {
   beforeEach(() => {
@@ -81,6 +81,27 @@ describe("app prompts", () => {
 
     await expect(result).resolves.toBe(false)
     expect(cancel.defaultPrevented).toBe(true)
+  })
+
+  it("collects text without exposing HTML from the default value", async () => {
+    const result = appTextPrompt("New filename", { defaultValue: 'photo" onerror="alert(1).png' })
+    const dialog = document.querySelector("dialog")
+    const input = dialog.querySelector("input")
+    expect(input.value).toBe('photo" onerror="alert(1).png')
+    expect(input.hasAttribute("onerror")).toBe(false)
+    input.value = "renamed.png"
+    dialog.querySelectorAll("button")[1].click()
+    await expect(result).resolves.toBe("renamed.png")
+  })
+
+  it("accepts a text prompt with Enter", async () => {
+    const result = appTextPrompt("New filename", { defaultValue: "old.png" })
+    const input = document.querySelector("dialog input")
+    input.value = "new.png"
+
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
+
+    await expect(result).resolves.toBe("new.png")
   })
 
   it("queues prompts so only one is modal at a time", async () => {

@@ -86,6 +86,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       # Stub Config to return our test images path
       @config_stub = stub("config")
       @config_stub.stubs(:get).returns(nil)
+      @config_stub.stubs(:get).with("media_storage_provider").returns("local")
       @config_stub.stubs(:get).with("images_path").returns(@temp_dir.to_s)
       @config_stub.stubs(:feature_available?).returns(false)
       @config_stub.stubs(:feature_available?).with(:local_images).returns(true)
@@ -278,16 +279,8 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       # S3 is not configured in this test class
       post "/images/upload", params: { file: file, upload_to_s3: "true" }
 
-      # Should still succeed by falling back to local storage
-      # because upload_to_s3 only works when s3_enabled? is true
-      assert_response :success
-      data = JSON.parse(response.body)
-      assert data["url"].start_with?("images/")
-
-      # Clean up
-      notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
-      created_file = notes_path.join(data["url"])
-      FileUtils.rm_f(created_file) if created_file.exist?
+      assert_response :unprocessable_entity
+      assert_includes response.parsed_body["error"], "conflicts"
     end
 
     test "upload_base64 saves base64 image data to notes/images" do
@@ -378,6 +371,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
 
       @config_stub = stub("config")
       @config_stub.stubs(:get).returns(nil)
+      @config_stub.stubs(:get).with("media_storage_provider").returns("s3")
       @config_stub.stubs(:get).with("images_path").returns(@temp_dir.to_s)
       @config_stub.stubs(:get).with("aws_access_key_id").returns("test-key")
       @config_stub.stubs(:get).with("aws_secret_access_key").returns("test-secret")
@@ -480,6 +474,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
 
       @config_stub = stub("config")
       @config_stub.stubs(:get).returns(nil)
+      @config_stub.stubs(:get).with("media_storage_provider").returns("local")
       @config_stub.stubs(:get).with("images_path").returns(@temp_dir.to_s)
       @config_stub.stubs(:get).with("google_api_key").returns("test-google-key")
       @config_stub.stubs(:get).with("google_cse_id").returns("test-cse-id")
@@ -656,6 +651,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       # Stub Config to return nil for images_path (disabled)
       @config_stub = stub("config")
       @config_stub.stubs(:get).returns(nil)
+      @config_stub.stubs(:get).with("media_storage_provider").returns("local")
       @config_stub.stubs(:feature_available?).returns(false)
       @config_stub.stubs(:ui_settings).returns({})
       @config_stub.stubs(:upload_extensions).returns([ ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp" ])

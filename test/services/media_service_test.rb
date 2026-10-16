@@ -8,6 +8,7 @@ class MediaServiceTest < ActiveSupport::TestCase
   def setup
     @config_stub = stub("config")
     @config_stub.stubs(:get).returns(nil)
+    @config_stub.stubs(:get).with("media_storage_provider").returns("local")
     @config_stub.stubs(:upload_extensions).with("video_upload_extensions").returns(DEFAULT_VIDEO_EXTENSIONS)
     Config.stubs(:new).returns(@config_stub)
 
@@ -85,6 +86,7 @@ class MediaServiceS3Test < ActiveSupport::TestCase
   def setup
     @config_stub = stub("config")
     @config_stub.stubs(:get).returns(nil)
+    @config_stub.stubs(:get).with("media_storage_provider").returns("s3")
     @config_stub.stubs(:get).with("aws_access_key_id").returns("test-key")
     @config_stub.stubs(:get).with("aws_secret_access_key").returns("test-secret")
     @config_stub.stubs(:get).with("aws_s3_bucket").returns("test-bucket")
@@ -109,7 +111,8 @@ class MediaServiceS3Test < ActiveSupport::TestCase
     mock_client.expects(:put_object).with { |args| args[:content_type] == "video/webm" && args[:if_none_match] == "*" }.returns(nil)
     Aws::S3::Client.stubs(:new).returns(mock_client)
 
-    result = MediaService.save_upload(uploaded("movie.webm"), upload_to_s3: true)
+    MediaService.expects(:store_local).never
+    result = MediaService.save_upload(uploaded("movie.webm"))
 
     assert result[:url]
     assert_match %r{^https://test-bucket\.s3\.us-east-1\.amazonaws\.com/frankmd/\d{4}/\d{2}/movie-[0-9a-f]{16}\.webm$}, result[:url]
@@ -126,12 +129,12 @@ class MediaServiceS3Test < ActiveSupport::TestCase
     refute_includes result[:error], "collision details"
   end
 
-  test "save_upload falls back to local storage when S3 not configured" do
+  test "save_upload rejects unavailable S3 without writing locally" do
     @config_stub.stubs(:get).with("aws_access_key_id").returns(nil)
 
     result = MediaService.save_upload(uploaded("local.mp4"), upload_to_s3: true)
 
-    assert result[:url].start_with?("videos/")
-    FileUtils.rm_f(Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes"))).join(result[:url]))
+    assert_nil result[:url]
+    assert_equal "S3 is not configured", result[:error]
   end
 end

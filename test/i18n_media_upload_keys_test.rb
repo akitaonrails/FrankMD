@@ -11,6 +11,23 @@ class I18nMediaUploadKeysTest < ActiveSupport::TestCase
   LOCALES = %w[en es he ja ko pt-BR pt-PT].freeze
 
   REQUIRED_KEYS = [
+    "media_storage.label",
+    "media_storage.not_configured",
+    "media_storage.recovery_title",
+    "media_storage.recovered",
+    "media_storage.retry_local",
+    "media_storage.local",
+    "media_storage.s3",
+    "media_storage.save_failed",
+    "media_storage.load_failed",
+    "media_storage.save_copy",
+    "media_storage.collection",
+    "media_storage.managed_images",
+    "media_storage.server_images",
+    "library.rename",
+    "library.rename_prompt",
+    "library.rename_failed",
+    "library.renamed",
     "dialogs.image_picker.tab_drop",
     "dialogs.image_picker.drop_hint",
     "dialogs.image_picker.drop_rejected",

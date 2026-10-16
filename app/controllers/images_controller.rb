@@ -4,14 +4,19 @@ require "net/http"
 require "json"
 
 class ImagesController < ApplicationController
-  before_action :require_images_enabled, except: [ :status, :upload, :upload_base64, :search_web, :search_google, :search_pinterest ]
+  include MediaStorageRecovery
+  before_action :recover_missing_upload_storage, only: [ :upload, :upload_base64, :import, :upload_to_s3, :upload_external_to_s3 ]
+  before_action :require_images_enabled, except: [ :status, :upload, :upload_base64, :import, :search_web, :search_google, :search_pinterest ]
 
   # GET /images/config
   def status
     cfg = Config.new
+    fallback = recover_media_storage(cfg)
     render json: {
       enabled: ImagesService.enabled?,
       s3_enabled: ImagesService.s3_enabled?,
+      media_storage_provider: cfg.get("media_storage_provider"),
+      media_storage_fallback: fallback,
       web_search_enabled: true,    # Uses DuckDuckGo/Bing (no API needed)
       google_enabled: google_api_configured?,  # Requires API keys
       pinterest_enabled: true,     # Uses DuckDuckGo with site filter (no API needed)
@@ -57,7 +62,7 @@ class ImagesController < ApplicationController
   def upload
     file = params[:file]
     resize = params[:resize].presence
-    upload_to_s3 = params[:upload_to_s3] == "true"
+    upload_to_s3 = params[:upload_to_s3]
 
     unless file.present?
       return render json: { error: t("errors.no_file_upload") }, status: :unprocessable_entity
@@ -72,6 +77,8 @@ class ImagesController < ApplicationController
       render json: { error: result[:error] || t("errors.upload_failed") }, status: :unprocessable_entity
     end
   rescue StandardError => e
+    return if recover_s3_upload(e)
+
     Rails.logger.error "File upload error: #{e.class} - #{e.message}"
     Rails.logger.error e.backtrace.first(10).join("\n")
     render json: { error: t("errors.upload_failed") }, status: :unprocessable_entity
@@ -93,6 +100,8 @@ class ImagesController < ApplicationController
       render json: { error: t("errors.failed_to_upload") }, status: :unprocessable_entity
     end
   rescue StandardError => e
+    return if recover_s3_upload(e)
+
     Rails.logger.error "S3 upload error: #{e.class} - #{e.message}"
     Rails.logger.error e.backtrace.first(10).join("\n")
     render json: { error: "#{e.class}: #{e.message}" }, status: :unprocessable_entity
@@ -117,8 +126,28 @@ class ImagesController < ApplicationController
       render json: { error: t("errors.failed_to_upload") }, status: :unprocessable_entity
     end
   rescue StandardError => e
+    return if recover_s3_upload(e)
+
     Rails.logger.error "External S3 upload error: #{e.class} - #{e.message}"
     render json: { error: "#{e.class}: #{e.message}" }, status: :unprocessable_entity
+  end
+
+  # POST /images/upload_base64
+  def import
+    result = ImagesService.import_image(
+      url: params[:url], path: params[:path], resize: parse_resize_ratio(params[:resize]),
+      s3_key: params[:s3_key], s3_prefix: params[:s3_prefix], upload_to_s3: params[:upload_to_s3]
+    )
+    if result[:url]
+      render json: result
+    else
+      render json: { error: result[:error] }, status: :unprocessable_entity
+    end
+  rescue StandardError => e
+    return if recover_s3_upload(e)
+
+    Rails.logger.error "Image import error: #{e.class} - #{e.message}"
+    render json: { error: t("errors.upload_failed") }, status: :unprocessable_entity
   end
 
   # POST /images/upload_base64
@@ -127,7 +156,7 @@ class ImagesController < ApplicationController
     data = params[:data].to_s
     mime_type = params[:mime_type].to_s
     filename = params[:filename].to_s
-    upload_to_s3 = params[:upload_to_s3] == true || params[:upload_to_s3] == "true"
+    upload_to_s3 = params[:upload_to_s3]
 
     if data.blank?
       return render json: { error: t("errors.no_image_data") }, status: :bad_request
@@ -147,6 +176,8 @@ class ImagesController < ApplicationController
       render json: { error: result[:error] || t("errors.upload_failed") }, status: :unprocessable_entity
     end
   rescue StandardError => e
+    return if recover_s3_upload(e)
+
     Rails.logger.error "Base64 upload error: #{e.class} - #{e.message}"
     Rails.logger.error e.backtrace.first(10).join("\n")
     render json: { error: "#{e.class}: #{e.message}" }, status: :unprocessable_entity

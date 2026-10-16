@@ -11,27 +11,21 @@
 <% show_resize = true if show_resize.nil? %>
 <% key_mode ||= "prefix" %>
 <%
-  label = mode == "reupload" ? t('dialogs.s3_option.reupload_to_s3') : t('dialogs.s3_option.upload_to_s3')
-  description ||= mode == "reupload" ?
-    t('dialogs.s3_option.reupload_description') :
-    t('dialogs.s3_option.upload_description')
   key_label = key_mode == "full" ? t('dialogs.s3_option.custom_key') : t('dialogs.s3_option.custom_prefix')
   key_hint = key_mode == "full" ? t('dialogs.s3_option.custom_key_hint') : t('dialogs.s3_option.custom_prefix_hint')
 %>
 
-<div class="hidden" data-controller="s3-option" data-s3-option-key-mode-value="<%= key_mode %>">
+<div id="<%= local_assigns[:id] %>" class="hidden" data-controller="s3-option" data-s3-option-key-mode-value="<%= key_mode %>"
+     data-s3-option-copy-value="<%= mode == 'reupload' %>"
+     data-s3-option-media-storage-outlet='[data-controller~="media-storage"]'
+     data-action="media-storage:changed@window->s3-option#syncOptions">
+  <% if mode == "reupload" %>
   <label class="flex items-center gap-2 text-sm cursor-pointer">
-    <input
-      type="checkbox"
-      data-s3-option-target="checkbox"
-      data-action="change->s3-option#onCheckboxChange"
-      class="rounded border-[var(--theme-border)] text-[var(--theme-accent)] focus:ring-[var(--theme-accent)]"
-    >
-    <span><%= label %></span>
+    <input type="checkbox" data-s3-option-target="checkbox" data-action="change->s3-option#onCheckboxChange"
+           class="rounded border-[var(--theme-border)] text-[var(--theme-accent)] focus:ring-[var(--theme-accent)]">
+    <span><%= t("media_storage.save_copy") %></span>
   </label>
-  <p class="text-xs text-[var(--theme-text-muted)] mt-1 ml-6">
-    <%= description %>
-  </p>
+  <% end %>
 
   <!-- Destination key/prefix (only when S3 is checked) -->
   <div class="hidden mt-2 ml-6" data-s3-option-target="keyOption">
@@ -55,9 +49,9 @@
         data-s3-option-target="resizeSelect"
         class="px-2 py-1 text-sm border border-[var(--theme-border)] rounded bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
       >
-        <option value=""><%= t('dialogs.s3_option.none') %></option>
+        <option value="" selected><%= t('dialogs.s3_option.none') %></option>
         <option value="0.25"><%= t('dialogs.s3_option.quarter_size') %></option>
-        <option value="0.5" selected><%= t('dialogs.s3_option.half_size') %></option>
+        <option value="0.5"><%= t('dialogs.s3_option.half_size') %></option>
         <option value="0.67"><%= t('dialogs.s3_option.two_thirds_size') %></option>
       </select>
       <span class="text-[var(--theme-text-muted)]"><%= t('dialogs.s3_option.compress') %></span>

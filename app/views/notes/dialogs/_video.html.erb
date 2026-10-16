@@ -1,8 +1,9 @@
 <!-- Video Dialog -->
-<div data-controller="video-dialog" data-action="video-dialog:video-selected->app#insertVideoEmbed">
+<div data-controller="video-dialog" data-video-dialog-media-storage-outlet='[data-controller~="media-storage"]'  data-action="video-dialog:video-selected->app#insertVideoEmbed">
   <dialog
     class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] w-[550px]"
     data-video-dialog-target="dialog"
+    aria-label="<%= t('dialogs.video.title') %>"
     data-slash-command-action="video"
     data-action="close->app#onSlashCommandDialogClose"
   >
@@ -11,6 +12,8 @@
       <div class="px-4 pt-4">
         <%= render "shared/dialog_header", title: t('dialogs.video.title'), close_action: "click->video-dialog#close", margin_bottom: "mb-0" %>
       </div>
+
+      <div class="px-4 mt-3"><%= render "notes/media_storage" %></div>
 
       <!-- Hugo Shortcode Option -->
       <div class="px-4 mt-2">

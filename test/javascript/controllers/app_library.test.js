@@ -241,6 +241,53 @@ describe("AppController Library workspace", () => {
     expect(event.detail.status).toBe("inserted")
   })
 
+  it("inserts S3 media with the absolute object URL", () => {
+    const { app } = makeWorkspaceApp()
+    const codemirror = {
+      getValue: () => "",
+      getSelection: () => ({ from: 0, to: 0 }),
+      getCursorPosition: () => ({ offset: 0 }),
+      insertAt: vi.fn(),
+      replaceRange: vi.fn(),
+      setSelection: vi.fn(),
+      focus: vi.fn()
+    }
+    app.currentFile = "folder/note.md"
+    app.currentFileType = "markdown"
+    app.codemirrorOutlets = [codemirror]
+    const event = {
+      detail: {
+        item: {
+          name: "photo (one).png",
+          path: "frankmd/2026/photo (one).png",
+          type: "image",
+          provider: "s3",
+          url: "https://bucket.example/frankmd/2026/photo%20(one).png"
+        },
+        status: "pending"
+      }
+    }
+
+    expect(app.insertLibraryMedia(event)).toBe(true)
+    expect(codemirror.replaceRange).toHaveBeenCalledWith(
+      "![photo (one).png](https://bucket.example/frankmd/2026/photo%20%28one%29.png)", 0, 0
+    )
+  })
+
+  it("rejects unsafe S3 insertion URLs", () => {
+    const { app } = makeWorkspaceApp()
+    app.currentFile = "note.md"
+    app.currentFileType = "markdown"
+    app.codemirrorOutlets = [{}]
+    const item = { name: "photo.png", path: "frankmd/photo.png", type: "image", provider: "s3" }
+
+    for (const url of ["javascript:alert(1)", "https://user:secret@bucket.example/photo.png", "not a URL"]) {
+      const event = { detail: { item: { ...item, url }, status: "pending" } }
+      expect(app.insertLibraryMedia(event)).toBe(false)
+      expect(event.detail.status).toBe("invalid_media")
+    }
+  })
+
   it("explains when no note is open or the open file is not Markdown", () => {
     const { app } = makeWorkspaceApp()
     const event = { detail: { item: { name: "photo.png", path: "images/photo.png", type: "image" }, status: "pending" } }

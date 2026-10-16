@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
 class MediaController < ApplicationController
+  include MediaStorageRecovery
+  before_action :recover_missing_upload_storage, only: :upload
   # POST /media/upload
   # Upload a video file from browser drag-and-drop
   def upload
     file = params[:file]
-    upload_to_s3 = params[:upload_to_s3] == "true"
+    upload_to_s3 = params[:upload_to_s3]
 
     unless file.present?
       return render json: { error: t("errors.no_file_upload") }, status: :unprocessable_entity
@@ -19,6 +21,8 @@ class MediaController < ApplicationController
       render json: { error: result[:error] || t("errors.upload_failed") }, status: :unprocessable_entity
     end
   rescue StandardError => e
+    return if recover_s3_upload(e)
+
     Rails.logger.error "Media upload error: #{e.class} - #{e.message}"
     Rails.logger.error e.backtrace.first(10).join("\n")
     render json: { error: t("errors.upload_failed") }, status: :unprocessable_entity

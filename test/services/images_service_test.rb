@@ -11,6 +11,7 @@ class ImagesServiceTest < ActiveSupport::TestCase
     # Stub Config to return our test images path
     @config_stub = stub("config")
     @config_stub.stubs(:get).returns(nil)
+    @config_stub.stubs(:get).with("media_storage_provider").returns("local")
     @config_stub.stubs(:get).with("images_path").returns(@temp_dir.to_s)
     @config_stub.stubs(:upload_extensions).with("image_upload_extensions").returns(%w[.jpg .jpeg .png .gif .webp .bmp])
     @config_stub.stubs(:upload_extensions).with("video_upload_extensions").returns(%w[.mp4 .webm])
@@ -527,6 +528,7 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     # Stub Config to return our test values
     @config_stub = stub("config")
     @config_stub.stubs(:get).returns(nil)
+    @config_stub.stubs(:get).with("media_storage_provider").returns("s3")
     @config_stub.stubs(:get).with("images_path").returns(@temp_dir.to_s)
     @config_stub.stubs(:get).with("aws_access_key_id").returns("test-key-id")
     @config_stub.stubs(:get).with("aws_secret_access_key").returns("test-secret")
@@ -554,6 +556,34 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     FileUtils.mkdir_p(path.dirname)
     File.binwrite(path, content)
     path
+  end
+
+  test "saved S3 provider handles multipart and base64 images without request flags" do
+    client = stub("s3")
+    client.expects(:put_object).twice.with { |args| args[:bucket] == "test-bucket" && args[:if_none_match] == "*" }
+    Aws::S3::Client.stubs(:new).returns(client)
+    ImagesService.expects(:save_to_notes_directory).never
+    file = Rack::Test::UploadedFile.new(StringIO.new("image"), "image/png", original_filename: "image.png")
+    assert_match %r{https://test-bucket}, ImagesService.upload_file(file)[:url]
+    assert_match %r{https://test-bucket}, ImagesService.upload_base64_data(Base64.strict_encode64("image"), mime_type: "image/png")[:url]
+  end
+
+  test "unavailable S3 rejects every new image without local fallback" do
+    @config_stub.stubs(:get).with("aws_access_key_id").returns(nil)
+    ImagesService.expects(:save_to_notes_directory).never
+    file = Rack::Test::UploadedFile.new(StringIO.new("image"), "image/png", original_filename: "image.png")
+    assert_equal "S3 is not configured", ImagesService.upload_file(file)[:error]
+    assert_equal "S3 is not configured", ImagesService.upload_base64_data("aW1hZ2U=")[:error]
+  end
+
+  test "S3 upload failures never write a local image" do
+    client = stub("s3")
+    client.expects(:put_object).raises(Aws::S3::Errors::ServiceError.new(nil, "failure"))
+    Aws::S3::Client.stubs(:new).returns(client)
+    ImagesService.expects(:save_to_notes_directory).never
+    assert_raises(Aws::S3::Errors::ServiceError) do
+      ImagesService.upload_base64_data("aW1hZ2U=", mime_type: "image/png")
+    end
   end
 
   test "s3_enabled? returns true when configured" do

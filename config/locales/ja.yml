@@ -74,6 +74,10 @@ ja:
     insert: "挿入"
     copy_path: "相対パスをコピー"
     delete: "削除"
+    rename: "名前を変更"
+    rename_prompt: "新しいメディアファイル名"
+    rename_failed: "メディアファイルの名前を変更できませんでした。"
+    renamed: "メディアファイル名を変更しました。ノートの参照を更新する必要がある場合があります。"
     copied: "相対パスをコピーしました。"
     copy_failed: "相対パスをコピーできませんでした。"
     delete_confirm: "%{name} を削除しますか？既存のノートの参照は機能しなくなります。"
@@ -285,7 +289,7 @@ ja:
     # Video dialog
     video:
       title: "動画を挿入"
-      tab_drop: "ドロップ"
+      tab_drop: "アップロード"
       drop_hint: "ここに動画ファイルをドラッグ＆ドロップ"
       drop_rejected: "%{name}: %{ext} は受け付けられない動画形式です。受付可能: %{list}"
       uploading: "アップロード中..."
@@ -314,12 +318,12 @@ ja:
     # Image picker dialog
     image_picker:
       title: "画像を挿入"
-      tab_drop: "ドロップ"
+      tab_drop: "アップロード"
       drop_hint: "ここに画像をドラッグ＆ドロップ"
       drop_rejected: "%{name}: %{ext} は受け付けられない画像形式です。受付可能: %{list}"
       processing_image_paste: "画像を処理中..."
       processing_image: "画像を処理中..."
-      tab_local: "ローカル"
+      tab_local: "ライブラリ"
       tab_folder: "フォルダ"
       tab_web: "Web検索"
       tab_google: "Google"
@@ -696,3 +700,18 @@ ja:
     folder_deleted: "フォルダを削除しました"
     folder_renamed: "フォルダの名前を変更しました"
     settings_saved: "設定を保存しました"
+
+  media_storage:
+    recovery_title: "アップロード先を変更しました"
+    recovered: "S3 が利用できなくなったため、アップロード先をローカルに変更しました。"
+    retry_local: "S3 が利用できません。アップロード先をローカルに変更しました。もう一度アップロードしてください。"
+    not_configured: "このプロバイダーは設定されていません。"
+    label: "新しいメディアの保存先"
+    local: "ローカル"
+    s3: "S3"
+    save_failed: "保存先を保存できませんでした。以前の選択が引き続き有効です。"
+    load_failed: "保存先を読み込めませんでした。"
+    save_copy: "選択中の保存先にコピーを保存"
+    collection: "コレクション"
+    managed_images: "ノートの画像"
+    server_images: "サーバーの画像フォルダー"

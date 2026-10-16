@@ -12,7 +12,7 @@ import { normalizeLineNumberMode } from "lib/line_numbers"
 // available before it opens.
 
 export default class extends Controller {
-  static outlets = ["codemirror", "preview"]
+  static outlets = ["codemirror", "preview", "media-storage"]
 
   static targets = [
     "navButton",
@@ -261,6 +261,7 @@ export default class extends Controller {
       if (!response.ok) return
 
       const data = await response.json
+      if (this.hasMediaStorageOutlet) await this.mediaStorageOutlet.refresh(data.media_storage_fallback)
       const settings = data?.settings || {}
       this.assignIfChanged("fontValue", settings.editor_font)
       this.assignIfChanged("fontSizeValue", settings.editor_font_size, Number)
@@ -329,6 +330,7 @@ export default class extends Controller {
   openDialog() {
     if (this.isDialogOpen) return false
 
+    if (this.hasMediaStorageOutlet) this.mediaStorageOutlet.refresh()
     this.syncControls()
     this.element.showModal()
     this.navButtonTargets[0]?.focus()

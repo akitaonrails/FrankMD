@@ -255,9 +255,9 @@ describe("WebImageSource", () => {
         json: () => Promise.resolve({ url: "https://s3.example.com/uploaded.jpg" })
       })
 
-      const result = await source.uploadToS3("https://example.com/image.jpg", "0.5")
+      const result = await source.saveCopy("https://example.com/image.jpg", "0.5")
 
-      expect(global.fetch).toHaveBeenCalledWith("/images/upload_external_to_s3", expect.objectContaining({
+      expect(global.fetch).toHaveBeenCalledWith("/images/import", expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
           "Content-Type": "application/json",
@@ -274,7 +274,7 @@ describe("WebImageSource", () => {
         json: () => Promise.resolve({ error: "Image too large" })
       })
 
-      await expect(source.uploadToS3("https://example.com/big.jpg", ""))
+      await expect(source.saveCopy("https://example.com/big.jpg", ""))
         .rejects.toThrow("Image too large")
     })
 
@@ -284,7 +284,7 @@ describe("WebImageSource", () => {
         json: () => Promise.resolve({})
       })
 
-      await expect(source.uploadToS3("https://example.com/image.jpg", ""))
+      await expect(source.saveCopy("https://example.com/image.jpg", ""))
         .rejects.toThrow("Failed to upload to S3")
     })
   })

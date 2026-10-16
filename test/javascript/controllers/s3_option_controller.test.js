@@ -1,6 +1,6 @@
+/** @vitest-environment jsdom */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { Application } from "@hotwired/stimulus"
-import { setupJsdomGlobals } from "../helpers/jsdom_globals.js"
 import S3OptionController from "../../../app/javascript/controllers/s3_option_controller.js"
 
 describe("S3OptionController", () => {
@@ -9,8 +9,6 @@ describe("S3OptionController", () => {
   let element
 
   beforeEach(() => {
-    setupJsdomGlobals()
-
     document.body.innerHTML = `
       <div data-controller="s3-option" data-s3-option-key-mode-value="full">
         <input type="checkbox" data-s3-option-target="checkbox" />
@@ -41,6 +39,7 @@ describe("S3OptionController", () => {
   })
 
   afterEach(() => {
+    application.unload("s3-option")
     application.stop()
     vi.restoreAllMocks()
   })
@@ -190,8 +189,6 @@ describe("S3OptionController without targets", () => {
   let element
 
   beforeEach(() => {
-    setupJsdomGlobals()
-
     document.body.innerHTML = `
       <div data-controller="s3-option">
       </div>
@@ -210,6 +207,7 @@ describe("S3OptionController without targets", () => {
   })
 
   afterEach(() => {
+    application.unload("s3-option")
     application.stop()
   })
 

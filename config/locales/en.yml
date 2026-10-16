@@ -74,6 +74,10 @@ en:
     insert: "Insert"
     copy_path: "Copy relative path"
     delete: "Delete"
+    rename: "Rename"
+    rename_prompt: "New media filename"
+    rename_failed: "Could not rename this media file."
+    renamed: "Media file renamed. Existing note references may need updating."
     copied: "Relative path copied."
     copy_failed: "Could not copy the relative path."
     delete_confirm: "Delete %{name}? Existing note references will stop working."
@@ -286,7 +290,7 @@ en:
     # Video dialog
     video:
       title: "Insert Video"
-      tab_drop: "Drop"
+      tab_drop: "Upload"
       tab_url: "URL / File"
       tab_search: "YouTube Search"
       drop_hint: "Drag & drop a video file here"
@@ -315,8 +319,8 @@ en:
     # Image picker dialog
     image_picker:
       title: "Insert Image"
-      tab_drop: "Drop"
-      tab_local: "Local"
+      tab_drop: "Upload"
+      tab_local: "Library"
       tab_folder: "Folder"
       tab_web: "Web Search"
       tab_google: "Google"
@@ -698,3 +702,18 @@ en:
     folder_deleted: "Folder deleted"
     folder_renamed: "Folder renamed"
     settings_saved: "Settings saved"
+
+  media_storage:
+    recovery_title: "Upload storage changed"
+    recovered: "S3 is no longer available. Your upload provider has been switched to Local."
+    retry_local: "S3 is no longer available. The upload provider is now Local. Please retry the upload."
+    not_configured: "This provider is not configured."
+    label: "Storage for new media"
+    local: "Local"
+    s3: "S3"
+    save_failed: "Could not save the storage provider. The previous selection is still active."
+    load_failed: "Could not load the storage provider."
+    save_copy: "Save a copy in the active storage"
+    collection: "Collection"
+    managed_images: "Note images"
+    server_images: "Server image folder"

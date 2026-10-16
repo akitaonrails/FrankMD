@@ -30,6 +30,7 @@ Rails.application.routes.draw do
   post "images/upload_to_s3", to: "images#upload_to_s3"
   post "images/upload_external_to_s3", to: "images#upload_external_to_s3"
   post "images/upload_base64", to: "images#upload_base64"
+  post "images/import", to: "images#import"
   get "images/search_web", to: "images#search_web"
   get "images/search_google", to: "images#search_google"
   get "images/search_pinterest", to: "images#search_pinterest"
@@ -38,8 +39,10 @@ Rails.application.routes.draw do
   post "media/upload", to: "media#upload"
 
   # Local media Library
+  get "library/picker", to: "library#picker"
   get "library/usage", to: "library#usage"
   get "library", to: "library#index"
+  patch "library/file/*path", to: "library#rename", as: :rename_library_file, format: false
   delete "library/file/*path", to: "library#destroy", as: :library_file, format: false
 
   # YouTube API

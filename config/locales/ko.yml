@@ -74,6 +74,10 @@ ko:
     insert: "삽입"
     copy_path: "상대 경로 복사"
     delete: "삭제"
+    rename: "이름 바꾸기"
+    rename_prompt: "새 미디어 파일 이름"
+    rename_failed: "미디어 파일 이름을 바꿀 수 없습니다."
+    renamed: "미디어 파일 이름을 바꿨습니다. 노트의 참조를 업데이트해야 할 수 있습니다."
     copied: "상대 경로가 복사되었습니다."
     copy_failed: "상대 경로를 복사할 수 없습니다."
     delete_confirm: "%{name}을(를) 삭제할까요? 기존 노트의 참조가 더 이상 작동하지 않습니다."
@@ -285,7 +289,7 @@ ko:
     # 동영상 다이얼로그
     video:
       title: "동영상 삽입"
-      tab_drop: "드롭"
+      tab_drop: "업로드"
       drop_hint: "여기에 동영상 파일을 끌어다 놓으세요"
       drop_rejected: "%{name}: %{ext}은(는) 허용되지 않는 동영상 형식입니다. 허용: %{list}"
       uploading: "업로드 중..."
@@ -314,12 +318,12 @@ ko:
     # 이미지 선택 다이얼로그
     image_picker:
       title: "이미지 삽입"
-      tab_drop: "드롭"
+      tab_drop: "업로드"
       drop_hint: "여기에 이미지를 끌어다 놓으세요"
       drop_rejected: "%{name}: %{ext}은(는) 허용되지 않는 이미지 형식입니다. 허용: %{list}"
       processing_image_paste: "이미지 처리 중..."
       processing_image: "이미지 처리 중..."
-      tab_local: "로컬"
+      tab_local: "라이브러리"
       tab_folder: "폴더"
       tab_web: "웹 검색"
       tab_google: "Google"
@@ -696,3 +700,18 @@ ko:
     folder_deleted: "폴더가 삭제되었습니다"
     folder_renamed: "폴더 이름이 변경되었습니다"
     settings_saved: "설정이 저장되었습니다"
+
+  media_storage:
+    recovery_title: "업로드 저장 위치 변경"
+    recovered: "S3를 더 이상 사용할 수 없어 업로드 저장 위치가 로컬로 변경되었습니다."
+    retry_local: "S3를 더 이상 사용할 수 없습니다. 업로드 저장 위치가 로컬로 변경되었습니다. 다시 업로드해 주세요."
+    not_configured: "이 공급자가 구성되지 않았습니다."
+    label: "새 미디어 저장 위치"
+    local: "로컬"
+    s3: "S3"
+    save_failed: "저장 위치를 저장하지 못했습니다. 이전 선택이 유지됩니다."
+    load_failed: "저장 위치를 불러오지 못했습니다."
+    save_copy: "현재 저장 위치에 사본 저장"
+    collection: "모음"
+    managed_images: "노트 이미지"
+    server_images: "서버 이미지 폴더"
