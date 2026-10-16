@@ -17,12 +17,7 @@ class ImagesService
     end
 
     def s3_enabled?
-      cfg = Config.new
-      [
-        cfg.get("aws_access_key_id"),
-        cfg.get("aws_secret_access_key"),
-        cfg.get("aws_s3_bucket")
-      ].all?(&:present?)
+      UploadStorage.s3_configured?(Config.new)
     end
 
     def images_path

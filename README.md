@@ -458,7 +458,7 @@ The image picker's **Upload** tab accepts new files. Its **Library** tab browses
 - **Note images**: managed files under `NOTES_PATH/images`, shown by default.
 - **Server image folder**: existing images under `images_path` / `IMAGES_PATH`, available when configured.
 
-Inserting an existing Library image keeps its existing reference even when S3 is active. The main Library continues to manage local images and videos. Browsing, deleting, and renaming S3 objects are not supported by this change.
+Inserting an existing picker Library image keeps its existing reference even when S3 is active. The main Media Library follows the active provider: Local shows managed files under `NOTES_PATH`, while S3 shows supported media below the FrankMD-owned `frankmd/` object prefix. S3 objects can be previewed, inserted, deleted, and renamed in place. Objects saved under a custom key outside `frankmd/` remain outside the managed Library so FrankMD cannot expose or delete unrelated bucket content. Renaming or deleting an object can invalidate existing note references; S3 URL usage cannot be determined locally, so the Library reports it as unknown.
 
 For API clients, upload endpoints use the persisted provider when `upload_to_s3` is omitted. A legacy flag that conflicts with that provider returns a validation error. `POST /images/import` saves exactly one `url` or configured server-image `path` to the active provider, with optional `resize`, `s3_key`, and `s3_prefix` parameters. The older S3-specific upload endpoints require S3 to be the active provider.
 

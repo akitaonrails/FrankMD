@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class LibraryController < ApplicationController
+  include MediaStorageRecovery
   # GET /library/picker
   def picker
     result = ImageLibraryService.new.list(
@@ -17,7 +18,7 @@ class LibraryController < ApplicationController
 
   # GET /library
   def index
-    render json: MediaLibraryService.new.list
+    render json: media_library.list
   end
 
   # GET /library/usage
@@ -36,7 +37,7 @@ class LibraryController < ApplicationController
 
   # DELETE /library/file/*path
   def destroy
-    if MediaLibraryService.new.delete(params[:path])
+    if media_library.delete(params[:path])
       head :no_content
     else
       render json: { error: t("library.media_not_found") }, status: :not_found
@@ -44,5 +45,28 @@ class LibraryController < ApplicationController
   rescue SystemCallError => e
     Rails.logger.error "Library media deletion failed: #{e.class} - #{e.message}"
     render json: { error: t("library.delete_failed") }, status: :unprocessable_entity
+  end
+
+  # PATCH /library/file/*path
+  def rename
+    result = media_library.respond_to?(:rename) && media_library.rename(params[:path], params[:name])
+    if result
+      render json: result
+    else
+      render json: { error: t("library.rename_failed") }, status: :unprocessable_entity
+    end
+  rescue SystemCallError, Aws::S3::Errors::ServiceError => e
+    Rails.logger.error "Library media rename failed: #{e.class} - #{e.message}"
+    render json: { error: t("library.rename_failed") }, status: :unprocessable_entity
+  end
+
+  private
+
+  def media_library
+    @media_library ||= begin
+      config = Config.new
+      recover_media_storage(config)
+      config.get("media_storage_provider") == "s3" ? S3MediaLibraryService.new(config: config) : MediaLibraryService.new(config: config)
+    end
   end
 end

@@ -42,6 +42,7 @@ Rails.application.routes.draw do
   get "library/picker", to: "library#picker"
   get "library/usage", to: "library#usage"
   get "library", to: "library#index"
+  patch "library/file/*path", to: "library#rename", as: :rename_library_file, format: false
   delete "library/file/*path", to: "library#destroy", as: :library_file, format: false
 
   # YouTube API

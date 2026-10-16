@@ -3,12 +3,12 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Application } from "@hotwired/stimulus"
-import { destroy, get } from "@rails/request.js"
-import { appConfirm } from "lib/app_prompt"
+import { destroy, get, patch } from "@rails/request.js"
+import { appConfirm, appTextPrompt } from "lib/app_prompt"
 import LibraryController from "../../../app/javascript/controllers/library_controller.js"
 
-vi.mock("@rails/request.js", () => ({ destroy: vi.fn(), get: vi.fn() }))
-vi.mock("lib/app_prompt", () => ({ appConfirm: vi.fn().mockResolvedValue(true) }))
+vi.mock("@rails/request.js", () => ({ destroy: vi.fn(), get: vi.fn(), patch: vi.fn() }))
+vi.mock("lib/app_prompt", () => ({ appConfirm: vi.fn().mockResolvedValue(true), appTextPrompt: vi.fn() }))
 
 const photo = {
   name: "photo one.png",
@@ -72,6 +72,7 @@ describe("LibraryController", () => {
     }
     get.mockResolvedValue(mediaResponse())
     destroy.mockResolvedValue({ ok: true })
+    patch.mockResolvedValue({ ok: true, json: Promise.resolve({}) })
     appConfirm.mockResolvedValue(true)
 
     document.body.innerHTML = `
@@ -390,6 +391,44 @@ describe("LibraryController", () => {
 
     await vi.waitFor(() => expect(appConfirm).toHaveBeenCalled())
     expect(destroy).not.toHaveBeenCalled()
+  })
+
+  it("renders S3 media with remote URLs and renames only managed objects", async () => {
+    const s3Photo = {
+      ...photo,
+      provider: "s3",
+      path: "frankmd/2026/photo.png",
+      url: "https://bucket.example/frankmd/2026/photo.png"
+    }
+    get.mockResolvedValueOnce(mediaResponse([s3Photo], []))
+    await controller.load()
+
+    expect(controller.gridTarget.querySelector("img").getAttribute("src")).toBe(s3Photo.url)
+    expect(controller.gridTarget.querySelector("[data-library-usage-label]").dataset.usageState).toBe("unknown")
+    appTextPrompt.mockResolvedValueOnce("renamed.png")
+    patch.mockResolvedValueOnce({ ok: true, json: Promise.resolve({
+      name: "renamed.png", path: "frankmd/2026/renamed.png", url: "https://bucket.example/frankmd/2026/renamed.png"
+    }) })
+
+    controller.gridTarget.querySelector('[data-action="click->library#renameItem"]').click()
+    await vi.waitFor(() => expect(patch).toHaveBeenCalledWith(
+      "/library/file/frankmd/2026/photo.png",
+      { body: { name: "renamed.png" }, responseKind: "json" }
+    ))
+    expect(controller.items[0].path).toBe("frankmd/2026/renamed.png")
+    expect(controller.gridTarget.textContent).toContain("renamed.png")
+  })
+
+  it("rejects malformed or foreign S3 items before rendering", async () => {
+    get.mockResolvedValueOnce(mediaResponse([
+      { ...photo, provider: "s3", path: "foreign/photo.png", url: "https://bucket.example/foreign/photo.png" },
+      { ...photo, provider: "s3", path: "frankmd/../photo.png", url: "https://bucket.example/photo.png" },
+      { ...photo, provider: "s3", path: "frankmd/photo.png", url: "javascript:alert(1)" }
+    ], []))
+    await controller.load()
+
+    expect(controller.items).toEqual([])
+    expect(controller.gridTarget.textContent).toBe("library.empty")
   })
 
   it("closes the preview after the app confirms a successful insertion request", () => {

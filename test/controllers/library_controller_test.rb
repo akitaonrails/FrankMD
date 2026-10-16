@@ -161,6 +161,34 @@ class LibraryControllerTest < ActionDispatch::IntegrationTest
     assert_equal I18n.t("library.delete_failed"), JSON.parse(response.body)["error"]
   end
 
+  test "S3 provider routes listing, deletion, and rename through the scoped S3 library" do
+    @config.stubs(:get).with("media_storage_provider").returns("s3")
+    @config.stubs(:feature_available?).with(:s3_upload).returns(true)
+    service = mock("s3 library")
+    service.expects(:list).returns(images: [], videos: [])
+    service.expects(:delete).with("frankmd/2026/photo.png").returns(true)
+    service.expects(:rename).with("frankmd/2026/photo.png", "renamed.png")
+      .returns(name: "renamed.png", path: "frankmd/2026/renamed.png", url: "https://bucket.example/frankmd/2026/renamed.png")
+    S3MediaLibraryService.expects(:new).times(3).with(config: @config).returns(service)
+
+    get "/library", as: :json
+    assert_response :success
+    delete "/library/file/frankmd/2026/photo.png", as: :json
+    assert_response :no_content
+    patch "/library/file/frankmd/2026/photo.png", params: { name: "renamed.png" }, as: :json
+    assert_response :success
+    assert_equal "frankmd/2026/renamed.png", response.parsed_body["path"]
+  end
+
+  test "local provider rejects rename without changing the file" do
+    path = write_media("images/photo.png", "image")
+
+    patch "/library/file/images/photo.png", params: { name: "renamed.png" }, as: :json
+
+    assert_response :unprocessable_entity
+    assert path.exist?
+  end
+
   private
 
   def write_media(relative_path, contents)

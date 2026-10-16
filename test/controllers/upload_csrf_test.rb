@@ -48,4 +48,9 @@ class UploadCsrfTest < ActionDispatch::IntegrationTest
         "#{path} must enforce CSRF protection"
     end
   end
+
+  test "/library/file rejects a PATCH without a CSRF token" do
+    patch "/library/file/frankmd/example.png", params: { name: "renamed.png" }
+    assert_response :unprocessable_entity
+  end
 end
