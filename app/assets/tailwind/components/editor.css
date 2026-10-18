@@ -194,7 +194,6 @@ body.single-view-mode [data-app-target="previewPanel"] {
   background: var(--theme-bg-secondary);
   border: 1px solid var(--theme-border);
   border-radius: .5rem;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--theme-text-primary) 12%, transparent);
 }
 .workspace-pinned-controls { display: flex; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .workspace-pinned-controls > div { flex: none; }
