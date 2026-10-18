@@ -227,7 +227,8 @@ body.single-view-mode [data-app-target="previewPanel"] {
   color: var(--theme-text-faint);
 }
 .workspace-menu-pin[aria-checked="true"] { color: var(--theme-text-primary); }
-.workspace-menu-pin[aria-checked="true"] svg { fill: currentColor; }
+.workspace-menu-pin svg { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
+.workspace-menu-pin[aria-checked="true"] svg { fill: currentColor; stroke: none; }
 .workspace-menu-pin:hover { color: var(--theme-accent); }
 .workspace-menu svg { width: 1rem; height: 1rem; flex: none; }
 .workspace-sidebar {
