@@ -38,6 +38,9 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[data-app-target='settingsToggle']", count: 1
     assert_select ".workspace-navigation button[data-app-target='libraryToggle'][aria-label]"
     assert_select ".workspace-navigation button[data-app-target='settingsToggle'][aria-label]"
+    assert_select ".workspace-navigation button svg[width='20'][height='20']", count: 2
+    assert_select ".workspace-navigation button span", count: 0
+    assert_select "button[data-app-target='settingsToggle'][aria-pressed]", count: 0
     assert_select ".workspace-main > header button[data-app-target='documentTitle'][disabled][data-action='click->app#renameCurrentNote']"
     assert_select ".workspace-title-container input[type='text'][data-app-target='titleInput'].hidden[aria-label][aria-describedby='workspace-title-hint workspace-title-error']"
     assert_select "#workspace-title-hint", text: I18n.t("header.rename_document_hint")
@@ -51,12 +54,18 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select "header [data-workspace-pinned-action]", count: 10
     assert_select "header [data-workspace-pinned-action][data-pinned='true']", count: 3
     assert_select "main [data-app-target='editorToolbar']", count: 0
-    assert_select ".workspace-sidebar > header button[aria-controls='workspace-explorer']"
+    assert_select ".workspace-sidebar #workspace-explorer > div:first-child[data-app-target='fileTree']"
+    assert_select ".workspace-sidebar #workspace-explorer", text: /FrankMD v\d+/, count: 0
+    %w[newNote newFolder openFileFinder openContentSearch].each do |action|
+      assert_select ".workspace-main > header .workspace-global-actions button[data-action='click->app##{action}']", count: 1
+    end
     assert_select ".workspace-sidebar > header .workspace-brand" do
       assert_select "img[src='/icon.svg']"
       assert_select "span", text: "FrankMD"
     end
-    assert_select ".workspace-main > header [data-app-target='sidebarToggle']", count: 0
+    assert_select ".workspace-main > header .workspace-explorer-actions > button[data-app-target='sidebarToggle']", count: 1
+    assert_select ".workspace-sidebar [data-app-target='sidebarToggle']", count: 0
+    assert_select "#settings-dialog [data-settings-target='statsToggle'][aria-pressed='false'][aria-label]"
   end
 
   test "General settings renders the shared storage menu" do

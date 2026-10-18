@@ -8,7 +8,9 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # Disable parallelization for system tests to avoid race conditions
   parallelize(workers: 1)
 
-  driven_by :selenium, using: :headless_chrome, screen_size: [ 1400, 900 ]
+  driven_by :selenium, using: :headless_chrome, screen_size: [ 1400, 900 ] do |options|
+    options.add_argument("--no-sandbox") if ENV["CHROME_NO_SANDBOX"] == "1"
+  end
 
   # Increase default wait time for slower CI environments
   Capybara.default_max_wait_time = 5

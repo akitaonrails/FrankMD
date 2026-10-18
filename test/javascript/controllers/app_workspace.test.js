@@ -19,14 +19,16 @@ describe("workspace chrome", () => {
     window.t = key => key
     document.body.innerHTML = `<div data-controller="app" data-action="click@document->app#onWorkspaceOutsideClick keydown@document->app#onWorkspaceKeydown">
       <aside data-app-target="sidebar">
-        <header><button data-app-target="sidebarToggle" data-action="click->app#toggleSidebar"></button><button>FrankMD</button></header>
-        <div data-app-target="explorerPanel"><button>New note</button></div><button data-app-target="libraryToggle">Library</button><button data-app-target="settingsToggle">Settings</button>
+        <header><div>FrankMD</div></header>
+        <div data-app-target="explorerPanel"><button tabindex="0">New note</button></div><nav><button data-app-target="libraryToggle">Library</button><button data-app-target="settingsToggle">Settings</button></nav>
       </aside>
       <div data-workspace-main><header>
-      <button data-app-target="documentTitle" data-action="click->app#renameCurrentNote"></button>
+      <div class="workspace-document"><button data-app-target="documentTitle" data-action="click->app#renameCurrentNote"></button>
       <input data-app-target="titleInput" class="hidden" data-action="keydown->app#onTitleRenameKeydown input->app#onTitleRenameInput blur->app#cancelTitleRename">
-      <p data-app-target="titleRenameError" class="hidden" role="alert"></p>
-      <div data-app-target="editorToolbar"></div><button data-app-target="previewToggle"></button>
+      <p data-app-target="titleRenameError" class="hidden" role="alert"></p></div>
+      <div class="workspace-toolbar" data-app-target="editorToolbar"></div><button data-app-target="previewToggle"></button>
+      <div class="workspace-global-actions"><button>New note</button></div>
+      <button data-app-target="sidebarToggle" data-action="click->app#toggleSidebar"></button>
       <div data-app-target="overflowContainer" data-action="keydown->app#navigateWorkspaceMenu">
         <button data-app-target="overflowToggle" data-action="click->app#toggleWorkspaceMenu"></button>
         <div data-app-target="overflowMenu" class="hidden">
@@ -39,7 +41,7 @@ describe("workspace chrome", () => {
       </div>
       <button data-app-target="sidebarBackdrop" class="hidden"></button>
       </header>
-      <main data-app-target="editorPanel"></main><aside data-app-target="previewPanel" class="hidden"></aside><section data-app-target="libraryPanel" class="hidden"></section></div>
+      <div data-workspace-panels><main data-app-target="editorPanel"></main><aside data-app-target="previewPanel" class="hidden"></aside><section data-app-target="libraryPanel" class="hidden"></section></div></div>
     </div>`
     application = Application.start()
     application.register("app", WorkspaceController)
@@ -237,6 +239,30 @@ describe("workspace chrome", () => {
     expect(app.getCodemirrorController().refreshTypewriterLayout).toHaveBeenCalled()
   })
 
+  it("shows persisted Stats when Settings connects after the note", () => {
+    const stats = { show: vi.fn(), hide: vi.fn(), update: vi.fn() }
+    vi.spyOn(app, "getStatsPanelController").mockReturnValue(stats)
+    vi.spyOn(app, "getSettingsController").mockReturnValue({ showStatsEnabled: true })
+    app.getCodemirrorController.mockReturnValue({ getValue: () => "Three words here", getCursorInfo: () => ({ line: 1 }) })
+    vi.spyOn(app, "initializeTypewriterMode").mockImplementation(() => {})
+    app._initializationReady = true
+
+    app.settingsOutletConnected()
+
+    expect(stats.show).toHaveBeenCalledOnce()
+    expect(stats.update).toHaveBeenCalledOnce()
+  })
+
+  it("restores the title when its display controller connects after the note", () => {
+    const pathDisplay = { update: vi.fn() }
+    vi.spyOn(app, "getPathDisplayController").mockReturnValue(pathDisplay)
+    app._initializationReady = true
+
+    app.pathDisplayOutletConnected()
+
+    expect(pathDisplay.update).toHaveBeenCalledWith("folder/note.md")
+  })
+
   it("opens the mobile overlay, contains focus, and closes it with Escape", () => {
     app.mobileWorkspace = true
     app.sidebarVisible = false
@@ -244,13 +270,16 @@ describe("workspace chrome", () => {
     target("sidebarToggle").click()
     expect(target("sidebar").classList.contains("is-overlay")).toBe(true)
     expect(target("sidebarBackdrop").classList.contains("hidden")).toBe(false)
-    expect(target("documentTitle").closest("[data-workspace-main]").inert).toBe(true)
-    target("settingsToggle").focus()
-    key(target("settingsToggle"), "Tab")
-    expect(document.activeElement).toBe(target("sidebarToggle"))
+    expect(target("documentTitle").closest(".workspace-document").inert).toBe(true)
+    expect(root.querySelector(".workspace-global-actions").inert).toBe(true)
+    expect(root.querySelector("[data-workspace-panels]").inert).toBe(true)
+    expect(target("sidebarToggle").closest("[inert]")).toBeNull()
+    target("sidebarToggle").focus()
+    key(target("sidebarToggle"), "Tab")
+    expect(document.activeElement).toBe(target("explorerPanel").querySelector("button"))
     key(target("sidebarToggle"), "Escape")
     expect(target("sidebar").classList.contains("is-overlay")).toBe(false)
-    expect(target("documentTitle").closest("[data-workspace-main]").inert).toBe(false)
+    expect(root.querySelector("[data-workspace-panels]").inert).toBe(false)
     expect(document.activeElement).toBe(target("sidebarToggle"))
   })
 

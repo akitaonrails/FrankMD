@@ -14,11 +14,13 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "[data-app-target='currentPath']", text: I18n.t("editor.select_note"), wait: 6
   end
 
-  test "sidebar owns the brand and toggle while the editor owns the document header" do
+  test "sidebar owns the brand and main header owns the document and actions" do
     create_test_note("headers.md", "# Separate headers")
     visit note_url(path: "headers.md")
     assert_selector ".workspace-sidebar > header .workspace-brand span", text: "FrankMD"
-    assert_selector ".workspace-sidebar > header [data-app-target='sidebarToggle']"
+    assert_no_selector ".workspace-sidebar > header [data-app-target='sidebarToggle']"
+    assert_selector ".workspace-main > header .workspace-global-actions button", count: 4
+    assert_selector ".workspace-main > header [data-app-target='sidebarToggle']"
     assert_selector ".workspace-main > header [data-app-target='currentPath']", text: "headers"
     assert page.evaluate_script(<<~JS)
       (() => {
@@ -257,8 +259,8 @@ class WorkspaceTest < ApplicationSystemTestCase
       File.write(@test_notes_dir.join(".fed"), "theme = #{theme}\n")
       page.current_window.resize_to(width, height)
       visit note_url(path: path, locale: locale)
-      assert_selector ".cm-content"
-      assert_selector "[data-app-target='currentPath']", text: "a-document-with-a-very-long-name"
+      assert_selector ".cm-content", text: "Document text stays below the header.", wait: 10
+      assert_selector "[data-app-target='currentPath']", text: "a-document-with-a-very-long-name", wait: 10
       page.execute_script("document.documentElement.dir = 'rtl'") if locale == "he"
       assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
       assert page.evaluate_script(<<~JS)
@@ -298,7 +300,9 @@ class WorkspaceTest < ApplicationSystemTestCase
     find("[data-app-target='sidebarToggle']").click
     assert_selector ".workspace-sidebar.is-overlay"
     assert_selector ".workspace-sidebar-header .workspace-brand span", text: "FrankMD"
-    assert_selector "[data-workspace-main][inert]"
+    assert_selector "[data-workspace-panels][inert]"
+    assert_selector ".workspace-global-actions[inert]"
+    assert_nil page.evaluate_script("document.querySelector('[data-app-target=sidebarToggle]').closest('[inert]')")
     find("[data-path='mobile.md'][data-type='file']").click
     assert_selector ".workspace-sidebar.is-collapsed"
     assert_selector ".cm-content", text: "Mobile"
@@ -316,5 +320,26 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert page.evaluate_script("document.querySelector('#workspace-menu').getBoundingClientRect().right <= window.innerWidth")
   ensure
     page.current_window.resize_to(1400, 900)
+  end
+
+  test "Stats starts hidden and can be enabled in Settings" do
+    create_test_note("stats.md", "Three words here")
+    visit note_url(path: "stats.md")
+    assert_selector ".cm-content", text: "Three words here"
+    assert_no_selector "[data-app-target='statsPanel']", visible: true
+
+    find("[data-app-target='settingsToggle']").click
+    find("#settings-dialog [data-settings-target='navButton'][data-category='editor']").click
+    find("#settings-dialog [data-settings-target='statsToggle']").click
+    assert_selector "#settings-dialog [data-settings-target='statsToggle'][aria-pressed='true']"
+    find("#settings-dialog [data-action='click->settings#closeSettings']").click
+    assert_selector "[data-app-target='statsPanel']", visible: true
+    assert_selector "[data-stats-panel-target='words']", text: "3"
+    Timeout.timeout(5) do
+      sleep 0.05 until Config.new(base_path: @test_notes_dir).get(:show_stats)
+    end
+
+    visit note_url(path: "stats.md")
+    assert_selector "[data-app-target='statsPanel']", visible: true
   end
 end

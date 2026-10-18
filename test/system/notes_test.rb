@@ -209,6 +209,7 @@ class NotesTest < ApplicationSystemTestCase
     create_test_note("settings-preview.md", "# Settings Preview")
     visit root_url
     find("[data-path='settings-preview.md'][data-type='file']").click
+    assert_selector "[data-app-target='currentPath']", text: "settings-preview"
 
     find("[data-app-target='previewToggle']").click
     assert_selector "[data-app-target='previewPanel']:not(.hidden)"
@@ -216,7 +217,7 @@ class NotesTest < ApplicationSystemTestCase
 
     find("button[title='Open Settings']").click
     assert_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
-    assert_equal "true", find("[data-app-target='settingsToggle']")["aria-pressed"]
+    assert_nil find("[data-app-target='settingsToggle']")["aria-pressed"]
     assert_selector "[data-app-target='previewPanel']:not(.hidden)"
 
     # Get initial theme text
@@ -245,7 +246,7 @@ class NotesTest < ApplicationSystemTestCase
 
     find("dialog[open] [data-action='click->settings#closeSettings']").click
     assert_no_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
-    assert_selector "[data-app-target='settingsToggle'][aria-pressed='false']"
+    assert_selector "[data-app-target='settingsToggle']:not([aria-pressed])"
     assert_equal "true", find("[data-app-target='previewToggle']")["aria-pressed"]
     assert_selector "[data-app-target='previewPanel']:not(.hidden)"
 
@@ -258,7 +259,7 @@ class NotesTest < ApplicationSystemTestCase
     assert_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
     find("dialog[open]").send_keys(:escape)
     assert_no_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
-    assert_selector "[data-app-target='settingsToggle'][aria-pressed='false']"
+    assert_selector "[data-app-target='settingsToggle']:not([aria-pressed])"
     assert_equal "true", find("[data-app-target='previewToggle']")["aria-pressed"]
     assert_selector "[data-app-target='previewPanel']:not(.hidden)"
   end

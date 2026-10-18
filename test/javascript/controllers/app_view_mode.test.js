@@ -14,7 +14,7 @@ function makeViewModeApp() {
     <aside data-app-target="previewPanel" class="hidden"></aside>
     <section data-app-target="libraryPanel" class="hidden"></section>
     <dialog data-app-target="settingsDialog"></dialog>
-    <button data-app-target="settingsToggle" aria-pressed="false"></button>
+    <button data-app-target="settingsToggle"></button>
   `
   document.body.replaceChildren(element)
 
@@ -44,9 +44,12 @@ function makeViewModeApp() {
   const settingsController = {
     viewMode: "split",
     isDialogOpen: false,
-    toggleDialog() {
-      this.isDialogOpen = !this.isDialogOpen
-      return this.isDialogOpen
+    openDialog() {
+      this.isDialogOpen = true
+      return true
+    },
+    closeSettings() {
+      this.isDialogOpen = false
     }
   }
   Object.assign(app, {
@@ -172,13 +175,13 @@ describe("AppController document view mode", () => {
     app.switchSinglePane()
     previewController.hide.mockClear()
 
-    app.toggleSettings()
+    app.openSettings()
 
     expect(settingsController.isDialogOpen).toBe(true)
     expect(previewController.isVisible).toBe(true)
     expect(editorPanel.classList.contains("hidden")).toBe(true)
 
-    app.toggleSettings()
+    settingsController.closeSettings()
 
     expect(previewController.hide).not.toHaveBeenCalled()
     expect(previewPanel.classList.contains("hidden")).toBe(false)
@@ -189,7 +192,7 @@ describe("AppController document view mode", () => {
     const { app, element, previewController, settingsController } = makeViewModeApp()
     const editorPanel = element.querySelector('[data-app-target="editorPanel"]')
     previewController.show()
-    app.toggleSettings()
+    app.openSettings()
     expect(settingsController.isDialogOpen).toBe(true)
     previewController.hide.mockClear()
 
