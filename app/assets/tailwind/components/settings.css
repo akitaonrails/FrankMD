@@ -121,8 +121,7 @@
   box-shadow: 0 0 0 2px var(--theme-accent);
 }
 
-/* Header toggle active state (mirrors .library-toggle) */
-.settings-toggle[aria-pressed="true"],
+/* Preview toggle active state */
 .preview-toggle[aria-pressed="true"] {
   background: var(--theme-bg-hover);
   color: var(--theme-accent);

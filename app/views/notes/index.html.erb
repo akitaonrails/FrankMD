@@ -1,6 +1,6 @@
 <div class="h-screen w-full flex flex-col bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)]"
      data-controller="media-storage app autosave scroll-sync connection-monitor typewriter"
-     data-action="click@document->app#onWorkspaceOutsideClick keydown@document->app#onWorkspaceKeydown connection-monitor:offline->autosave#onConnectionLost connection-monitor:online->autosave#onConnectionRestored autosave:config-saved->app#onAutosaveConfigSaved autosave:offline-changed->app#onAutosaveOfflineChanged typewriter:toggled->app#onTypewriterToggled typewriter:toggled->scroll-sync#onTypewriterToggled library:insert-media->app#insertLibraryMedia library:open-note->app#openLibraryNote library:close->app#showEditorWorkspace settings:dialog-state-changed->app#onSettingsDialogStateChanged"
+     data-action="click@document->app#onWorkspaceOutsideClick keydown@document->app#onWorkspaceKeydown connection-monitor:offline->autosave#onConnectionLost connection-monitor:online->autosave#onConnectionRestored autosave:config-saved->app#onAutosaveConfigSaved autosave:offline-changed->app#onAutosaveOfflineChanged typewriter:toggled->app#onTypewriterToggled typewriter:toggled->scroll-sync#onTypewriterToggled library:insert-media->app#insertLibraryMedia library:open-note->app#openLibraryNote library:close->app#showEditorWorkspace"
      data-media-storage-fallback-value="<%= @media_storage_fallback == true %>"
      data-media-storage-provider-value="<%= @config_obj.get('media_storage_provider') %>"
      data-media-storage-s3-available-value="<%= @config_obj.feature_available?(:s3_upload) %>"
@@ -60,7 +60,7 @@
     <%= render "notes/sidebar" %>
     <div class="workspace-main" data-workspace-main>
       <%= render "notes/header" %>
-      <div class="flex-1 flex overflow-hidden min-h-0">
+      <div class="flex-1 flex overflow-hidden min-h-0" data-workspace-panels>
         <%= render "notes/editor_panel" %>
         <%= render "notes/preview_panel" %>
         <%= render "notes/library_panel" %>

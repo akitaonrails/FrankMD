@@ -29,10 +29,17 @@ export function menuMaxHeight(rect, viewportHeight, padding = VIEWPORT_PADDING) 
  * @param {HTMLElement} menu - menu container element
  * @param {number} [viewportHeight] - override for tests (defaults to innerHeight)
  */
-export function clampMenuToViewport(menu, viewportHeight = window.innerHeight) {
+export function clampMenuToViewport(menu, viewportHeight = window.innerHeight, viewportWidth = window.innerWidth) {
   if (!menu) return
+  // Measure from the CSS anchor each time, including after a resize or pin change.
+  menu.style.transform = ""
   const rect = menu.getBoundingClientRect()
   menu.style.maxHeight = menuMaxHeight(rect, viewportHeight)
+  if (Number.isFinite(rect.left) && Number.isFinite(rect.right)) {
+    const shift = rect.left < VIEWPORT_PADDING ? VIEWPORT_PADDING - rect.left :
+      rect.right > viewportWidth - VIEWPORT_PADDING ? viewportWidth - VIEWPORT_PADDING - rect.right : 0
+    if (shift) menu.style.transform = `translateX(${Math.round(shift)}px)`
+  }
 }
 
 /**

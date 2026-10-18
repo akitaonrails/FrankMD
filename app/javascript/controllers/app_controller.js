@@ -1453,7 +1453,9 @@ export default class extends Controller {
     this.sidebarVisible = !this.sidebarVisible
     this.applySidebarVisibility()
     if (this.mobileWorkspace && this.sidebarVisible) {
-      this.explorerPanelTarget.querySelector("button")?.focus()
+      const firstItem = this.explorerPanelTarget.querySelector('[tabindex="0"], button') ||
+        this.sidebarTarget.querySelector(".workspace-navigation button")
+      firstItem?.focus()
     }
   }
 
@@ -1483,7 +1485,8 @@ export default class extends Controller {
     }
     const overlayOpen = Boolean(this.mobileWorkspace && this.sidebarVisible)
     const workspace = this.context?.element?.querySelector('[data-workspace-main]')
-    if (workspace) workspace.inert = overlayOpen
+    workspace?.querySelectorAll('.workspace-document, .workspace-toolbar, .workspace-global-actions, [data-workspace-panels]')
+      .forEach(element => { element.inert = overlayOpen })
     this.getCodemirrorController?.()?.refreshTypewriterLayout?.()
   }
 
@@ -1714,7 +1717,7 @@ export default class extends Controller {
       return true
     }
     if (event.key === "Tab" && this.mobileWorkspace && this.sidebarVisible) {
-      const items = Array.from(this.sidebarTarget.querySelectorAll('button, [tabindex="0"]'))
+      const items = [...this.sidebarTarget.querySelectorAll('button, [tabindex="0"]'), this.sidebarToggleTarget]
         .filter(item => !item.disabled && !item.closest(".hidden") && item.getClientRects().length)
       const index = items.indexOf(document.activeElement)
       if ((event.shiftKey && index <= 0) || (!event.shiftKey && (index === -1 || index === items.length - 1))) {
@@ -1772,14 +1775,8 @@ export default class extends Controller {
   }
 
   // === Settings Dialog ===
-  toggleSettings() {
-    return this.getSettingsController()?.toggleDialog() ?? false
-  }
-
-  onSettingsDialogStateChanged(event) {
-    const root = this.context?.element
-    root?.querySelector('[data-app-target~="settingsToggle"]')
-      ?.setAttribute("aria-pressed", String(Boolean(event.detail?.open)))
+  openSettings() {
+    return this.getSettingsController()?.openDialog() ?? false
   }
 
   // Hide the Library pane without touching the stashed preview state.
