@@ -46,7 +46,6 @@
   .cm-editor .cm-gutters {
     background: var(--theme-bg-secondary);
     color: var(--theme-text-faint);
-    border-right: 1px solid var(--theme-border);
     font-size: 0.75rem;
   }
 

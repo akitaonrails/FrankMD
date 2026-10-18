@@ -67,8 +67,7 @@ export function createEditorTheme(options = {}) {
     ".cm-gutters": {
       backgroundColor: "var(--theme-bg-secondary)",
       color: "var(--theme-text-faint)",
-      border: "none",
-      borderRight: "1px solid var(--theme-border)"
+      border: "none"
     },
 
     ".cm-gutter": {

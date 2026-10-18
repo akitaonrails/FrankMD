@@ -135,7 +135,6 @@ body.single-view-mode [data-app-target="previewPanel"] {
   min-height: 0;
   position: relative;
   z-index: 0;
-  background: var(--theme-bg-primary);
 }
 .workspace-header {
   display: flex;
