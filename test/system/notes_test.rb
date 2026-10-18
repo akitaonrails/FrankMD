@@ -245,7 +245,7 @@ class NotesTest < ApplicationSystemTestCase
 
     find("dialog[open] [data-action='click->settings#closeSettings']").click
     assert_no_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
-    assert_equal "false", find("[data-app-target='settingsToggle']")["aria-pressed"]
+    assert_selector "[data-app-target='settingsToggle'][aria-pressed='false']"
     assert_equal "true", find("[data-app-target='previewToggle']")["aria-pressed"]
     assert_selector "[data-app-target='previewPanel']:not(.hidden)"
 
@@ -258,7 +258,7 @@ class NotesTest < ApplicationSystemTestCase
     assert_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
     find("dialog[open]").send_keys(:escape)
     assert_no_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
-    assert_equal "false", find("[data-app-target='settingsToggle']")["aria-pressed"]
+    assert_selector "[data-app-target='settingsToggle'][aria-pressed='false']"
     assert_equal "true", find("[data-app-target='previewToggle']")["aria-pressed"]
     assert_selector "[data-app-target='previewPanel']:not(.hidden)"
   end
@@ -354,12 +354,10 @@ class NotesTest < ApplicationSystemTestCase
     # Right-click and delete
     find("[data-path='to_delete.md']").right_click
 
-    # Accept the confirmation
-    accept_confirm do
-      within "[data-app-target='contextMenu']" do
-        click_button "Delete"
-      end
+    within "[data-app-target='contextMenu']" do
+      click_button "Delete"
     end
+    find('dialog[role="alertdialog"] button', text: "Delete").click
 
     # Note should be gone
     assert_no_selector "[data-path='to_delete.md']", wait: 3
@@ -387,6 +385,9 @@ class NotesTest < ApplicationSystemTestCase
 
     first_note = find("[data-path='first_selected.md'][data-type='file']")
     first_note.right_click
+    within "[data-app-target='contextMenu']" do
+      click_button "Delete"
+    end
     assert_selector 'dialog[role="alertdialog"]', text: "2 selected items"
     find('dialog[role="alertdialog"] button', text: "Delete").click
 
@@ -412,7 +413,7 @@ class NotesTest < ApplicationSystemTestCase
     refute @test_notes_dir.join("keyboard_delete.md").exist?
   end
 
-  test "selecting a folder keeps its expansion behavior and Delete removes it" do
+  test "selecting a folder keeps expansion and Delete rejects nonempty folders" do
     create_test_folder("keyboard_folder")
     create_test_note("keyboard_folder/nested.md", "Nested note")
 
@@ -427,8 +428,8 @@ class NotesTest < ApplicationSystemTestCase
     assert_selector 'dialog[role="alertdialog"]'
     find('dialog[role="alertdialog"] button', text: "Delete").click
 
-    assert_no_selector "[data-path='keyboard_folder']", wait: 3
-    refute @test_notes_dir.join("keyboard_folder").exist?
+    assert_selector 'dialog[role="alertdialog"]', text: "Folder not empty"
+    assert @test_notes_dir.join("keyboard_folder/nested.md").exist?
   end
 
   test "Delete in the editor removes text instead of deleting the selected note" do
@@ -821,6 +822,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
 
     assert_selector "dialog[open]"
     assert_selector ".image-grid-item", count: 2
@@ -836,6 +839,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
     assert_selector "dialog[open]"
 
     # Initially both images visible
@@ -858,6 +863,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
     assert_selector "dialog[open]"
 
     # Click on image
@@ -881,6 +888,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
     assert_selector "dialog[open]"
 
     # Wait for images to load then select one
@@ -910,6 +919,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
     assert_selector "dialog[open]"
 
     # Wait for images to load then select one
@@ -943,6 +954,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
     assert_selector "dialog[open]"
 
     # Wait for images to load then select one
