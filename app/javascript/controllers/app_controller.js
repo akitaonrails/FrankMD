@@ -1582,10 +1582,24 @@ export default class extends Controller {
     const markdown = Boolean(this.currentFile && this.isMarkdownFile())
     const editorVisible = !this.libraryVisible && !root.querySelector('[data-app-target~="editorPanel"]')?.classList.contains("hidden")
     const editing = markdown && editorVisible
+    const previewPanel = root.querySelector('[data-app-target~="previewPanel"]')
+    const previewVisible = markdown && !this.libraryVisible && Boolean(previewPanel && !previewPanel.classList.contains("hidden"))
+    const previewOnly = previewVisible && this.viewMode === "single" && !editing
+    const editingActionsVisible = editing || previewOnly
     const toolbar = root.querySelector('[data-app-target~="editorToolbar"]')
-    toolbar?.classList.toggle("hidden", !editing)
-    toolbar?.classList.toggle("flex", editing)
-    root.querySelectorAll("[data-workspace-editing-action]").forEach(button => { button.hidden = !editing })
+    toolbar?.classList.toggle("hidden", !editingActionsVisible)
+    toolbar?.classList.toggle("flex", editingActionsVisible)
+    const zoomControls = root.querySelector('[data-app-target~="previewZoomControls"]')
+    if (zoomControls) zoomControls.hidden = !previewVisible
+    root.querySelectorAll('.workspace-pinned-action[data-workspace-editing-action]').forEach(button => {
+      button.hidden = !editingActionsVisible
+      button.disabled = !editing || button.getAttribute("aria-busy") === "true"
+    })
+    root.querySelectorAll(".workspace-menu-row[data-workspace-editing-action]").forEach(row => {
+      row.hidden = !editingActionsVisible
+      const action = row.querySelector(".workspace-menu-action")
+      if (action) action.disabled = !editing || action.getAttribute("aria-busy") === "true"
+    })
     root.querySelectorAll("[data-workspace-document-action]").forEach(button => { button.hidden = !this.currentFile })
     root.querySelectorAll('[data-workspace-preview-action], [data-app-target~="previewToggle"]').forEach(button => {
       button.disabled = !markdown || Boolean(this.libraryVisible)
@@ -2324,6 +2338,7 @@ export default class extends Controller {
         button.removeAttribute("aria-busy")
       })
     }
+    this.updateWorkspaceChrome?.()
   }
 
   // Handle AI correction accepted event - update editor with corrected text
@@ -2358,6 +2373,7 @@ export default class extends Controller {
         previewController.setupEditorSync(this.textareaTarget)
       }
     }
+    this.updateWorkspaceChrome?.()
   }
 
   // Handle preview:toggle-task — a task checkbox was clicked in the preview

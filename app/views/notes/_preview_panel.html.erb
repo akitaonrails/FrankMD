@@ -4,37 +4,8 @@
         class="flex-none w-[40%] border-l border-[var(--theme-border)] flex-col bg-[var(--theme-bg-primary)] hidden"
         data-preview-target="panel"
         data-app-target="previewPanel">
-    <!-- Preview Header -->
-    <div class="flex-none h-10 border-b border-[var(--theme-border)] flex items-center justify-between px-4">
-      <span class="text-xs font-medium text-[var(--theme-text-muted)] uppercase tracking-wide"><%= t('preview.title') %></span>
-      <div class="flex items-center gap-1">
-        <button
-          type="button"
-          data-action="click->preview#zoomOut"
-          class="p-1 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
-          title="<%= t('preview.zoom_out') %>"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
-          </svg>
-        </button>
-        <span class="text-xs text-[var(--theme-text-muted)] min-w-[3rem] text-center"
-              data-preview-target="zoomLevel"
-              data-app-target="previewZoomLevel">100%</span>
-        <button
-          type="button"
-          data-action="click->preview#zoomIn"
-          class="p-1 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
-          title="<%= t('preview.zoom_in') %>"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
-          </svg>
-        </button>
-      </div>
-    </div>
-
     <!-- Preview Content -->
+    <span class="hidden" data-preview-target="zoomLevel" aria-hidden="true">100%</span>
     <div class="relative flex-1 overflow-y-auto p-6 prose prose-zinc dark:prose-invert prose-sm max-w-none"
          data-preview-target="content"
          data-app-target="previewContent"

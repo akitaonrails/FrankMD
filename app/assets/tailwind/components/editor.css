@@ -185,6 +185,22 @@ body.single-view-mode [data-app-target="previewPanel"] {
   border-radius: .625rem;
   background: var(--theme-bg-secondary);
 }
+.workspace-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: .125rem;
+  padding-inline-end: .25rem;
+  margin-inline-end: .25rem;
+  border-inline-end: 1px solid var(--theme-border);
+}
+.workspace-zoom-controls[hidden] { display: none; }
+.workspace-zoom-level {
+  min-width: 2.5rem;
+  text-align: center;
+  color: var(--theme-text-muted);
+  font-size: .75rem;
+  font-variant-numeric: tabular-nums;
+}
 .workspace-menu {
   position: absolute;
   inset-inline-end: 0;
@@ -215,6 +231,7 @@ body.single-view-mode [data-app-target="previewPanel"] {
   font-size: .875rem;
   border-radius: .375rem;
 }
+.workspace-menu-action:disabled { opacity: .4; cursor: not-allowed; }
 .workspace-menu-pin {
   display: inline-flex;
   align-items: center;

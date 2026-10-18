@@ -374,6 +374,9 @@ export default class extends Controller {
     if (this.hasZoomLevelTarget) {
       this.zoomLevelTarget.textContent = `${this.zoomValue}%`
     }
+    const app = this.element.closest('[data-controller~="app"]')
+    const toolbarZoomLevel = app?.querySelector('[data-app-target~="previewZoomLevel"]')
+    if (toolbarZoomLevel) toolbarZoomLevel.textContent = `${this.zoomValue}%`
   }
 
   // Called when zoom value changes
