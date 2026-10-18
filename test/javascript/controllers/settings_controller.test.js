@@ -32,6 +32,7 @@ function makePanelDom() {
           <button type="button" data-settings-target="navButton" data-category="editor" aria-pressed="false">Editor</button>
           <button type="button" data-settings-target="navButton" data-category="writing" aria-pressed="false">Writing</button>
           <button type="button" data-settings-target="navButton" data-category="preview" aria-pressed="false">Preview</button>
+          <button type="button" data-settings-target="navButton" data-category="about" data-action="click->settings#showCategory" aria-pressed="false">About</button>
         </nav>
         <div>
           <div data-settings-target="section" data-category="general"></div>
@@ -72,6 +73,7 @@ function makePanelDom() {
               <option value="150">150%</option>
             </select>
           </div>
+          <section class="hidden" data-settings-target="section" data-category="about">About FrankMD</section>
           <p class="hidden" data-settings-target="status"></p>
         </div>
       </dialog>
@@ -359,6 +361,18 @@ describe("SettingsController", () => {
   // === New workspace behavior ===
 
   describe("showCategory()", () => {
+    it("opens About within Settings and returns to an editable category", () => {
+      controller.openDialog()
+      const about = controller.navButtonTargets.find(button => button.dataset.category === "about")
+      controller.showCategory({ currentTarget: about })
+      expect(about.getAttribute("aria-pressed")).toBe("true")
+      expect(controller.sectionTargets.filter(section => !section.classList.contains("hidden")).map(section => section.dataset.category)).toEqual(["about"])
+      expect(controller.isDialogOpen).toBe(true)
+      controller.showCategory({ currentTarget: controller.navButtonTargets.find(button => button.dataset.category === "editor") })
+      expect(about.getAttribute("aria-pressed")).toBe("false")
+      expect(controller.sectionTargets.find(section => section.dataset.category === "about").classList.contains("hidden")).toBe(true)
+    })
+
     it("switches the visible section and nav aria-pressed state", () => {
       controller.showCategory({ currentTarget: controller.navButtonTargets.find(b => b.dataset.category === "editor") })
 

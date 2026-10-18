@@ -106,6 +106,7 @@ pt-BR:
 
   # Espaço de trabalho de configurações
   settings:
+    about: "Sobre"
     title: "Configurações"
     categories: "Categorias de configurações"
     general: "Geral"

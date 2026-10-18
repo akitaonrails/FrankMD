@@ -106,6 +106,7 @@ he:
 
   # סביבת ההגדרות
   settings:
+    about: "אודות"
     title: "הגדרות"
     categories: "קטגוריות הגדרות"
     general: "כללי"

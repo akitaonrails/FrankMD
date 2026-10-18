@@ -7,7 +7,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     visit root_url
     assert_selector "[data-app-target='documentTitle'][disabled]"
     find("[data-app-target='overflowToggle']").click
-    assert_selector "#workspace-menu [role='menuitem']", count: 2
+    assert_selector "#workspace-menu [role='menuitem']", count: 1
     visit note_url(path: "missing.md")
     assert_selector "[data-app-target='currentPath']", text: "missing.md"
     assert_selector "[data-app-target='documentTitle'][disabled]"
@@ -30,8 +30,11 @@ class WorkspaceTest < ApplicationSystemTestCase
     find("[data-app-target='sidebarToggle']").click
     assert_selector ".workspace-sidebar.is-collapsed header .workspace-brand img", visible: true
     assert_no_selector ".workspace-brand span", visible: true
-    find(".workspace-brand").send_keys(:enter)
-    assert_selector "dialog[open]", text: "FrankMD"
+    assert_no_selector "button.workspace-brand"
+    find("[data-app-target='settingsToggle']").click
+    find("#settings-dialog [data-settings-target='navButton'][data-category='about']").send_keys(:enter)
+    assert_selector "#settings-dialog [data-category='about'] h3", text: "FrankMD"
+    assert_selector "dialog[open]", count: 1
   end
 
   test "title rename preserves nested paths and edited content" do
@@ -59,6 +62,27 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_equal "Initial edited", File.read(@test_notes_dir.join("folder/renamed.md"))
     refute @test_notes_dir.join("folder/original.md").exist?
     assert_equal "folder/renamed.md", find("[data-app-target='documentTitle']")["title"]
+  end
+
+  test "About remains accessible inside Settings on desktop and phone" do
+    [ [ 1400, 900 ], [ 320, 720 ] ].each do |width, height|
+      page.current_window.resize_to(width, height)
+      visit root_url
+      find("[data-app-target='settingsToggle']").click
+      find("#settings-dialog [data-settings-target='navButton'][data-category='about']").click
+      assert_selector "#settings-dialog [data-category='about'] h3", text: "FrankMD"
+      assert_selector "#settings-dialog [data-category='about'] a[href='https://github.com/akitaonrails/FrankMD']"
+      assert_selector "dialog[open]", count: 1
+      assert_no_selector "[data-help-target='aboutDialog']", visible: :all
+      assert_equal 0, page.evaluate_script("Math.max(0, document.querySelector('#settings-dialog').scrollWidth - document.querySelector('#settings-dialog').clientWidth)")
+      find("#settings-dialog [data-settings-target='navButton'][data-category='general']").click
+      assert_no_selector "#settings-dialog section[data-category='about']", visible: true
+      find("#settings-dialog").send_keys(:escape)
+      assert_no_selector "#settings-dialog[open]"
+      assert_selector "[data-app-target='settingsToggle']:focus"
+    end
+  ensure
+    page.current_window.resize_to(1400, 900)
   end
 
   test "title rename cancellation and failure retain the current note" do

@@ -106,6 +106,7 @@ ko:
 
   # 설정 워크스페이스
   settings:
+    about: "정보"
     title: "설정"
     categories: "설정 카테고리"
     general: "일반"

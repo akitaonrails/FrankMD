@@ -102,6 +102,19 @@
           </svg>
           <%= t('settings.preview') %>
         </button>
+        <button
+          type="button"
+          class="settings-nav-button"
+          data-settings-target="navButton"
+          data-category="about"
+          data-action="click->settings#showCategory"
+          aria-pressed="false"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 11v6m0-10h.01 M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <%= t('settings.about') %>
+        </button>
       </nav>
 
       <!-- Right: category sections -->
@@ -396,6 +409,11 @@
             </select>
           </div>
         </div>
+
+        <section class="settings-section hidden" data-settings-target="section" data-category="about" aria-labelledby="settings-about-title">
+          <h2 id="settings-about-title" class="settings-section-title"><%= t('settings.about') %></h2>
+          <%= render "notes/settings/about" %>
+        </section>
 
         <p class="hidden mt-4 text-sm text-[var(--theme-text-muted)]" data-settings-target="status" role="status" aria-live="polite"></p>
       </div>

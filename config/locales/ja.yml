@@ -106,6 +106,7 @@ ja:
 
   # 設定ワークスペース
   settings:
+    about: "このアプリについて"
     title: "設定"
     categories: "設定カテゴリ"
     general: "全般"

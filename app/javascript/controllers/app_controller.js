@@ -2233,14 +2233,6 @@ export default class extends Controller {
     this.onEditorChange({ detail: { docChanged: true } })
   }
 
-  // About Dialog - delegates to help controller
-  openAboutDialog() {
-    const helpController = this.getHelpController()
-    if (helpController) {
-      helpController.openAbout()
-    }
-  }
-
   // Video Dialog - delegates to video-dialog controller
   openVideoDialog() {
     if (this.hasVideoDialogOutlet) {

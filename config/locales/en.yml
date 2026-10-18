@@ -106,6 +106,7 @@ en:
 
   # Settings workspace
   settings:
+    about: "About"
     title: "Settings"
     categories: "Settings categories"
     general: "General"

@@ -106,6 +106,7 @@ es:
 
   # Espacio de trabajo de configuración
   settings:
+    about: "Acerca de"
     title: "Configuración"
     categories: "Categorías de configuración"
     general: "General"

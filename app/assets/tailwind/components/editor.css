@@ -263,7 +263,6 @@ body.single-view-mode [data-app-target="previewPanel"] {
   font-size: .875rem;
   font-weight: 600;
 }
-.workspace-brand:hover { background: var(--theme-bg-hover); }
 .workspace-sidebar.is-collapsed .workspace-sidebar-header { flex-direction: column; gap: .25rem; padding: .25rem; }
 .workspace-sidebar.is-collapsed .workspace-brand span { display: none; }
 .workspace-explorer { display: flex; flex-direction: column; flex: 1; min-height: 0; }

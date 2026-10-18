@@ -45,10 +45,10 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select "header .workspace-toolbar button.workspace-icon" do |buttons|
       buttons.each { |button| assert button["aria-label"].present?, "Icon buttons require accessible labels" }
     end
-    assert_select "header [role='menu'] [role='menuitem']", count: 11
-    assert_select "header [role='menu'] [role='menuitemcheckbox'][data-workspace-pin][aria-label]", count: 11
-    assert_select "header [role='menu'] .workspace-menu-action svg", count: 11
-    assert_select "header [data-workspace-pinned-action]", count: 11
+    assert_select "header [role='menu'] [role='menuitem']", count: 10
+    assert_select "header [role='menu'] [role='menuitemcheckbox'][data-workspace-pin][aria-label]", count: 10
+    assert_select "header [role='menu'] .workspace-menu-action svg", count: 10
+    assert_select "header [data-workspace-pinned-action]", count: 10
     assert_select "header [data-workspace-pinned-action][data-pinned='true']", count: 3
     assert_select "main [data-app-target='editorToolbar']", count: 0
     assert_select ".workspace-sidebar > header button[aria-controls='workspace-explorer']"
@@ -69,6 +69,21 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
       assert_select "button[value='s3']", text: /S3/
       assert_select "p[data-media-storage-target='error'][role='alert']"
     end
+  end
+
+  test "About is a Settings section without standalone controls or dialog" do
+    get root_url
+    assert_select "#settings-dialog button[data-settings-target='navButton'][data-category='about'][aria-pressed='false']", text: I18n.t("settings.about")
+    assert_select "#settings-dialog section[data-settings-target='section'][data-category='about'].hidden[aria-labelledby='settings-about-title']" do
+      assert_select "h2#settings-about-title", text: I18n.t("settings.about")
+      assert_select "h3", text: "FrankMD"
+      assert_select "p", text: I18n.t("dialogs.about.description")
+      assert_select "p", text: /v\d+\.\d+/
+      assert_select "p", text: /Fabio Akita/
+      assert_select "a[href='https://github.com/akitaonrails/FrankMD'][target='_blank'][rel='noopener noreferrer']", text: I18n.t("dialogs.about.view_github")
+    end
+    assert_select "[data-help-target='aboutDialog'], [data-app-target='aboutDialog'], [data-workspace-pin='about'], [data-workspace-pinned-action='about']", count: 0
+    assert_select "button.workspace-brand, [data-action*='openAbout']", count: 0
   end
 
   test "workspace labels omit shortcuts while tooltips retain them in every locale" do
