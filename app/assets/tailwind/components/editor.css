@@ -279,14 +279,14 @@ body.single-view-mode [data-app-target="previewPanel"] {
   min-width: 0;
   max-width: 100%;
   padding: .25rem .375rem;
-  border: 1px solid var(--theme-accent);
+  border: 1px solid transparent;
   border-radius: .25rem;
   background: var(--theme-bg-primary);
   color: var(--theme-text-primary);
   font-size: .875rem;
   font-weight: 500;
 }
-.workspace-title-input:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: 1px; }
+.workspace-title-input:focus { outline: none; }
 .workspace-title-input:disabled { opacity: .6; }
 .workspace-title-error {
   position: absolute;

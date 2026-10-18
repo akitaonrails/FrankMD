@@ -41,6 +41,12 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "[data-app-target='titleInput']:focus"
     assert_no_selector "[data-file-operations-target='renameDialog'][open]"
     assert_equal "original", find("[data-app-target='titleInput']").value
+    assert_equal [ 8, 8 ], page.evaluate_script(<<~JS)
+      (() => {
+        const input = document.querySelector('[data-app-target="titleInput"]');
+        return [input.selectionStart, input.selectionEnd];
+      })()
+    JS
     find("[data-app-target='titleInput']").fill_in with: "renamed"
     find("[data-app-target='titleInput']").send_keys(:enter)
     assert_no_selector "[data-app-target='titleInput']", visible: true

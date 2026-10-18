@@ -1495,7 +1495,8 @@ export default class extends Controller {
     this.documentTitleTarget.classList.add("hidden")
     this.titleInputTarget.classList.remove("hidden")
     this.titleInputTarget.focus()
-    this.titleInputTarget.select()
+    const end = this.titleInputTarget.value.length
+    this.titleInputTarget.setSelectionRange(end, end)
   }
 
   onTitleRenameInput() {

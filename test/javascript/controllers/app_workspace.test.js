@@ -56,12 +56,12 @@ describe("workspace chrome", () => {
 
   afterEach(() => { application.stop(); vi.restoreAllMocks(); document.body.innerHTML = "" })
 
-  it("turns the title into a focused text field without opening a dialog", () => {
+  it("opens the title field with the caret at the end without selecting text", () => {
     target("documentTitle").click()
     const input = target("titleInput")
     expect(document.activeElement).toBe(input)
     expect(input.value).toBe("note")
-    expect([input.selectionStart, input.selectionEnd]).toEqual([0, 4])
+    expect([input.selectionStart, input.selectionEnd]).toEqual([4, 4])
     expect(target("documentTitle").classList.contains("hidden")).toBe(true)
     expect(rename).not.toHaveBeenCalled()
   })
