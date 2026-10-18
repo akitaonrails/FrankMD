@@ -15,6 +15,7 @@ describe("workspace chrome", () => {
   const key = (element, value, options = {}) => element.dispatchEvent(new KeyboardEvent("keydown", { key: value, bubbles: true, cancelable: true, ...options }))
 
   beforeEach(async () => {
+    sessionStorage.clear()
     window.t = key => key
     document.body.innerHTML = `<div data-controller="app" data-action="click@document->app#onWorkspaceOutsideClick keydown@document->app#onWorkspaceKeydown">
       <aside data-app-target="sidebar">
@@ -274,5 +275,105 @@ describe("workspace chrome", () => {
     key(document.activeElement, "Tab")
     expect(target("overflowMenu").classList.contains("hidden")).toBe(true)
     expect(document.activeElement).toBe(target("overflowToggle"))
+  })
+
+  describe("toolbar pins", () => {
+    const pin = () => root.querySelector('[data-workspace-pin="video"]')
+    const icon = () => root.querySelector('[data-workspace-pinned-action="video"]')
+
+    beforeEach(() => {
+      target("editorToolbar").innerHTML = '<button data-workspace-pinned-action="video" data-pinned="false" data-workspace-editing-action>Video</button>'
+      target("overflowMenu").insertAdjacentHTML("beforeend", `<div class="workspace-menu-row" data-workspace-editing-action>
+        <button role="menuitem">Video</button>
+        <button role="menuitemcheckbox" data-workspace-pin="video" data-pin-label="Pin Video" data-unpin-label="Unpin Video" data-action="click->app#toggleWorkspacePin"></button>
+      </div>`)
+      app._workspacePinnedActions = null
+      app.updateWorkspaceChrome()
+    })
+
+    it("pins and unpins without running the action or closing the menu", async () => {
+      await new Promise(resolve => setTimeout(resolve, 0))
+      const action = vi.fn()
+      pin().previousElementSibling.addEventListener("click", action)
+      target("overflowToggle").click()
+      pin().focus()
+      pin().click()
+      expect(pin().getAttribute("aria-checked")).toBe("true")
+      expect(pin().getAttribute("aria-label")).toBe("Unpin Video")
+      expect(icon().dataset.pinned).toBe("true")
+      expect(document.activeElement).toBe(pin())
+      expect(target("overflowMenu").classList.contains("hidden")).toBe(false)
+      expect(action).not.toHaveBeenCalled()
+      pin().click()
+      expect(pin().getAttribute("aria-checked")).toBe("false")
+      expect(icon().dataset.pinned).toBe("false")
+      expect(JSON.parse(sessionStorage.getItem("frankmd.workspacePins"))).toEqual([])
+    })
+
+    it("restores only known pins from this browser session", () => {
+      sessionStorage.setItem("frankmd.workspacePins", JSON.stringify(["video", "unknown"]))
+      app._workspacePinnedActions = null
+      app.updateWorkspacePins()
+      expect(icon().dataset.pinned).toBe("true")
+      expect([...app._workspacePinnedActions]).toEqual(["video"])
+    })
+
+    it("uses defaults with malformed or unavailable storage", () => {
+      icon().dataset.pinned = "true"
+      sessionStorage.setItem("frankmd.workspacePins", "broken JSON")
+      app._workspacePinnedActions = null
+      app.updateWorkspacePins()
+      expect(icon().dataset.pinned).toBe("true")
+      vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => { throw new Error("blocked") })
+      vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("blocked") })
+      app._workspacePinnedActions = null
+      app.updateWorkspacePins()
+      app.toggleWorkspacePin({ currentTarget: pin() })
+      expect(icon().dataset.pinned).toBe("false")
+    })
+
+    it("preserves pins while hiding editing actions in preview and Library", () => {
+      app.toggleWorkspacePin({ currentTarget: pin() })
+      target("editorPanel").classList.add("hidden")
+      app.updateWorkspaceChrome()
+      expect(icon().hidden).toBe(true)
+      expect(app.workspaceMenuItems()).not.toContain(pin())
+      app.libraryVisible = true
+      app.updateWorkspaceChrome()
+      expect(icon().hidden).toBe(true)
+      app.libraryVisible = false
+      target("editorPanel").classList.remove("hidden")
+      app.updateWorkspaceChrome()
+      expect(icon().hidden).toBe(false)
+      expect(icon().dataset.pinned).toBe("true")
+    })
+
+    it("navigates to the pin with arrows in both text directions", () => {
+      target("overflowToggle").click()
+      pin().previousElementSibling.focus()
+      key(document.activeElement, "ArrowRight")
+      expect(document.activeElement).toBe(pin())
+      key(document.activeElement, "ArrowLeft")
+      expect(document.activeElement).toBe(pin().previousElementSibling)
+      target("overflowMenu").style.direction = "rtl"
+      key(document.activeElement, "ArrowLeft")
+      expect(document.activeElement).toBe(pin())
+      key(document.activeElement, "Escape")
+      expect(document.activeElement).toBe(target("overflowToggle"))
+    })
+  })
+
+  it("keeps both AI controls busy and restores them together", async () => {
+    target("editorToolbar").innerHTML = '<button data-app-target="aiButton">AI icon</button>'
+    target("overflowMenu").insertAdjacentHTML("beforeend", '<button data-app-target="aiButton">AI menu</button>')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    const setReadOnly = vi.fn()
+    app.getCodemirrorController.mockReturnValue({ setReadOnly })
+    app.onAiProcessingStarted()
+    expect(app.aiButtonTargets.every(button => button.disabled && button.getAttribute("aria-busy") === "true")).toBe(true)
+    app.onAiProcessingEnded()
+    expect(app.aiButtonTargets.every(button => !button.disabled && !button.hasAttribute("aria-busy"))).toBe(true)
+    expect(app.aiButtonTargets.map(button => button.textContent)).toEqual(["AI icon", "AI menu"])
+    expect(setReadOnly.mock.calls).toEqual([[true], [false]])
   })
 })

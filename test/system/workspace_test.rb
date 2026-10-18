@@ -151,6 +151,45 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_equal "nested/note.md", page.evaluate_script("window.copiedWorkspacePath")
   end
 
+  test "menu pins expose action icons and survive a page reload" do
+    create_test_note("pins.md", "# Toolbar pins")
+    visit note_url(path: "pins.md")
+    assert_no_selector "[data-workspace-pinned-action='table']", visible: true
+    find("[data-app-target='overflowToggle']").click
+    find("[data-workspace-pin='table']").click
+    assert_selector "#workspace-menu", visible: true
+    assert_selector "[data-workspace-pin='table'][aria-checked='true']"
+    assert_selector "[data-workspace-pinned-action='table']", visible: true
+    assert_no_selector "dialog[open]"
+    page.refresh
+    assert_selector "[data-workspace-pinned-action='table']", visible: true
+    find("[data-workspace-pinned-action='table']").click
+    assert_selector "dialog[open]:focus, dialog[open] :focus"
+    page.send_keys(:escape)
+    find("[data-app-target='overflowToggle']").click
+    find("[data-workspace-pin='table']").click
+    assert_no_selector "[data-workspace-pinned-action='table']", visible: true
+    assert_selector "[data-workspace-pin='table'][aria-checked='false']"
+  end
+
+  test "preview remains reachable from the menu after unpinning" do
+    create_test_note("preview.md", "# Preview")
+    visit note_url(path: "preview.md")
+    page.execute_script(<<~JS)
+      const root = document.querySelector('[data-controller~="app"]');
+      window.Stimulus.getControllerForElementAndIdentifier(root, 'app').setViewMode('single');
+    JS
+    find("[data-app-target='overflowToggle']").click
+    find("[data-workspace-pin='preview']").click
+    assert_no_selector "[data-app-target='previewToggle']", visible: true
+    find("#workspace-menu [data-workspace-preview-action]").click
+    assert_selector "[data-app-target='previewPanel']", visible: true
+    assert_no_selector "[data-app-target='editorPanel']", visible: true
+    find("[data-app-target='overflowToggle']").click
+    find("#workspace-menu [data-workspace-preview-action]").click
+    assert_selector "[data-app-target='editorPanel']", visible: true
+  end
+
   test "long names and translated chrome fit desktop tablet and phone layouts" do
     path = "nested/a-document-with-a-very-long-name-for-responsive-workspace-checks.md"
     create_test_note(path, "# Workspace\n\nDocument text stays below the header.")
@@ -174,7 +213,10 @@ class WorkspaceTest < ApplicationSystemTestCase
       assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
       find("[data-app-target='titleInput']").send_keys(:escape)
       find("[data-app-target='overflowToggle']").click
+      all("[data-workspace-pin][aria-checked='false']").each(&:click)
       assert_selector "#workspace-menu", visible: true
+      assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
+      assert_equal "0px", page.evaluate_script("getComputedStyle(document.querySelector('.workspace-header')).borderBottomWidth")
       assert page.evaluate_script(<<~JS)
         (() => {
           const menu = document.querySelector('#workspace-menu').getBoundingClientRect();

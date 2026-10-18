@@ -32,6 +32,8 @@ he:
 
   # אזור הכותרת
   header:
+    pin_action: "הצמדת %{action} לסרגל הכלים"
+    unpin_action: "ביטול הצמדת %{action} מסרגל הכלים"
     rename_document_hint: "לחצו Enter לשינוי השם. Escape או לחיצה מחוץ לשדה יבטלו."
     document_actions: "פעולות מסמך"
     more_actions: "פעולות נוספות"

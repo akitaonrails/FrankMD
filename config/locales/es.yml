@@ -32,6 +32,8 @@ es:
 
   # Header section
   header:
+    pin_action: "Fijar %{action} en la barra de herramientas"
+    unpin_action: "Desfijar %{action} de la barra de herramientas"
     rename_document_hint: "Pulsa Intro para renombrar. Esc o hacer clic fuera cancela."
     document_actions: "Acciones del documento"
     more_actions: "Más acciones"

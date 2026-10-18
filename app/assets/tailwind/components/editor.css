@@ -178,7 +178,9 @@ body.single-view-mode [data-app-target="previewPanel"] {
   display: flex;
   align-items: center;
   padding: .125rem;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: calc(100% - 4rem);
   border: 1px solid var(--theme-border);
   border-radius: .625rem;
   background: var(--theme-bg-secondary);
@@ -194,18 +196,39 @@ body.single-view-mode [data-app-target="previewPanel"] {
   border-radius: .5rem;
   box-shadow: 0 4px 16px color-mix(in srgb, var(--theme-text-primary) 12%, transparent);
 }
-.workspace-menu button {
+.workspace-pinned-controls { display: flex; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.workspace-pinned-controls > div { flex: none; }
+.workspace-pinned-utilities { display: flex; }
+.workspace-icon[hidden], .workspace-pinned-action:not([data-pinned="true"]) { display: none; }
+.workspace-icon svg { width: 1rem; height: 1rem; flex: none; }
+.workspace-icon > span { display: none; }
+.workspace-menu-row { display: flex; align-items: center; border-radius: .375rem; }
+.workspace-menu-row[hidden] { display: none; }
+.workspace-menu-row:hover, .workspace-menu-row:focus-within { background: var(--theme-bg-hover); }
+.workspace-menu-action {
   display: flex;
   align-items: center;
-  gap: .5rem;
-  width: 100%;
+  gap: .625rem;
+  flex: 1;
+  min-width: 0;
   padding: .5rem;
   text-align: start;
   font-size: .875rem;
-  border-radius: .25rem;
+  border-radius: .375rem;
 }
-.workspace-menu button[hidden] { display: none; }
-.workspace-menu button:hover, .workspace-menu button:focus { background: var(--theme-bg-hover); }
+.workspace-menu-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  border-radius: .375rem;
+  color: var(--theme-text-faint);
+}
+.workspace-menu-pin[aria-checked="true"] { color: var(--theme-text-primary); }
+.workspace-menu-pin[aria-checked="true"] svg { fill: currentColor; }
+.workspace-menu-pin:hover { color: var(--theme-accent); }
 .workspace-menu svg { width: 1rem; height: 1rem; flex: none; }
 .workspace-sidebar {
   display: flex;

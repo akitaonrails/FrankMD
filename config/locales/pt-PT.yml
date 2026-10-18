@@ -32,6 +32,8 @@ pt-PT:
 
   # Secção do cabeçalho
   header:
+    pin_action: "Fixar %{action} na barra de ferramentas"
+    unpin_action: "Desafixar %{action} da barra de ferramentas"
     rename_document_hint: "Prima Enter para mudar o nome. Esc ou clicar fora cancela."
     document_actions: "Ações do documento"
     more_actions: "Mais ações"

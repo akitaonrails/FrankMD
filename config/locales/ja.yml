@@ -32,6 +32,8 @@ ja:
 
   # Header section
   header:
+    pin_action: "%{action} をツールバーに固定"
+    unpin_action: "%{action} のツールバー固定を解除"
     rename_document_hint: "Enter で名前を変更します。Esc または欄外のクリックでキャンセルします。"
     document_actions: "ドキュメントの操作"
     more_actions: "その他の操作"

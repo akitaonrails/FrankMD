@@ -1,0 +1,19 @@
+<% menu = local_assigns.fetch(:menu, false) %>
+<%= tag.button type: "button",
+               class: menu ? "workspace-menu-action" : "workspace-icon workspace-pinned-action",
+               role: menu ? "menuitem" : nil,
+               tabindex: menu ? -1 : nil,
+               title: action[:label],
+               aria: { label: action[:label], pressed: !menu && action[:id] == "preview" ? false : nil },
+               data: {
+                 action: "#{'click->app#closeWorkspaceMenu ' if menu}click->app##{action[:handler]}",
+                 app_target: action[:id] == "ai" ? "aiButton" : (!menu && action[:id] == "preview" ? "previewToggle" : nil),
+                 workspace_pinned_action: menu ? nil : action[:id],
+                 pinned: menu ? nil : action[:pinned].to_s,
+                 workspace_editing_action: !menu && action[:scope] == "editing" ? true : nil,
+                 workspace_document_action: !menu && action[:scope] == "document" ? true : nil,
+                 workspace_preview_action: action[:scope] == "preview" ? true : nil
+               } do %>
+  <%= render "notes/workspace_action_icon", action_id: action[:id] %>
+  <% if menu %><span><%= action[:label] %></span><% end %>
+<% end %>

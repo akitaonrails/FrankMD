@@ -32,6 +32,8 @@ en:
 
   # Header section
   header:
+    pin_action: "Pin %{action} to toolbar"
+    unpin_action: "Unpin %{action} from toolbar"
     rename_document_hint: "Press Enter to rename. Escape or clicking away cancels."
     document_actions: "Document actions"
     more_actions: "More actions"
