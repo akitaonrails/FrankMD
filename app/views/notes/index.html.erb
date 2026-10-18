@@ -54,16 +54,19 @@
         { label: t('status.save_anyway'), action: "click->autosave#saveAnywayAfterWarning" }
       ] %>
 
-  <%= render "notes/header" %>
-
   <!-- Main Content -->
   <div class="workspace-content flex-1 flex overflow-hidden relative">
     <button type="button" class="workspace-sidebar-backdrop hidden" tabindex="-1" data-app-target="sidebarBackdrop" data-action="click->app#closeMobileSidebar" aria-label="<%= t('header.close_explorer') %>"></button>
     <%= render "notes/sidebar" %>
-    <%= render "notes/editor_panel" %>
-    <%= render "notes/preview_panel" %>
-    <%= render "notes/library_panel" %>
-    <%= render "notes/settings_panel" %>
+    <div class="workspace-main" data-workspace-main>
+      <%= render "notes/header" %>
+      <div class="flex-1 flex overflow-hidden min-h-0">
+        <%= render "notes/editor_panel" %>
+        <%= render "notes/preview_panel" %>
+        <%= render "notes/library_panel" %>
+        <%= render "notes/settings_panel" %>
+      </div>
+    </div>
   </div>
 
   <!-- File Operations (context menu + dialogs) -->

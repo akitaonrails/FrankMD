@@ -12,6 +12,26 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "[data-app-target='documentTitle'][disabled]"
   end
 
+  test "sidebar owns the brand and toggle while the editor owns the document header" do
+    create_test_note("headers.md", "# Separate headers")
+    visit note_url(path: "headers.md")
+    assert_selector ".workspace-sidebar > header .workspace-brand span", text: "FrankMD"
+    assert_selector ".workspace-sidebar > header [data-app-target='sidebarToggle']"
+    assert_selector ".workspace-main > header [data-app-target='currentPath']", text: "headers"
+    assert page.evaluate_script(<<~JS)
+      (() => {
+        const sidebar = document.querySelector('.workspace-sidebar').getBoundingClientRect();
+        const header = document.querySelector('.workspace-header').getBoundingClientRect();
+        return sidebar.top === header.top && sidebar.right === header.left;
+      })()
+    JS
+    find("[data-app-target='sidebarToggle']").click
+    assert_selector ".workspace-sidebar.is-collapsed header .workspace-brand img", visible: true
+    assert_no_selector ".workspace-brand span", visible: true
+    find(".workspace-brand").send_keys(:enter)
+    assert_selector "dialog[open]", text: "FrankMD"
+  end
+
   test "title rename preserves nested paths and edited content" do
     create_test_note("folder/original.md", "Initial")
     visit note_url(path: "folder/original.md")
@@ -115,7 +135,7 @@ class WorkspaceTest < ApplicationSystemTestCase
       assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
       assert page.evaluate_script(<<~JS)
         (() => {
-          const header = document.querySelector('header').getBoundingClientRect();
+          const header = document.querySelector('.workspace-header').getBoundingClientRect();
           const editor = document.querySelector('[data-app-target="editorPanel"]').getBoundingClientRect();
           return editor.top >= header.bottom;
         })()
@@ -142,11 +162,17 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "[data-app-target='settingsToggle']", visible: true
     find("[data-app-target='sidebarToggle']").click
     assert_selector ".workspace-sidebar.is-overlay"
+    assert_selector ".workspace-sidebar-header .workspace-brand span", text: "FrankMD"
+    assert_selector "[data-workspace-main][inert]"
     find("[data-path='mobile.md'][data-type='file']").click
     assert_selector ".workspace-sidebar.is-collapsed"
     assert_selector ".cm-content", text: "Mobile"
     assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
     find("[data-app-target='sidebarToggle']").click
+    find("[data-app-target='settingsToggle']").click
+    assert_selector "#settings-dialog[open]"
+    find("#settings-dialog").send_keys(:escape)
+    assert_no_selector "#settings-dialog[open]"
     page.send_keys(:escape)
     assert_selector ".workspace-sidebar.is-collapsed"
     assert_selector "[data-app-target='sidebarToggle']:focus"

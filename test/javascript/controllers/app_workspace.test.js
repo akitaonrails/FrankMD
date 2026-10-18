@@ -16,7 +16,11 @@ describe("workspace chrome", () => {
 
   beforeEach(async () => {
     document.body.innerHTML = `<div data-controller="app" data-action="click@document->app#onWorkspaceOutsideClick keydown@document->app#onWorkspaceKeydown">
-      <button data-app-target="sidebarToggle" data-action="click->app#toggleSidebar"></button>
+      <aside data-app-target="sidebar">
+        <header><button data-app-target="sidebarToggle" data-action="click->app#toggleSidebar"></button><button>FrankMD</button></header>
+        <div data-app-target="explorerPanel"><button>New note</button></div><button data-app-target="libraryToggle">Library</button><button data-app-target="settingsToggle">Settings</button>
+      </aside>
+      <div data-workspace-main><header>
       <button data-app-target="documentTitle" data-action="click->app#renameCurrentNote"></button>
       <div data-app-target="editorToolbar"></div><button data-app-target="previewToggle"></button>
       <div data-app-target="overflowContainer" data-action="keydown->app#navigateWorkspaceMenu">
@@ -28,8 +32,8 @@ describe("workspace chrome", () => {
         </div>
       </div>
       <button data-app-target="sidebarBackdrop" class="hidden"></button>
-      <aside data-app-target="sidebar"><div data-app-target="explorerPanel"><button>New note</button></div><button data-app-target="libraryToggle">Library</button><button data-app-target="settingsToggle">Settings</button></aside>
-      <main data-app-target="editorPanel"></main><aside data-app-target="previewPanel" class="hidden"></aside><section data-app-target="libraryPanel" class="hidden"></section>
+      </header>
+      <main data-app-target="editorPanel"></main><aside data-app-target="previewPanel" class="hidden"></aside><section data-app-target="libraryPanel" class="hidden"></section></div>
     </div>`
     application = Application.start()
     application.register("app", WorkspaceController)
@@ -88,13 +92,13 @@ describe("workspace chrome", () => {
     target("sidebarToggle").click()
     expect(target("sidebar").classList.contains("is-overlay")).toBe(true)
     expect(target("sidebarBackdrop").classList.contains("hidden")).toBe(false)
-    expect(target("editorPanel").inert).toBe(true)
+    expect(target("documentTitle").closest("[data-workspace-main]").inert).toBe(true)
     target("settingsToggle").focus()
     key(target("settingsToggle"), "Tab")
     expect(document.activeElement).toBe(target("sidebarToggle"))
     key(target("sidebarToggle"), "Escape")
     expect(target("sidebar").classList.contains("is-overlay")).toBe(false)
-    expect(target("editorPanel").inert).toBe(false)
+    expect(target("documentTitle").closest("[data-workspace-main]").inert).toBe(false)
     expect(document.activeElement).toBe(target("sidebarToggle"))
   })
 

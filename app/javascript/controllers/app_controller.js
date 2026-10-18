@@ -1480,8 +1480,8 @@ export default class extends Controller {
       this.sidebarToggleTarget.setAttribute("aria-expanded", this.sidebarVisible.toString())
     }
     const overlayOpen = Boolean(this.mobileWorkspace && this.sidebarVisible)
-    this.context?.element?.querySelectorAll('[data-app-target~="editorPanel"], [data-app-target~="previewPanel"], [data-app-target~="libraryPanel"]')
-      .forEach(panel => { panel.inert = overlayOpen })
+    const workspace = this.context?.element?.querySelector('[data-workspace-main]')
+    if (workspace) workspace.inert = overlayOpen
     this.getCodemirrorController?.()?.refreshTypewriterLayout?.()
   }
 
@@ -1574,7 +1574,7 @@ export default class extends Controller {
       return true
     }
     if (event.key === "Tab" && this.mobileWorkspace && this.sidebarVisible) {
-      const items = [this.sidebarToggleTarget, ...this.sidebarTarget.querySelectorAll('button, [tabindex="0"]')]
+      const items = Array.from(this.sidebarTarget.querySelectorAll('button, [tabindex="0"]'))
         .filter(item => !item.disabled && !item.closest(".hidden") && item.getClientRects().length)
       const index = items.indexOf(document.activeElement)
       if ((event.shiftKey && index <= 0) || (!event.shiftKey && (index === -1 || index === items.length - 1))) {

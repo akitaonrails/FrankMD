@@ -38,13 +38,18 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[data-app-target='settingsToggle']", count: 1
     assert_select ".workspace-navigation button[data-app-target='libraryToggle'][aria-label]"
     assert_select ".workspace-navigation button[data-app-target='settingsToggle'][aria-label]"
-    assert_select "header button[data-app-target='documentTitle'][disabled][data-action='click->app#renameCurrentNote']"
+    assert_select ".workspace-main > header button[data-app-target='documentTitle'][disabled][data-action='click->app#renameCurrentNote']"
     assert_select "header .workspace-toolbar button.workspace-icon" do |buttons|
       buttons.each { |button| assert button["aria-label"].present?, "Icon buttons require accessible labels" }
     end
     assert_select "header [role='menu'] [role='menuitem']", count: 8
     assert_select "main [data-app-target='editorToolbar']", count: 0
-    assert_select "button[aria-controls='workspace-explorer']"
+    assert_select ".workspace-sidebar > header button[aria-controls='workspace-explorer']"
+    assert_select ".workspace-sidebar > header .workspace-brand" do
+      assert_select "img[src='/icon.svg']"
+      assert_select "span", text: "FrankMD"
+    end
+    assert_select ".workspace-main > header [data-app-target='sidebarToggle']", count: 0
   end
 
   test "General settings renders the shared storage menu" do

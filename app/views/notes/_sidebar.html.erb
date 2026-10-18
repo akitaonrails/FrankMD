@@ -1,4 +1,13 @@
 <aside class="workspace-sidebar" data-app-target="sidebar">
+  <header class="workspace-sidebar-header">
+    <button type="button" class="workspace-icon" data-action="click->app#toggleSidebar" data-app-target="sidebarToggle" aria-controls="workspace-explorer" aria-expanded="true" title="<%= t('header.toggle_explorer') %>" aria-label="<%= t('header.toggle_explorer') %>">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+    </button>
+    <button type="button" class="workspace-brand" data-action="click->app#openAboutDialog" title="<%= t('header.about_app') %>" aria-label="<%= t('header.about_app') %>">
+      <img src="/icon.svg" class="w-5 h-5 shrink-0" alt="" aria-hidden="true">
+      <span><%= t('app.name') %></span>
+    </button>
+  </header>
   <div id="workspace-explorer" class="workspace-explorer" data-app-target="explorerPanel">
   <!-- Sidebar Header -->
   <div class="flex-none h-10 border-b border-[var(--theme-border)] flex items-center justify-between px-3">
