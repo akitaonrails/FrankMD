@@ -19,7 +19,29 @@
         <%= tag.div class: "workspace-menu-row", role: "none", data: { workspace_editing_action: action[:scope] == "editing" ? true : nil, workspace_document_action: action[:scope] == "document" ? true : nil, workspace_preview_row: action[:scope] == "preview" ? true : nil } do %>
           <%= render "notes/workspace_action", action: action, menu: true %>
           <button type="button" class="workspace-menu-pin" role="menuitemcheckbox" tabindex="-1" aria-checked="<%= action[:pinned] %>" aria-label="<%= t(action[:pinned] ? 'header.unpin_action' : 'header.pin_action', action: action[:label]) %>" title="<%= t(action[:pinned] ? 'header.unpin_action' : 'header.pin_action', action: action[:label]) %>" data-action="click->app#toggleWorkspacePin" data-workspace-pin="<%= action[:id] %>" data-pin-label="<%= t('header.pin_action', action: action[:label]) %>" data-unpin-label="<%= t('header.unpin_action', action: action[:label]) %>">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 5 5-5 3-3 6-2-2-6 6 6-6-2-2 6-3z"/></svg>
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path transform="rotate(45 12 12)" d="M8.25 2.5
+                A1.25 1.25 0 0 0 7 3.75
+                v.15
+                c0 .33.13.65.37.88L8 5.41V9
+                c0 1.39-1.03 2.55-2.37 2.75
+                A1 1 0 0 0 4.75 12.75
+                V13
+                c0 .55.45 1 1 1
+                H11v6.25
+                c0 .55.45 1 1 1
+                s1-.45 1-1
+                V14h5.25
+                c.55 0 1-.45 1-1
+                v-.25
+                a1 1 0 0 0-.88-.99
+                C17.03 11.55 16 10.39 16 9
+                V5.41l.63-.63
+                c.24-.23.37-.55.37-.88
+                v-.15
+                A1.25 1.25 0 0 0 15.75 2.5
+                h-7.5z"/>
+            </svg>
           </button>
         <% end %>
       <% end %>
