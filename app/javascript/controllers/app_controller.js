@@ -1627,10 +1627,10 @@ export default class extends Controller {
     return Array.from(this.overflowMenuTarget.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]')).filter(item => !item.closest('[hidden]') && !item.disabled)
   }
 
-  toggleWorkspaceMenu() {
+  toggleWorkspaceMenu(event) {
     const visible = toggleMenu(this.overflowMenuTarget)
     this.overflowToggleTarget.setAttribute("aria-expanded", String(visible))
-    if (visible) this.workspaceMenuItems()[0]?.focus()
+    if (visible && !event?.detail) this.workspaceMenuItems()[0]?.focus()
   }
 
   closeWorkspaceMenu(event, { restoreFocus = true } = {}) {
@@ -1664,6 +1664,7 @@ export default class extends Controller {
     if (!items.length) return
     const index = items.indexOf(document.activeElement)
     const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 :
+      index === -1 ? (event.key === "ArrowUp" ? items.length - 1 : 0) :
       (index + (event.key === "ArrowUp" ? -1 : 1) + items.length) % items.length
     items[next].focus()
   }

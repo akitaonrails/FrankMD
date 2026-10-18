@@ -9,7 +9,9 @@ class WorkspaceTest < ApplicationSystemTestCase
     find("[data-app-target='overflowToggle']").click
     assert_selector "#workspace-menu [role='menuitem']", count: 2
     visit note_url(path: "missing.md")
+    assert_selector "[data-app-target='currentPath']", text: "missing.md"
     assert_selector "[data-app-target='documentTitle'][disabled]"
+    assert_selector "[data-app-target='currentPath']", text: I18n.t("editor.select_note"), wait: 6
   end
 
   test "sidebar owns the brand and toggle while the editor owns the document header" do
@@ -188,6 +190,28 @@ class WorkspaceTest < ApplicationSystemTestCase
     find("[data-app-target='overflowToggle']").click
     find("#workspace-menu [data-workspace-preview-action]").click
     assert_selector "[data-app-target='editorPanel']", visible: true
+  end
+
+  test "mouse clicks leave no selected row while keyboard focus stays visible" do
+    create_test_note("focus.md", "# Menu focus")
+    visit note_url(path: "focus.md")
+    find("[data-app-target='overflowToggle']").click
+    assert_no_selector "#workspace-menu :focus"
+    find("[data-workspace-pin='table']").click
+    find("[data-app-target='documentTitle']").hover
+    assert_equal "rgba(0, 0, 0, 0)", page.evaluate_script(<<~JS)
+      getComputedStyle(document.querySelector('[data-workspace-pin="table"]').parentElement).backgroundColor
+    JS
+    page.send_keys(:escape)
+    find("[data-app-target='overflowToggle']").send_keys(:enter)
+    assert_selector "#workspace-menu [role='menuitem']:focus"
+    page.send_keys(:arrow_right)
+    assert_selector "[data-workspace-pin='image']:focus-visible"
+    page.send_keys(:enter)
+    assert_selector "[data-workspace-pin='image'][aria-checked='false']:focus-visible"
+    refute_equal "rgba(0, 0, 0, 0)", page.evaluate_script(<<~JS)
+      getComputedStyle(document.querySelector('[data-workspace-pin="image"]').parentElement).backgroundColor
+    JS
   end
 
   test "long names and translated chrome fit desktop tablet and phone layouts" do

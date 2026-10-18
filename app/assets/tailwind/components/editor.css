@@ -204,7 +204,7 @@ body.single-view-mode [data-app-target="previewPanel"] {
 .workspace-icon > span { display: none; }
 .workspace-menu-row { display: flex; align-items: center; border-radius: .375rem; }
 .workspace-menu-row[hidden] { display: none; }
-.workspace-menu-row:hover, .workspace-menu-row:focus-within { background: var(--theme-bg-hover); }
+.workspace-menu-row:hover, .workspace-menu-row:has(:focus-visible) { background: var(--theme-bg-hover); }
 .workspace-menu-action {
   display: flex;
   align-items: center;

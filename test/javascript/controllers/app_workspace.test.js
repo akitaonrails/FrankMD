@@ -254,6 +254,15 @@ describe("workspace chrome", () => {
     expect(document.activeElement).toBe(target("overflowToggle"))
   })
 
+  it.each([["ArrowDown", "Edit"], ["ArrowUp", "Help"]])("opens by pointer without focusing an option and supports %s", (arrow, label) => {
+    target("overflowToggle").focus()
+    target("overflowToggle").dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }))
+    expect(target("overflowMenu").classList.contains("hidden")).toBe(false)
+    expect(document.activeElement).toBe(target("overflowToggle"))
+    key(target("overflowToggle"), arrow)
+    expect(document.activeElement.textContent).toBe(label)
+  })
+
   it("closes before launching a dialog and leaves focus in that dialog", () => {
     vi.spyOn(app, "openHelp").mockImplementation(() => {
       expect(target("overflowMenu").classList.contains("hidden")).toBe(true)
