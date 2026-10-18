@@ -14,13 +14,13 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "[data-app-target='currentPath']", text: I18n.t("editor.select_note"), wait: 6
   end
 
-  test "sidebar owns the brand and main header owns the document and actions" do
+  test "Explorer header owns the brand and actions while editor header owns the document" do
     create_test_note("headers.md", "# Separate headers")
     visit note_url(path: "headers.md")
     assert_selector ".workspace-sidebar > header .workspace-brand span", text: "FrankMD"
-    assert_no_selector ".workspace-sidebar > header [data-app-target='sidebarToggle']"
-    assert_selector ".workspace-main > header .workspace-global-actions button", count: 4
-    assert_selector ".workspace-main > header [data-app-target='sidebarToggle']"
+    assert_selector ".workspace-sidebar > header .workspace-global-actions button", count: 4
+    assert_selector ".workspace-sidebar > header [data-app-target='sidebarToggle']"
+    assert_no_selector ".workspace-main > header .workspace-explorer-actions"
     assert_selector ".workspace-main > header [data-app-target='currentPath']", text: "headers"
     assert page.evaluate_script(<<~JS)
       (() => {
@@ -29,8 +29,18 @@ class WorkspaceTest < ApplicationSystemTestCase
         return sidebar.top === header.top && sidebar.right === header.left;
       })()
     JS
+    assert page.evaluate_script(<<~JS)
+      (() => {
+        const title = document.querySelector('.workspace-brand').getBoundingClientRect();
+        const actions = document.querySelector('.workspace-explorer-actions').getBoundingClientRect();
+        const header = document.querySelector('.workspace-sidebar-header').getBoundingClientRect();
+        return actions.left >= title.right && actions.right <= header.right;
+      })()
+    JS
     find("[data-app-target='sidebarToggle']").click
     assert_selector ".workspace-sidebar.is-collapsed header .workspace-brand img", visible: true
+    assert_selector ".workspace-sidebar.is-collapsed header [data-app-target='sidebarToggle']", visible: true
+    assert_no_selector ".workspace-sidebar.is-collapsed header .workspace-global-actions", visible: true
     assert_no_selector ".workspace-brand span", visible: true
     assert_no_selector "button.workspace-brand"
     find("[data-app-target='settingsToggle']").click
@@ -300,8 +310,8 @@ class WorkspaceTest < ApplicationSystemTestCase
     find("[data-app-target='sidebarToggle']").click
     assert_selector ".workspace-sidebar.is-overlay"
     assert_selector ".workspace-sidebar-header .workspace-brand span", text: "FrankMD"
-    assert_selector "[data-workspace-panels][inert]"
-    assert_selector ".workspace-global-actions[inert]"
+    assert_selector "[data-workspace-main][inert]"
+    assert_selector ".workspace-global-actions button", visible: true, count: 4
     assert_nil page.evaluate_script("document.querySelector('[data-app-target=sidebarToggle]').closest('[inert]')")
     find("[data-path='mobile.md'][data-type='file']").click
     assert_selector ".workspace-sidebar.is-collapsed"

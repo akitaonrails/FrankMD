@@ -177,7 +177,7 @@ body.single-view-mode [data-app-target="previewPanel"] {
 .workspace-sidebar button:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: -2px; }
 .workspace-explorer-actions,
 .workspace-global-actions { display: flex; align-items: center; }
-.workspace-explorer-actions { flex: none; gap: .125rem; margin-inline-start: .25rem; }
+.workspace-explorer-actions { flex: none; margin-inline-start: auto; }
 .workspace-toolbar {
   display: flex;
   align-items: center;
@@ -276,15 +276,19 @@ body.single-view-mode [data-app-target="previewPanel"] {
   align-items: center;
   justify-content: center;
   gap: .5rem;
-  min-width: 2rem;
+  min-width: 0;
   min-height: 2rem;
   padding: .25rem;
   border-radius: .375rem;
   font-size: .875rem;
   font-weight: 600;
 }
+.workspace-brand span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-sidebar-header .workspace-icon { width: 1.5rem; height: 2rem; }
 .workspace-sidebar.is-collapsed .workspace-sidebar-header { flex-direction: column; gap: .25rem; padding: .25rem; }
 .workspace-sidebar.is-collapsed .workspace-brand span { display: none; }
+.workspace-sidebar.is-collapsed .workspace-global-actions { display: none; }
+.workspace-sidebar.is-collapsed .workspace-explorer-actions { margin-inline-start: 0; }
 .workspace-explorer { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .workspace-navigation { display: flex; align-items: center; justify-content: flex-end; gap: .25rem; padding: .5rem; border-top: 1px solid var(--theme-border); margin-top: auto; }
 .workspace-navigation button { width: 2.25rem; height: 2.25rem; }
@@ -298,12 +302,13 @@ body.single-view-mode [data-app-target="previewPanel"] {
   .workspace-header { min-height: 5rem; flex-wrap: wrap; gap: .25rem; align-content: center; }
   .workspace-document { flex: 1 0 100%; }
   .workspace-toolbar { flex: 1 1 0%; max-width: none; }
-  .workspace-explorer-actions { margin-inline-start: auto; }
   .workspace-sidebar { width: 3rem; }
   .workspace-sidebar .workspace-sidebar-header { justify-content: center; padding: .25rem; }
   .workspace-sidebar .workspace-brand span { display: none; }
-  .workspace-sidebar.is-overlay .workspace-sidebar-header { justify-content: flex-start; padding: 0 .5rem; width: min(19rem, 100vw); z-index: 50; }
+  .workspace-sidebar.is-overlay .workspace-sidebar-header { flex-direction: row; justify-content: space-between; padding: 0 .5rem; width: min(19rem, 100vw); min-height: 5rem; z-index: 50; }
   .workspace-sidebar.is-overlay .workspace-brand span { display: inline; }
+  .workspace-sidebar.is-overlay .workspace-global-actions { display: flex; }
+  .workspace-sidebar.is-overlay .workspace-explorer-actions { margin-inline-start: auto; }
   .workspace-sidebar .workspace-navigation { flex-direction: column; padding: .25rem; }
   .workspace-sidebar.is-overlay .workspace-explorer {
     display: flex;

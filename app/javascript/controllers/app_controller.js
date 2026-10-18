@@ -1492,8 +1492,7 @@ export default class extends Controller {
     }
     const overlayOpen = Boolean(this.mobileWorkspace && this.sidebarVisible)
     const workspace = this.context?.element?.querySelector('[data-workspace-main]')
-    workspace?.querySelectorAll('.workspace-document, .workspace-toolbar, .workspace-global-actions, [data-workspace-panels]')
-      .forEach(element => { element.inert = overlayOpen })
+    if (workspace) workspace.inert = overlayOpen
     this.getCodemirrorController?.()?.refreshTypewriterLayout?.()
   }
 
@@ -1724,7 +1723,7 @@ export default class extends Controller {
       return true
     }
     if (event.key === "Tab" && this.mobileWorkspace && this.sidebarVisible) {
-      const items = [...this.sidebarTarget.querySelectorAll('button, [tabindex="0"]'), this.sidebarToggleTarget]
+      const items = [...this.sidebarTarget.querySelectorAll('button, [tabindex="0"]')]
         .filter(item => !item.disabled && !item.closest(".hidden") && item.getClientRects().length)
       const index = items.indexOf(document.activeElement)
       if ((event.shiftKey && index <= 0) || (!event.shiftKey && (index === -1 || index === items.length - 1))) {

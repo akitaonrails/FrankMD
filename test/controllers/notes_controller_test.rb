@@ -57,14 +57,14 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".workspace-sidebar #workspace-explorer > div:first-child[data-app-target='fileTree']"
     assert_select ".workspace-sidebar #workspace-explorer", text: /FrankMD v\d+/, count: 0
     %w[newNote newFolder openFileFinder openContentSearch].each do |action|
-      assert_select ".workspace-main > header .workspace-global-actions button[data-action='click->app##{action}']", count: 1
+      assert_select ".workspace-sidebar > header .workspace-global-actions button[data-action='click->app##{action}']", count: 1
     end
     assert_select ".workspace-sidebar > header .workspace-brand" do
       assert_select "img[src='/icon.svg']"
       assert_select "span", text: "FrankMD"
     end
-    assert_select ".workspace-main > header .workspace-explorer-actions > button[data-app-target='sidebarToggle']", count: 1
-    assert_select ".workspace-sidebar [data-app-target='sidebarToggle']", count: 0
+    assert_select ".workspace-sidebar > header .workspace-explorer-actions > button[data-app-target='sidebarToggle']", count: 1
+    assert_select ".workspace-main > header .workspace-explorer-actions", count: 0
     assert_select "#settings-dialog [data-settings-target='statsToggle'][aria-pressed='false'][aria-label]"
   end
 

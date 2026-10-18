@@ -19,7 +19,8 @@ describe("workspace chrome", () => {
     window.t = key => key
     document.body.innerHTML = `<div data-controller="app" data-action="click@document->app#onWorkspaceOutsideClick keydown@document->app#onWorkspaceKeydown">
       <aside data-app-target="sidebar">
-        <header><div>FrankMD</div></header>
+        <header><div>FrankMD</div><div class="workspace-global-actions"><button>New note</button></div>
+        <button data-app-target="sidebarToggle" data-action="click->app#toggleSidebar"></button></header>
         <div data-app-target="explorerPanel"><button tabindex="0">New note</button></div><nav><button data-app-target="libraryToggle">Library</button><button data-app-target="settingsToggle">Settings</button></nav>
       </aside>
       <div data-workspace-main><header>
@@ -27,8 +28,6 @@ describe("workspace chrome", () => {
       <input data-app-target="titleInput" class="hidden" data-action="keydown->app#onTitleRenameKeydown input->app#onTitleRenameInput blur->app#cancelTitleRename">
       <p data-app-target="titleRenameError" class="hidden" role="alert"></p></div>
       <div class="workspace-toolbar" data-app-target="editorToolbar"></div><button data-app-target="previewToggle"></button>
-      <div class="workspace-global-actions"><button>New note</button></div>
-      <button data-app-target="sidebarToggle" data-action="click->app#toggleSidebar"></button>
       <div data-app-target="overflowContainer" data-action="keydown->app#navigateWorkspaceMenu">
         <button data-app-target="overflowToggle" data-action="click->app#toggleWorkspaceMenu"></button>
         <div data-app-target="overflowMenu" class="hidden">
@@ -270,16 +269,15 @@ describe("workspace chrome", () => {
     target("sidebarToggle").click()
     expect(target("sidebar").classList.contains("is-overlay")).toBe(true)
     expect(target("sidebarBackdrop").classList.contains("hidden")).toBe(false)
-    expect(target("documentTitle").closest(".workspace-document").inert).toBe(true)
-    expect(root.querySelector(".workspace-global-actions").inert).toBe(true)
-    expect(root.querySelector("[data-workspace-panels]").inert).toBe(true)
+    expect(root.querySelector("[data-workspace-main]").inert).toBe(true)
+    expect(root.querySelector(".workspace-global-actions").closest("[inert]")).toBeNull()
     expect(target("sidebarToggle").closest("[inert]")).toBeNull()
-    target("sidebarToggle").focus()
-    key(target("sidebarToggle"), "Tab")
-    expect(document.activeElement).toBe(target("explorerPanel").querySelector("button"))
+    target("settingsToggle").focus()
+    key(target("settingsToggle"), "Tab")
+    expect(document.activeElement).toBe(root.querySelector(".workspace-global-actions button"))
     key(target("sidebarToggle"), "Escape")
     expect(target("sidebar").classList.contains("is-overlay")).toBe(false)
-    expect(root.querySelector("[data-workspace-panels]").inert).toBe(false)
+    expect(root.querySelector("[data-workspace-main]").inert).toBe(false)
     expect(document.activeElement).toBe(target("sidebarToggle"))
   })
 
