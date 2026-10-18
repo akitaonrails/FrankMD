@@ -30,7 +30,9 @@ describe("workspace chrome", () => {
       <div data-app-target="overflowContainer" data-action="keydown->app#navigateWorkspaceMenu">
         <button data-app-target="overflowToggle" data-action="click->app#toggleWorkspaceMenu"></button>
         <div data-app-target="overflowMenu" class="hidden">
-          <button role="menuitem" tabindex="-1" data-workspace-editing-action data-action="click->app#closeWorkspaceMenu click->app#openHelp">Edit</button>
+          <div class="workspace-menu-row" data-workspace-editing-action>
+            <button class="workspace-menu-action" role="menuitem" tabindex="-1" data-action="click->app#closeWorkspaceMenu click->app#openHelp">Edit</button>
+          </div>
           <button role="menuitem" tabindex="-1" data-workspace-document-action>Copy</button>
           <button role="menuitem" tabindex="-1">Help</button>
         </div>
@@ -254,13 +256,18 @@ describe("workspace chrome", () => {
 
   it("shows only applicable actions in single preview, Library, and empty states", () => {
     expect(target("editorToolbar").classList.contains("hidden")).toBe(false)
+    app.viewMode = "single"
     target("editorPanel").classList.add("hidden")
+    target("previewPanel").classList.remove("hidden")
     app.updateWorkspaceChrome()
-    expect(target("editorToolbar").classList.contains("hidden")).toBe(true)
-    expect(root.querySelector("[data-workspace-editing-action]").hidden).toBe(true)
+    expect(target("editorToolbar").classList.contains("hidden")).toBe(false)
+    expect(root.querySelector("[data-workspace-editing-action]").hidden).toBe(false)
+    expect(root.querySelector(".workspace-menu-action").disabled).toBe(true)
     expect(target("previewToggle").disabled).toBe(false)
     app.libraryVisible = true
     app.updateWorkspaceChrome()
+    expect(target("editorToolbar").classList.contains("hidden")).toBe(true)
+    expect(root.querySelector("[data-workspace-editing-action]").hidden).toBe(true)
     expect(target("previewToggle").disabled).toBe(true)
     app.currentFile = null
     app.updateWorkspaceChrome()
@@ -330,7 +337,7 @@ describe("workspace chrome", () => {
     const icon = () => root.querySelector('[data-workspace-pinned-action="video"]')
 
     beforeEach(() => {
-      target("editorToolbar").innerHTML = '<button data-workspace-pinned-action="video" data-pinned="false" data-workspace-editing-action>Video</button>'
+      target("editorToolbar").innerHTML = '<button class="workspace-pinned-action" data-workspace-pinned-action="video" data-pinned="false" data-workspace-editing-action>Video</button>'
       target("overflowMenu").insertAdjacentHTML("beforeend", `<div class="workspace-menu-row" data-workspace-editing-action>
         <button role="menuitem">Video</button>
         <button role="menuitemcheckbox" data-workspace-pin="video" data-pin-label="Pin Video" data-unpin-label="Unpin Video" data-action="click->app#toggleWorkspacePin"></button>
@@ -380,19 +387,24 @@ describe("workspace chrome", () => {
       expect(icon().dataset.pinned).toBe("false")
     })
 
-    it("preserves pins while hiding editing actions in preview and Library", () => {
+    it("preserves pins while disabling editing actions in preview and hiding them in Library", () => {
       app.toggleWorkspacePin({ currentTarget: pin() })
+      app.viewMode = "single"
       target("editorPanel").classList.add("hidden")
+      target("previewPanel").classList.remove("hidden")
       app.updateWorkspaceChrome()
-      expect(icon().hidden).toBe(true)
-      expect(app.workspaceMenuItems()).not.toContain(pin())
+      expect(icon().hidden).toBe(false)
+      expect(icon().disabled).toBe(true)
+      expect(app.workspaceMenuItems()).toContain(pin())
       app.libraryVisible = true
       app.updateWorkspaceChrome()
       expect(icon().hidden).toBe(true)
+      expect(app.workspaceMenuItems()).not.toContain(pin())
       app.libraryVisible = false
       target("editorPanel").classList.remove("hidden")
       app.updateWorkspaceChrome()
       expect(icon().hidden).toBe(false)
+      expect(icon().disabled).toBe(false)
       expect(icon().dataset.pinned).toBe("true")
     })
 
