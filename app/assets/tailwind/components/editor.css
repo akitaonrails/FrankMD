@@ -4,29 +4,6 @@
  * Adapts to narrower windows when side-by-side with other apps
  */
 @layer components {
-  /*
-   * Responsive toolbar - labels hide when toolbar is narrow
-   * Uses container queries to respond to actual toolbar width
-   */
-  .editor-toolbar {
-    container-type: inline-size;
-  }
-
-  .editor-toolbar > * {
-    flex-shrink: 0;
-  }
-
-  .toolbar-label {
-    display: none;
-  }
-
-  /* Show labels when toolbar is wide enough (> 550px) */
-  @container (min-width: 550px) {
-    .toolbar-label {
-      display: inline;
-    }
-  }
-
   .editor-body {
     display: flex;
     justify-content: flex-start;
@@ -147,4 +124,111 @@ body.single-view-mode [data-app-target="previewPanel"] {
   flex: 1 1 0%;
   width: 100%;
   border-left: none;
+}
+
+/* Workspace chrome stays outside the document's scroll and preview panes. */
+.workspace-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 3rem;
+  padding-inline: .5rem;
+  flex: none;
+  background: var(--theme-bg-primary);
+  border-bottom: 1px solid var(--theme-border);
+  position: relative;
+  z-index: 40;
+}
+.workspace-document-title {
+  text-align: start;
+  font-size: .875rem;
+  font-weight: 500;
+  padding: .25rem;
+  border-radius: .25rem;
+}
+.workspace-document-title:disabled { color: var(--theme-text-muted); }
+.workspace-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  border-radius: .375rem;
+  color: var(--theme-text-muted);
+}
+.workspace-icon:disabled { opacity: .4; }
+.workspace-icon:not(:disabled):hover,
+.workspace-document-title:not(:disabled):hover { background: var(--theme-bg-hover); }
+.workspace-icon[aria-pressed="true"],
+.workspace-navigation [aria-pressed="true"] { color: var(--theme-accent); background: var(--theme-bg-hover); }
+.workspace-header button:focus-visible,
+.workspace-sidebar button:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: -2px; }
+.workspace-toolbar {
+  display: flex;
+  align-items: center;
+  padding: .125rem;
+  flex: none;
+  border: 1px solid var(--theme-border);
+  border-radius: .625rem;
+  background: var(--theme-bg-secondary);
+}
+.workspace-menu {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + .5rem);
+  width: min(17rem, calc(100vw - 1rem));
+  padding: .25rem;
+  background: var(--theme-bg-secondary);
+  border: 1px solid var(--theme-border);
+  border-radius: .5rem;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--theme-text-primary) 12%, transparent);
+}
+.workspace-menu button {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  width: 100%;
+  padding: .5rem;
+  text-align: start;
+  font-size: .875rem;
+  border-radius: .25rem;
+}
+.workspace-menu button[hidden] { display: none; }
+.workspace-menu button:hover, .workspace-menu button:focus { background: var(--theme-bg-hover); }
+.workspace-menu svg { width: 1rem; height: 1rem; flex: none; }
+.workspace-sidebar {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 16rem;
+  border-inline-end: 1px solid var(--theme-border);
+  background: var(--theme-bg-secondary);
+}
+.workspace-explorer { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.workspace-navigation { display: flex; flex-direction: column; gap: .25rem; padding: .5rem; border-top: 1px solid var(--theme-border); margin-top: auto; }
+.workspace-navigation button { min-height: 2.25rem; }
+.workspace-sidebar.is-collapsed { width: 3rem; }
+.workspace-sidebar.is-collapsed .workspace-explorer { display: none; }
+.workspace-sidebar.is-collapsed .workspace-navigation { padding: .25rem; }
+.workspace-sidebar.is-collapsed .workspace-navigation button { justify-content: center; padding-inline: 0; }
+.workspace-sidebar.is-collapsed .workspace-navigation span { display: none; }
+.workspace-sidebar-backdrop { position: absolute; inset: 0; inset-inline-start: 3rem; z-index: 20; background: color-mix(in srgb, var(--theme-text-primary) 25%, transparent); }
+.workspace-table-hint { position: absolute; inset-inline-end: .75rem; bottom: 1.5rem; z-index: 10; max-width: calc(100% - 1.5rem); font-size: .75rem; padding: .25rem .5rem; border-radius: .25rem; background: var(--theme-bg-secondary); color: var(--theme-text-muted); pointer-events: none; }
+@media (max-width: 767px) {
+  .workspace-sidebar { width: 3rem; }
+  .workspace-sidebar .workspace-navigation { padding: .25rem; }
+  .workspace-sidebar .workspace-navigation button { justify-content: center; padding-inline: 0; }
+  .workspace-sidebar .workspace-navigation span { display: none; }
+  .workspace-sidebar.is-overlay .workspace-explorer {
+    display: flex;
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 3rem;
+    width: min(16rem, calc(100vw - 3rem));
+    z-index: 30;
+    background: var(--theme-bg-secondary);
+    border-inline-end: 1px solid var(--theme-border);
+  }
+  .workspace-save-status { max-width: 4rem; overflow: hidden; text-overflow: ellipsis; }
 }

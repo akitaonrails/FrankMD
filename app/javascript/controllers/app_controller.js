@@ -22,6 +22,7 @@ import {
 import { setWikilinkFileProvider } from "lib/codemirror_wikilink"
 import { appAlert } from "lib/app_prompt"
 import { setSlashCommandsEnabledProvider } from "lib/codemirror_slash_commands"
+import { clampMenuToViewport, toggleMenu } from "lib/menu_bounds"
 
 function pathMatchesScope(candidatePath, path, type) {
   if (typeof candidatePath !== "string") return false
@@ -105,6 +106,8 @@ export default class extends Controller {
     "tableHint",
     "sidebar",
     "sidebarToggle",
+    "explorerPanel", "sidebarBackdrop", "documentTitle",
+    "overflowContainer", "overflowToggle", "overflowMenu",
     "vimToggle",
     "vimStatus",
     "scrollSyncToggle",
@@ -154,9 +157,10 @@ export default class extends Controller {
     document.addEventListener("pointerup", this.boundExplorerPointerUp, true)
     document.addEventListener("pointercancel", this.boundExplorerPointerUp, true)
 
-    // Sidebar/Explorer visibility - always start visible
-    // (don't persist closed state across sessions)
-    this.sidebarVisible = true
+    // Start desktop Explorer expanded and mobile navigation as a rail.
+    // Visibility remains session-only.
+    this.mobileWorkspace = window.innerWidth < 768
+    this.sidebarVisible = !this.mobileWorkspace
 
     // Library replaces the editor workspace; Settings is a modal dialog.
     this.libraryVisible = false
@@ -176,7 +180,18 @@ export default class extends Controller {
     this.setupDialogClickOutside()
     this.boundTreeStreamRenderHandler = this.invalidateTreeRefreshesForStream.bind(this)
     document.addEventListener("turbo:before-stream-render", this.boundTreeStreamRenderHandler)
+    this.boundWorkspaceResize = () => {
+      const mobile = window.innerWidth < 768
+      if (mobile !== this.mobileWorkspace) {
+        this.mobileWorkspace = mobile
+        this.sidebarVisible = !mobile
+      }
+      this.closeWorkspaceMenu(null, { restoreFocus: false })
+      this.applySidebarVisibility()
+    }
+    window.addEventListener("resize", this.boundWorkspaceResize)
     this.applySidebarVisibility()
+    this.updateWorkspaceChrome()
     this.setupConfigFileListener()
     this.setupTableEditorListener()
     this.setupSlashCommandListener()
@@ -266,6 +281,7 @@ export default class extends Controller {
 
   disconnect() {
     this._initializationReady = false
+    if (this.boundWorkspaceResize) window.removeEventListener("resize", this.boundWorkspaceResize)
     if (window.fetch === this.unauthorizedFetch) window.fetch = this.originalFetch
 
     // Clear all timeouts
@@ -446,6 +462,10 @@ export default class extends Controller {
     this.updatePathDisplay(displayPath)
     this.expandParentFolders(path)
     this.showEditor(content, fileType, revision)
+    if (this.mobileWorkspace && this.sidebarVisible) {
+      this.closeMobileSidebar()
+      this.getCodemirrorController()?.focus?.()
+    }
     this.refreshTree(generation)
 
     if (updateHistory && this.isCurrentNavigation(generation)) this.updateUrl(path)
@@ -460,6 +480,7 @@ export default class extends Controller {
     this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
+    this.updateWorkspaceChrome?.()
     this.getAutosaveController()?.clearFile?.()
     this.showFileNotFoundMessage(path, message, generation)
     this.refreshTree(generation)
@@ -477,6 +498,7 @@ export default class extends Controller {
     this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
+    this.updateWorkspaceChrome?.()
     this.getAutosaveController()?.clearFile?.()
     this.updatePathDisplay(null)
     this.textareaTarget.disabled = false
@@ -526,6 +548,7 @@ export default class extends Controller {
     this.textareaTarget.value = ""
     this.textareaTarget.disabled = true
 
+    this.updateWorkspaceChrome?.()
     this.currentPathTarget.innerHTML = `
       <span class="text-red-500">${escapeHtml(path)}</span>
       <span class="text-[var(--theme-text-muted)] ml-2">(${escapeHtml(message)})</span>
@@ -910,6 +933,7 @@ export default class extends Controller {
     // Apply editor settings (font, size, line numbers)
     this.applyEditorSettings()
     this.initializeTypewriterMode()
+    this.updateWorkspaceChrome?.()
   }
 
   // Check if current file is markdown
@@ -1077,12 +1101,14 @@ export default class extends Controller {
       previewController.hide()
       editorPanel?.classList.remove("hidden")
       this.getCodemirrorController()?.focus?.()
+      this.updateWorkspaceChrome?.()
       return false
     }
 
     // Editor pane → full-width preview
     previewController.show()
     editorPanel?.classList.add("hidden")
+    this.updateWorkspaceChrome?.()
     return true
   }
 
@@ -1330,7 +1356,7 @@ export default class extends Controller {
   updatePathDisplay(path) {
     const pathDisplayController = this.getPathDisplayController()
     if (pathDisplayController) {
-      pathDisplayController.update(path)
+      pathDisplayController.update(this.currentFile || path)
     }
   }
 
@@ -1424,15 +1450,139 @@ export default class extends Controller {
   toggleSidebar() {
     this.sidebarVisible = !this.sidebarVisible
     this.applySidebarVisibility()
+    if (this.mobileWorkspace && this.sidebarVisible) {
+      this.explorerPanelTarget.querySelector("button")?.focus()
+    }
+  }
+
+  closeMobileSidebar() {
+    if (!this.mobileWorkspace || !this.sidebarVisible) return
+    this.sidebarVisible = false
+    this.applySidebarVisibility()
+    this.sidebarToggleTarget.focus()
   }
 
   applySidebarVisibility() {
     if (this.hasSidebarTarget) {
-      this.sidebarTarget.classList.toggle("hidden", !this.sidebarVisible)
+      this.sidebarTarget.classList.toggle("is-collapsed", !this.sidebarVisible)
+      this.sidebarTarget.classList.toggle("is-overlay", Boolean(this.mobileWorkspace && this.sidebarVisible))
+    }
+    if (this.hasExplorerPanelTarget) {
+      if (!this.sidebarVisible && this.explorerPanelTarget.contains(document.activeElement) && this.hasSidebarToggleTarget) {
+        this.sidebarToggleTarget.focus()
+      }
+      this.explorerPanelTarget.inert = !this.sidebarVisible
+    }
+    if (this.hasSidebarBackdropTarget) {
+      this.sidebarBackdropTarget.classList.toggle("hidden", !(this.mobileWorkspace && this.sidebarVisible))
     }
     if (this.hasSidebarToggleTarget) {
       this.sidebarToggleTarget.setAttribute("aria-expanded", this.sidebarVisible.toString())
     }
+    const overlayOpen = Boolean(this.mobileWorkspace && this.sidebarVisible)
+    this.context?.element?.querySelectorAll('[data-app-target~="editorPanel"], [data-app-target~="previewPanel"], [data-app-target~="libraryPanel"]')
+      .forEach(panel => { panel.inert = overlayOpen })
+    this.getCodemirrorController?.()?.refreshTypewriterLayout?.()
+  }
+
+  renameCurrentNote() {
+    if (!this.currentFile || this.getFileType(this.currentFile) === "config") return
+    this.getFileOperationsController()?.renameExplorerItem({ path: this.currentFile, type: "file", fileType: this.getFileType(this.currentFile) })
+  }
+
+  copyCurrentPath() {
+    if (this.currentFile) this.getPathDisplayController()?.copy()
+  }
+
+  // Keep header controls synchronized even when their original editor pane is hidden.
+  updateWorkspaceChrome() {
+    const root = this.context?.element
+    if (!root) return
+    const markdown = Boolean(this.currentFile && this.isMarkdownFile())
+    const editorVisible = !this.libraryVisible && !root.querySelector('[data-app-target~="editorPanel"]')?.classList.contains("hidden")
+    const editing = markdown && editorVisible
+    const toolbar = root.querySelector('[data-app-target~="editorToolbar"]')
+    toolbar?.classList.toggle("hidden", !editing)
+    toolbar?.classList.toggle("flex", editing)
+    root.querySelectorAll("[data-workspace-editing-action]").forEach(button => { button.hidden = !editing })
+    root.querySelectorAll("[data-workspace-document-action]").forEach(button => { button.hidden = !this.currentFile })
+    const preview = root.querySelector('[data-app-target~="previewToggle"]')
+    if (preview) preview.disabled = !markdown || Boolean(this.libraryVisible)
+    const title = root.querySelector('[data-app-target~="documentTitle"]')
+    if (title) title.disabled = !this.currentFile || this.getFileType(this.currentFile) === "config"
+    if (this.hasOverflowMenuTarget && !this.overflowMenuTarget.classList.contains("hidden")) {
+      if (this.overflowMenuTarget.contains(document.activeElement) && document.activeElement.hidden) {
+        this.workspaceMenuItems()[0]?.focus()
+      }
+      clampMenuToViewport(this.overflowMenuTarget)
+    }
+  }
+
+  workspaceMenuItems() {
+    return Array.from(this.overflowMenuTarget.querySelectorAll('[role="menuitem"]')).filter(item => !item.hidden && !item.disabled)
+  }
+
+  toggleWorkspaceMenu() {
+    const visible = toggleMenu(this.overflowMenuTarget)
+    this.overflowToggleTarget.setAttribute("aria-expanded", String(visible))
+    if (visible) this.workspaceMenuItems()[0]?.focus()
+  }
+
+  closeWorkspaceMenu(event, { restoreFocus = true } = {}) {
+    if (!this.hasOverflowMenuTarget || this.overflowMenuTarget.classList.contains("hidden")) return
+    toggleMenu(this.overflowMenuTarget, true)
+    this.overflowToggleTarget.setAttribute("aria-expanded", "false")
+    if (restoreFocus) this.overflowToggleTarget.focus()
+  }
+
+  navigateWorkspaceMenu(event) {
+    if (event.key === "Tab") {
+      this.closeWorkspaceMenu()
+      return
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return
+    event.preventDefault()
+    if (this.overflowMenuTarget.classList.contains("hidden")) {
+      this.toggleWorkspaceMenu()
+      if (event.key === "ArrowUp" || event.key === "End") this.workspaceMenuItems().at(-1)?.focus()
+      return
+    }
+    const items = this.workspaceMenuItems()
+    if (!items.length) return
+    const index = items.indexOf(document.activeElement)
+    const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 :
+      (index + (event.key === "ArrowUp" ? -1 : 1) + items.length) % items.length
+    items[next].focus()
+  }
+
+  onWorkspaceOutsideClick(event) {
+    if (this.hasOverflowContainerTarget && !this.overflowContainerTarget.contains(event.target)) {
+      this.closeWorkspaceMenu(null, { restoreFocus: false })
+    }
+  }
+
+  onWorkspaceKeydown(event) {
+    if (document.querySelector("dialog[open]")) return false
+    if (event.key === "Escape") {
+      if (this.hasOverflowMenuTarget && !this.overflowMenuTarget.classList.contains("hidden")) {
+        this.closeWorkspaceMenu()
+      } else if (this.mobileWorkspace && this.sidebarVisible) {
+        this.closeMobileSidebar()
+      } else return false
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      return true
+    }
+    if (event.key === "Tab" && this.mobileWorkspace && this.sidebarVisible) {
+      const items = [this.sidebarToggleTarget, ...this.sidebarTarget.querySelectorAll('button, [tabindex="0"]')]
+        .filter(item => !item.disabled && !item.closest(".hidden") && item.getClientRects().length)
+      const index = items.indexOf(document.activeElement)
+      if ((event.shiftKey && index <= 0) || (!event.shiftKey && (index === -1 || index === items.length - 1))) {
+        event.preventDefault()
+        items[event.shiftKey ? items.length - 1 : 0]?.focus()
+      }
+    }
+    return false
   }
 
   // === Library Workspace ===
@@ -1471,6 +1621,8 @@ export default class extends Controller {
     editorPanel?.classList.add("hidden")
     libraryPanel.classList.remove("hidden")
     toggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "true"))
+    this.closeMobileSidebar?.()
+    this.updateWorkspaceChrome?.()
     if (openingLibrary) {
       const libraryController = this.application?.getControllerForElementAndIdentifier(libraryPanel, "library")
       libraryController?.resetUsageForLibraryOpen()
@@ -1540,6 +1692,7 @@ export default class extends Controller {
     // Re-measure CodeMirror after revealing the editor from the Library.
     this.codemirrorOutlets?.[0]?.refreshTypewriterLayout?.()
     this.initializeTypewriterMode()
+    this.updateWorkspaceChrome?.()
     return true
   }
 
@@ -1648,6 +1801,7 @@ export default class extends Controller {
       // state, exactly as the classic layout behaved
       editorPanel?.classList.remove("hidden")
     }
+    this.updateWorkspaceChrome?.()
   }
 
   toggleTypewriterMode() {
@@ -2577,6 +2731,7 @@ export default class extends Controller {
       this.clearPendingSlashInsertion()
       this.currentFile = null
       this.currentFileType = null
+      this.updateWorkspaceChrome?.()
       this.updatePathDisplay(null)
       if (this.hasTextareaTarget) this.textareaTarget.disabled = false
       this.editorPlaceholderTarget.classList.remove("hidden")
@@ -2676,6 +2831,7 @@ export default class extends Controller {
 
     this.boundWorkspaceEscapeHandler = (event) => {
       if (event.key !== "Escape") return
+      if (this.onWorkspaceKeydown?.(event)) return
       if (!this.libraryVisible) return
       if (document.querySelector("dialog[open]")) {
         this._workspaceDeferredEscapeEvents.add(event)

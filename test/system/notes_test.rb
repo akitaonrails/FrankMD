@@ -6,7 +6,7 @@ class NotesTest < ApplicationSystemTestCase
   test "visiting the home page shows the app" do
     visit root_url
 
-    assert_selector "header", text: "FrankMD"
+    assert_selector "header [data-app-target='documentTitle'][disabled]"
     assert_selector "[data-app-target='fileTree']"
   end
 
@@ -456,7 +456,8 @@ class NotesTest < ApplicationSystemTestCase
 
     # Toolbar should be visible
     assert_selector "[data-app-target='editorToolbar']", visible: true
-    assert_selector "button[title='Insert/Edit Table']"
+    find("[data-app-target='overflowToggle']").click
+    assert_selector "[role='menuitem']", text: "Insert/Edit Table"
   end
 
   test "table editor dialog opens and shows grid" do
@@ -466,7 +467,7 @@ class NotesTest < ApplicationSystemTestCase
     find("[data-path='table_test.md']").click
 
     # Click table button
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     # Dialog should open with grid
     assert_selector "dialog[open]"
@@ -479,7 +480,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='table_cols.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -500,7 +501,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='table_rows.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -521,7 +522,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='insert_table.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -571,7 +572,7 @@ class NotesTest < ApplicationSystemTestCase
     sleep 0.2
 
     # Open table editor
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -588,7 +589,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='context_table.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -612,7 +613,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='move_col.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -642,7 +643,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='move_row.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -673,7 +674,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='del_col.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -697,7 +698,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='del_row.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -721,7 +722,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='no_del_header.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -755,6 +756,13 @@ class NotesTest < ApplicationSystemTestCase
     assert_selector "button[title='Insert Image']"
   ensure
     ENV["IMAGES_PATH"] = original_images_path
+  end
+
+  private
+
+  def open_table_editor
+    find("[data-app-target='overflowToggle']").click
+    find("[role='menuitem']", text: "Insert/Edit Table", exact_text: true).click
   end
 end
 
