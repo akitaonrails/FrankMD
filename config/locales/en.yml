@@ -32,6 +32,7 @@ en:
 
   # Header section
   header:
+    rename_document_hint: "Press Enter to rename. Escape or clicking away cancels."
     document_actions: "Document actions"
     more_actions: "More actions"
     rename_document: "Rename document"

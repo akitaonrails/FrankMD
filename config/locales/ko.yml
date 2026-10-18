@@ -32,6 +32,7 @@ ko:
 
   # 헤더 섹션
   header:
+    rename_document_hint: "Enter로 이름을 변경합니다. Esc를 누르거나 바깥을 클릭하면 취소됩니다."
     document_actions: "문서 작업"
     more_actions: "추가 작업"
     rename_document: "문서 이름 변경"

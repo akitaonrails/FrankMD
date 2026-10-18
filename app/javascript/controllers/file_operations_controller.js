@@ -465,63 +465,53 @@ export default class extends Controller {
   }
 
   async submitRename() {
-    if (!this.contextItem || !this.hasRenameInputTarget) return
-
-    let newName = this.renameInputTarget.value.trim()
-    if (!newName) return
+    if (!this.contextItem || !this.hasRenameInputTarget || !this.renameInputTarget.value.trim()) return
     clearInlineError(this.hasRenameErrorTarget ? this.renameErrorTarget : null)
 
-    // Add .md extension for files if not present
-    if (this.contextItem.type === "file" && !newName.endsWith(".md")) {
-      newName = `${newName}.md`
-    }
+    const result = await this.renamePath({ ...this.contextItem }, this.renameInputTarget.value)
+    if (result.ok) this.closeRenameDialog()
+    else if (result.error) showInlineError(this.hasRenameErrorTarget ? this.renameErrorTarget : null, result.error)
+  }
 
-    // Build new path
-    const pathParts = this.contextItem.path.split("/")
+  // Shared by the Explorer dialog and the inline document title. Keep request,
+  // draft protection and path-remapping events independent of either UI.
+  async renamePath(item, name) {
+    if (!item?.path || !["file", "folder"].includes(item.type)) {
+      return { ok: false, error: window.t("errors.failed_to_rename") }
+    }
+    let newName = name.trim()
+    if (!newName) return { ok: false, error: window.t("errors.title_required") }
+
+    if (item.type === "file" && !newName.endsWith(".md")) newName = `${newName}.md`
+    const pathParts = item.path.split("/")
     pathParts[pathParts.length - 1] = newName
     const newPath = pathParts.join("/")
+    if (newPath === item.path) return { ok: true, path: newPath }
 
-    // Don't rename if path is the same
-    if (newPath === this.contextItem.path) {
-      this.closeRenameDialog()
-      return
-    }
-
-    const item = { ...this.contextItem }
-    const prepared = this.preparePathOperation(item.path, item.type)
-    if (!prepared.ok) {
-      if (prepared.needsAlert) showInlineError(this.hasRenameErrorTarget ? this.renameErrorTarget : null, window.t("status.draft_storage_error"))
-      return
-    }
-
+    let prepared
     try {
+      prepared = this.preparePathOperation(item.path, item.type)
+      if (!prepared.ok) {
+        return { ok: false, error: prepared.needsAlert ? window.t("status.draft_storage_error") : null }
+      }
       const endpoint = item.type === "file" ? "notes" : "folders"
-      const expanded = this.expandedFolders
       const response = await post(`/${endpoint}/${encodePath(item.path)}/rename`, {
-        body: { new_path: newPath, expanded },
+        body: { new_path: newPath, expanded: this.expandedFolders },
         responseKind: "turbo-stream"
       })
-
       if (!response.ok) {
         const data = await response.json
         throw new Error(data.error || window.t("errors.failed_to_rename"))
       }
 
-      // Turbo Stream response auto-processed by request.js
-
       this.dispatch("file-renamed", {
-        detail: {
-          oldPath: item.path,
-          newPath: newPath,
-          type: item.type
-        }
+        detail: { oldPath: item.path, newPath, type: item.type }
       })
-
-      this.closeRenameDialog()
+      return { ok: true, path: newPath }
     } catch (error) {
       this.resumePathOperation(prepared)
       console.error("Failed to rename:", error)
-      showInlineError(this.hasRenameErrorTarget ? this.renameErrorTarget : null, error.message || window.t("errors.failed_to_rename"))
+      return { ok: false, error: error.message || window.t("errors.failed_to_rename") }
     }
   }
 

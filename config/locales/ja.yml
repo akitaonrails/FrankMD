@@ -32,6 +32,7 @@ ja:
 
   # Header section
   header:
+    rename_document_hint: "Enter で名前を変更します。Esc または欄外のクリックでキャンセルします。"
     document_actions: "ドキュメントの操作"
     more_actions: "その他の操作"
     rename_document: "ドキュメント名を変更"

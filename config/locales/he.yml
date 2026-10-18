@@ -32,6 +32,7 @@ he:
 
   # אזור הכותרת
   header:
+    rename_document_hint: "לחצו Enter לשינוי השם. Escape או לחיצה מחוץ לשדה יבטלו."
     document_actions: "פעולות מסמך"
     more_actions: "פעולות נוספות"
     rename_document: "שינוי שם המסמך"

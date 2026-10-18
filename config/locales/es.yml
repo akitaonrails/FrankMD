@@ -32,6 +32,7 @@ es:
 
   # Header section
   header:
+    rename_document_hint: "Pulsa Intro para renombrar. Esc o hacer clic fuera cancela."
     document_actions: "Acciones del documento"
     more_actions: "Más acciones"
     rename_document: "Renombrar documento"

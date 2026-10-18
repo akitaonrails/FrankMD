@@ -15,6 +15,7 @@ describe("workspace chrome", () => {
   const key = (element, value, options = {}) => element.dispatchEvent(new KeyboardEvent("keydown", { key: value, bubbles: true, cancelable: true, ...options }))
 
   beforeEach(async () => {
+    window.t = key => key
     document.body.innerHTML = `<div data-controller="app" data-action="click@document->app#onWorkspaceOutsideClick keydown@document->app#onWorkspaceKeydown">
       <aside data-app-target="sidebar">
         <header><button data-app-target="sidebarToggle" data-action="click->app#toggleSidebar"></button><button>FrankMD</button></header>
@@ -22,6 +23,8 @@ describe("workspace chrome", () => {
       </aside>
       <div data-workspace-main><header>
       <button data-app-target="documentTitle" data-action="click->app#renameCurrentNote"></button>
+      <input data-app-target="titleInput" class="hidden" data-action="keydown->app#onTitleRenameKeydown input->app#onTitleRenameInput blur->app#cancelTitleRename">
+      <p data-app-target="titleRenameError" class="hidden" role="alert"></p>
       <div data-app-target="editorToolbar"></div><button data-app-target="previewToggle"></button>
       <div data-app-target="overflowContainer" data-action="keydown->app#navigateWorkspaceMenu">
         <button data-app-target="overflowToggle" data-action="click->app#toggleWorkspaceMenu"></button>
@@ -40,8 +43,8 @@ describe("workspace chrome", () => {
     await new Promise(resolve => setTimeout(resolve, 0))
     root = document.querySelector('[data-controller="app"]')
     app = application.getControllerForElementAndIdentifier(root, "app")
-    rename = vi.fn()
-    vi.spyOn(app, "getFileOperationsController").mockReturnValue({ renameExplorerItem: rename })
+    rename = vi.fn().mockResolvedValue({ ok: true, path: "folder/renamed.md" })
+    vi.spyOn(app, "getFileOperationsController").mockReturnValue({ renamePath: rename })
     vi.spyOn(app, "getCodemirrorController").mockReturnValue({ refreshTypewriterLayout: vi.fn() })
     app.currentFile = "folder/note.md"
     app.currentFileType = "markdown"
@@ -53,9 +56,116 @@ describe("workspace chrome", () => {
 
   afterEach(() => { application.stop(); vi.restoreAllMocks(); document.body.innerHTML = "" })
 
-  it("renames the active note rather than the Explorer selection", () => {
+  it("turns the title into a focused text field without opening a dialog", () => {
     target("documentTitle").click()
-    expect(rename).toHaveBeenCalledWith({ path: "folder/note.md", type: "file", fileType: "markdown" })
+    const input = target("titleInput")
+    expect(document.activeElement).toBe(input)
+    expect(input.value).toBe("note")
+    expect([input.selectionStart, input.selectionEnd]).toEqual([0, 4])
+    expect(target("documentTitle").classList.contains("hidden")).toBe(true)
+    expect(rename).not.toHaveBeenCalled()
+  })
+
+  it("saves with Enter through file operations and restores title focus", async () => {
+    target("documentTitle").click()
+    target("titleInput").value = "renamed"
+    key(target("titleInput"), "Enter")
+    await vi.waitFor(() => expect(target("titleInput").classList.contains("hidden")).toBe(true))
+    expect(rename).toHaveBeenCalledWith({ path: "folder/note.md", type: "file" }, "renamed")
+    expect(document.activeElement).toBe(target("documentTitle"))
+  })
+
+  it("cancels with Escape before leaving the Library workspace", () => {
+    app.libraryVisible = true
+    target("documentTitle").click()
+    target("titleInput").value = "cancelled"
+    const event = new KeyboardEvent("keydown", { key: "Escape", cancelable: true })
+    expect(app.onWorkspaceKeydown(event)).toBe(true)
+    expect(event.defaultPrevented).toBe(true)
+    expect(app.libraryVisible).toBe(true)
+    expect(target("titleInput").classList.contains("hidden")).toBe(true)
+    expect(document.activeElement).toBe(target("documentTitle"))
+    expect(rename).not.toHaveBeenCalled()
+  })
+
+  it("cancels when the field loses focus", () => {
+    target("documentTitle").click()
+    target("titleInput").value = "cancelled"
+    target("titleInput").blur()
+    expect(target("titleInput").classList.contains("hidden")).toBe(true)
+    expect(rename).not.toHaveBeenCalled()
+  })
+
+  it("keeps failures beside the field and allows retrying", async () => {
+    rename.mockResolvedValueOnce({ ok: false, error: "Name already exists" })
+    target("documentTitle").click()
+    target("titleInput").value = "occupied"
+    await app.submitTitleRename()
+    expect(target("titleRenameError").textContent).toBe("Name already exists")
+    expect(target("titleInput").value).toBe("occupied")
+    expect(target("titleInput").getAttribute("aria-invalid")).toBe("true")
+    expect(document.activeElement).toBe(target("titleInput"))
+    target("titleInput").value = "renamed"
+    target("titleInput").dispatchEvent(new Event("input", { bubbles: true }))
+    expect(target("titleRenameError").classList.contains("hidden")).toBe(true)
+    await app.submitTitleRename()
+    expect(target("titleInput").classList.contains("hidden")).toBe(true)
+    expect(rename).toHaveBeenCalledTimes(2)
+  })
+
+  it("does not replace an existing draft warning with a filename error", async () => {
+    rename.mockResolvedValue({ ok: false, error: null })
+    target("documentTitle").click()
+    await app.submitTitleRename()
+    expect(target("titleRenameError").classList.contains("hidden")).toBe(true)
+    expect(target("titleInput").disabled).toBe(false)
+    expect(target("titleInput").hasAttribute("aria-invalid")).toBe(false)
+  })
+
+  it("prevents duplicate requests and ignores blur while saving", async () => {
+    let complete
+    rename.mockReturnValue(new Promise(resolve => { complete = resolve }))
+    target("documentTitle").click()
+    const pending = app.submitTitleRename()
+    await app.submitTitleRename()
+    app.cancelTitleRename(new Event("blur"))
+    expect(rename).toHaveBeenCalledOnce()
+    expect(target("titleInput").disabled).toBe(true)
+    expect(target("titleInput").classList.contains("hidden")).toBe(false)
+    complete({ ok: true, path: "folder/note.md" })
+    await pending
+    expect(target("titleInput").classList.contains("hidden")).toBe(true)
+  })
+
+  it("discards stale results after navigating to another file", async () => {
+    let complete
+    rename.mockReturnValue(new Promise(resolve => { complete = resolve }))
+    target("documentTitle").click()
+    target("titleInput").value = "renamed"
+    const pending = app.submitTitleRename()
+    app.currentFile = "other.md"
+    app.updateWorkspaceChrome()
+    complete({ ok: false, error: "Old file error" })
+    await pending
+    expect(rename).toHaveBeenCalledWith({ path: "folder/note.md", type: "file" }, "renamed")
+    expect(target("titleInput").classList.contains("hidden")).toBe(true)
+    expect(target("titleRenameError").classList.contains("hidden")).toBe(true)
+    expect(app.currentFile).toBe("other.md")
+  })
+
+  it("does not submit a stale edit against the newly selected note", async () => {
+    target("documentTitle").click()
+    app.currentFile = "other.md"
+    await app.submitTitleRename()
+    expect(rename).not.toHaveBeenCalled()
+    expect(target("titleInput").classList.contains("hidden")).toBe(true)
+  })
+
+  it("leaves IME composition Enter to the text field", () => {
+    target("documentTitle").click()
+    key(target("titleInput"), "Enter", { isComposing: true })
+    expect(rename).not.toHaveBeenCalled()
+    expect(target("titleInput").classList.contains("hidden")).toBe(false)
   })
 
   it.each([null, ".fed"])("guards title rename for %s", path => {

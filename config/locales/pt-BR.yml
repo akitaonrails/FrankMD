@@ -32,6 +32,7 @@ pt-BR:
 
   # Seção do cabeçalho
   header:
+    rename_document_hint: "Pressione Enter para renomear. Esc ou clicar fora cancela."
     document_actions: "Ações do documento"
     more_actions: "Mais ações"
     rename_document: "Renomear documento"

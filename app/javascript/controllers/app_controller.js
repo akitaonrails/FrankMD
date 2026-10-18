@@ -23,6 +23,7 @@ import { setWikilinkFileProvider } from "lib/codemirror_wikilink"
 import { appAlert } from "lib/app_prompt"
 import { setSlashCommandsEnabledProvider } from "lib/codemirror_slash_commands"
 import { clampMenuToViewport, toggleMenu } from "lib/menu_bounds"
+import { clearInlineError, showInlineError } from "lib/inline_messages"
 
 function pathMatchesScope(candidatePath, path, type) {
   if (typeof candidatePath !== "string") return false
@@ -107,6 +108,7 @@ export default class extends Controller {
     "sidebar",
     "sidebarToggle",
     "explorerPanel", "sidebarBackdrop", "documentTitle",
+    "titleInput", "titleRenameError",
     "overflowContainer", "overflowToggle", "overflowMenu",
     "vimToggle",
     "vimStatus",
@@ -1486,8 +1488,75 @@ export default class extends Controller {
   }
 
   renameCurrentNote() {
-    if (!this.currentFile || this.getFileType(this.currentFile) === "config") return
-    this.getFileOperationsController()?.renameExplorerItem({ path: this.currentFile, type: "file", fileType: this.getFileType(this.currentFile) })
+    if (!this.currentFile || this.getFileType(this.currentFile) === "config" || this._titleRename || !this.hasTitleInputTarget) return
+    this._titleRename = { path: this.currentFile, pending: false }
+    this.titleInputTarget.value = this.currentFile.split("/").pop().replace(/\.md$/, "")
+    this.onTitleRenameInput()
+    this.documentTitleTarget.classList.add("hidden")
+    this.titleInputTarget.classList.remove("hidden")
+    this.titleInputTarget.focus()
+    this.titleInputTarget.select()
+  }
+
+  onTitleRenameInput() {
+    clearInlineError(this.titleRenameErrorTarget)
+    this.titleInputTarget.removeAttribute("aria-invalid")
+    this.titleInputTarget.size = Math.max(8, Math.min(40, this.titleInputTarget.value.length + 1))
+  }
+
+  onTitleRenameKeydown(event) {
+    if (event.isComposing) return
+    if (event.key === "Enter" || event.key === "Escape") {
+      event.preventDefault()
+      event.stopPropagation()
+      if (event.key === "Enter") this.submitTitleRename()
+      else this.cancelTitleRename()
+    }
+  }
+
+  cancelTitleRename(event) {
+    if (!this._titleRename || this._titleRename.pending) return
+    this.finishTitleRename(event?.type !== "blur")
+  }
+
+  finishTitleRename(restoreFocus = false) {
+    this._titleRename = null
+    if (!this.hasTitleInputTarget) return
+    this.titleInputTarget.classList.add("hidden")
+    this.titleInputTarget.disabled = false
+    this.titleInputTarget.removeAttribute("aria-invalid")
+    this.documentTitleTarget.classList.remove("hidden")
+    clearInlineError(this.titleRenameErrorTarget)
+    if (restoreFocus && !this.documentTitleTarget.disabled) this.documentTitleTarget.focus()
+  }
+
+  async submitTitleRename() {
+    const edit = this._titleRename
+    if (!edit || edit.pending) return
+    if (this.currentFile !== edit.path) {
+      this.finishTitleRename()
+      return
+    }
+    edit.pending = true
+    this.onTitleRenameInput()
+    this.titleInputTarget.disabled = true
+    const result = await this.getFileOperationsController()?.renamePath(
+      { path: edit.path, type: "file" }, this.titleInputTarget.value
+    )
+    if (this._titleRename !== edit) return
+    const restoreFocus = document.activeElement === document.body || document.activeElement === this.titleInputTarget
+    if (result?.ok) {
+      this.finishTitleRename(restoreFocus)
+      return
+    }
+    edit.pending = false
+    this.titleInputTarget.disabled = false
+    const error = result ? result.error : window.t("errors.failed_to_rename")
+    if (error) {
+      showInlineError(this.titleRenameErrorTarget, error)
+      this.titleInputTarget.setAttribute("aria-invalid", "true")
+    }
+    if (restoreFocus && !document.querySelector("dialog[open]")) this.titleInputTarget.focus()
   }
 
   copyCurrentPath() {
@@ -1498,6 +1567,7 @@ export default class extends Controller {
   updateWorkspaceChrome() {
     const root = this.context?.element
     if (!root) return
+    if (this._titleRename && this.currentFile !== this._titleRename.path) this.finishTitleRename()
     const markdown = Boolean(this.currentFile && this.isMarkdownFile())
     const editorVisible = !this.libraryVisible && !root.querySelector('[data-app-target~="editorPanel"]')?.classList.contains("hidden")
     const editing = markdown && editorVisible
@@ -1564,7 +1634,9 @@ export default class extends Controller {
   onWorkspaceKeydown(event) {
     if (document.querySelector("dialog[open]")) return false
     if (event.key === "Escape") {
-      if (this.hasOverflowMenuTarget && !this.overflowMenuTarget.classList.contains("hidden")) {
+      if (this._titleRename) {
+        this.cancelTitleRename()
+      } else if (this.hasOverflowMenuTarget && !this.overflowMenuTarget.classList.contains("hidden")) {
         this.closeWorkspaceMenu()
       } else if (this.mobileWorkspace && this.sidebarVisible) {
         this.closeMobileSidebar()

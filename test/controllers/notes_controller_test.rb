@@ -39,6 +39,9 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".workspace-navigation button[data-app-target='libraryToggle'][aria-label]"
     assert_select ".workspace-navigation button[data-app-target='settingsToggle'][aria-label]"
     assert_select ".workspace-main > header button[data-app-target='documentTitle'][disabled][data-action='click->app#renameCurrentNote']"
+    assert_select ".workspace-title-container input[type='text'][data-app-target='titleInput'].hidden[aria-label][aria-describedby='workspace-title-hint workspace-title-error']"
+    assert_select "#workspace-title-hint", text: I18n.t("header.rename_document_hint")
+    assert_select "#workspace-title-error[data-app-target='titleRenameError'][role='alert']"
     assert_select "header .workspace-toolbar button.workspace-icon" do |buttons|
       buttons.each { |button| assert button["aria-label"].present?, "Icon buttons require accessible labels" }
     end

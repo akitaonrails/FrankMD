@@ -38,11 +38,12 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector ".cm-content"
     find(".cm-content").send_keys([ :control, :end ], " edited")
     find("[data-app-target='documentTitle']").send_keys(:enter)
-    within "[data-file-operations-target='renameDialog']" do
-      assert_equal "original", find("input").value
-      find("input").fill_in with: "renamed"
-      click_button "Rename"
-    end
+    assert_selector "[data-app-target='titleInput']:focus"
+    assert_no_selector "[data-file-operations-target='renameDialog'][open]"
+    assert_equal "original", find("[data-app-target='titleInput']").value
+    find("[data-app-target='titleInput']").fill_in with: "renamed"
+    find("[data-app-target='titleInput']").send_keys(:enter)
+    assert_no_selector "[data-app-target='titleInput']", visible: true
     assert_selector "[data-app-target='currentPath']", text: "renamed"
     assert_current_path "/notes/folder/renamed.md"
     assert_selector ".cm-content", text: "Initial edited"
@@ -57,18 +58,40 @@ class WorkspaceTest < ApplicationSystemTestCase
     create_test_note("occupied.md", "Occupied")
     visit note_url(path: "original.md")
     find("[data-app-target='documentTitle']").click
-    within "[data-file-operations-target='renameDialog']" do
-      click_button "Cancel"
-    end
+    find("[data-app-target='titleInput']").fill_in with: "cancelled"
+    find("[data-app-target='titleInput']").send_keys(:escape)
+    assert_selector "[data-app-target='documentTitle']:focus"
     assert_current_path "/notes/original.md"
     find("[data-app-target='documentTitle']").click
-    within "[data-file-operations-target='renameDialog']" do
-      find("input").fill_in with: "occupied"
-      click_button "Rename"
-      assert_selector "[data-file-operations-target='renameError']", text: /exist/i
-    end
+    find("[data-app-target='titleInput']").fill_in with: "occupied"
+    find("[data-app-target='titleInput']").send_keys(:enter)
+    assert_selector "[data-app-target='titleRenameError'][role='alert']", text: /exist/i
+    assert_selector "[data-app-target='titleInput'][aria-invalid='true']:focus"
+    assert_no_selector "dialog[open]"
+    assert_current_path "/notes/original.md"
     assert_equal "Original", File.read(@test_notes_dir.join("original.md"))
     assert_equal "Occupied", File.read(@test_notes_dir.join("occupied.md"))
+    find("[data-app-target='titleInput']").fill_in with: "available"
+    find("[data-app-target='titleInput']").send_keys(:enter)
+    assert_selector "[data-app-target='currentPath']", text: "available"
+    assert_current_path "/notes/available.md"
+  end
+
+  test "blank titles show inline validation and clicking away cancels" do
+    create_test_note("original.md", "Original")
+    visit note_url(path: "original.md")
+    find("[data-app-target='documentTitle']").click
+    find("[data-app-target='titleInput']").fill_in with: " "
+    find("[data-app-target='titleInput']").send_keys(:enter)
+    assert_selector "[data-app-target='titleRenameError']", text: I18n.t("errors.title_required")
+    find("[data-app-target='titleInput']").fill_in with: "cancelled"
+    find(".cm-content").click
+    assert_no_selector "[data-app-target='titleInput']", visible: true
+    assert_no_selector "[data-app-target='titleRenameError']", visible: true
+    assert_selector "[data-app-target='currentPath']", text: "original"
+    assert_current_path "/notes/original.md"
+    assert @test_notes_dir.join("original.md").exist?
+    refute @test_notes_dir.join("cancelled.md").exist?
   end
 
   test "collapsed navigation opens Library and Settings and preserves preview mode" do
@@ -140,6 +163,10 @@ class WorkspaceTest < ApplicationSystemTestCase
           return editor.top >= header.bottom;
         })()
       JS
+      find("[data-app-target='documentTitle']").click
+      assert_selector "[data-app-target='titleInput']:focus"
+      assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
+      find("[data-app-target='titleInput']").send_keys(:escape)
       find("[data-app-target='overflowToggle']").click
       assert_selector "#workspace-menu", visible: true
       assert page.evaluate_script(<<~JS)

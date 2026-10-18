@@ -1,8 +1,13 @@
 <header class="workspace-header">
   <div class="workspace-document min-w-0 flex-1 flex items-center gap-2">
-    <button type="button" class="workspace-document-title min-w-0" data-controller="path-display" data-path-display-basename-value="true" data-path-display-rename-label-value="<%= t('header.rename_document') %>" data-app-target="documentTitle" data-action="click->app#renameCurrentNote" title="<%= t('header.rename_document') %>" aria-label="<%= t('header.rename_document') %>" disabled>
-      <span class="block truncate" data-path-display-target="text" data-app-target="currentPath"><%= t('editor.select_note') %></span>
-    </button>
+    <div class="workspace-title-container">
+      <button type="button" class="workspace-document-title min-w-0" data-controller="path-display" data-path-display-basename-value="true" data-path-display-rename-label-value="<%= t('header.rename_document') %>" data-app-target="documentTitle" data-action="click->app#renameCurrentNote" title="<%= t('header.rename_document') %>" aria-label="<%= t('header.rename_document') %>" disabled>
+        <span class="block truncate" data-path-display-target="text" data-app-target="currentPath"><%= t('editor.select_note') %></span>
+      </button>
+      <input type="text" class="workspace-title-input hidden" data-app-target="titleInput" data-action="keydown->app#onTitleRenameKeydown input->app#onTitleRenameInput blur->app#cancelTitleRename" aria-label="<%= t('header.rename_document') %>" aria-describedby="workspace-title-hint workspace-title-error" title="<%= t('header.rename_document_hint') %>" autocomplete="off" spellcheck="false">
+      <span id="workspace-title-hint" class="sr-only"><%= t('header.rename_document_hint') %></span>
+      <p id="workspace-title-error" class="workspace-title-error hidden" role="alert" data-app-target="titleRenameError"></p>
+    </div>
     <span class="workspace-save-status text-xs text-[var(--theme-text-faint)] hidden shrink-0" role="status" data-autosave-target="saveStatus"></span>
   </div>
   <%= render "notes/workspace_toolbar" %>
