@@ -144,7 +144,6 @@ body.single-view-mode [data-app-target="previewPanel"] {
   padding-inline: .5rem;
   flex: none;
   background: var(--theme-bg-primary);
-  border-bottom: 1px solid var(--theme-border);
   position: relative;
   z-index: 40;
 }
