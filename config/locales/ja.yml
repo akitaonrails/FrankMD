@@ -131,6 +131,8 @@ ja:
     line_numbers_off: "オフ"
     line_numbers_absolute: "絶対"
     line_numbers_relative: "相対"
+    stats: "統計"
+    stats_description: "エクスプローラーに文書の統計を表示"
     indent: "インデント"
     indent_description: "インデントレベルごとのスペース数"
     indent_spaces: "%{count} スペース"

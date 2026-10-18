@@ -131,6 +131,8 @@ ko:
     line_numbers_off: "끄기"
     line_numbers_absolute: "절대"
     line_numbers_relative: "상대"
+    stats: "통계"
+    stats_description: "탐색기에 문서 통계 표시"
     indent: "들여쓰기"
     indent_description: "들여쓰기 수준당 공백 수"
     indent_spaces: "%{count} 공백"

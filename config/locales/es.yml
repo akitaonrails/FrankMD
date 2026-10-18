@@ -131,6 +131,8 @@ es:
     line_numbers_off: "Desactivados"
     line_numbers_absolute: "Absolutos"
     line_numbers_relative: "Relativos"
+    stats: "Estadísticas"
+    stats_description: "Mostrar estadísticas del documento en el Explorador"
     indent: "Sangría"
     indent_description: "Espacios por nivel de sangría"
     indent_spaces: "%{count} espacios"

@@ -131,6 +131,8 @@ he:
     line_numbers_off: "כבוי"
     line_numbers_absolute: "מוחלט"
     line_numbers_relative: "יחסי"
+    stats: "סטטיסטיקה"
+    stats_description: "הצגת נתוני המסמך בסייר הקבצים"
     indent: "הזחה"
     indent_description: "רווחים לכל רמת הזחה"
     indent_spaces: "%{count} רווחים"

@@ -131,6 +131,8 @@ en:
     line_numbers_off: "Off"
     line_numbers_absolute: "Absolute"
     line_numbers_relative: "Relative"
+    stats: "Stats"
+    stats_description: "Show document statistics in the Explorer"
     indent: "Indentation"
     indent_description: "Spaces per indent level"
     indent_spaces: "%{count} spaces"

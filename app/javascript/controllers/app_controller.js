@@ -234,7 +234,14 @@ export default class extends Controller {
   }
 
   settingsOutletConnected() {
-    if (this._initializationReady) this.initializeTypewriterMode()
+    if (!this._initializationReady) return
+    this.initializeTypewriterMode()
+    this.showStatsPanel()
+    this.updateStats()
+  }
+
+  pathDisplayOutletConnected() {
+    if (this._initializationReady && this.currentFile) this.updatePathDisplay(this.currentFile)
   }
 
   typewriterOutletConnected() {
@@ -3316,9 +3323,9 @@ export default class extends Controller {
 
   showStatsPanel() {
     const statsController = this.getStatsPanelController()
-    if (statsController) {
-      statsController.show()
-    }
+    if (!statsController) return
+    if (this.currentFile && this.getSettingsController()?.showStatsEnabled) statsController.show()
+    else statsController.hide()
   }
 
   hideStatsPanel() {
@@ -3329,6 +3336,7 @@ export default class extends Controller {
   }
 
   scheduleStatsUpdate() {
+    if (!this.getSettingsController()?.showStatsEnabled) return
     const statsController = this.getStatsPanelController()
     const codemirrorController = this.getCodemirrorController()
     if (statsController && codemirrorController) {
@@ -3337,6 +3345,7 @@ export default class extends Controller {
   }
 
   updateStats() {
+    if (!this.getSettingsController()?.showStatsEnabled) return
     const statsController = this.getStatsPanelController()
     const codemirrorController = this.getCodemirrorController()
     if (statsController && codemirrorController) {
@@ -3345,6 +3354,7 @@ export default class extends Controller {
   }
 
   updateLinePosition() {
+    if (!this.getSettingsController()?.showStatsEnabled) return
     const statsController = this.getStatsPanelController()
     const codemirrorController = this.getCodemirrorController()
     if (statsController && codemirrorController) {

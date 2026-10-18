@@ -131,6 +131,8 @@ pt-BR:
     line_numbers_off: "Desativados"
     line_numbers_absolute: "Absolutos"
     line_numbers_relative: "Relativos"
+    stats: "Estatísticas"
+    stats_description: "Mostrar estatísticas do documento no Explorador"
     indent: "Recuo"
     indent_description: "Espaços por nível de recuo"
     indent_spaces: "%{count} espaços"

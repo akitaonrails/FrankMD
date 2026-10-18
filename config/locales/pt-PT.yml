@@ -131,6 +131,8 @@ pt-PT:
     line_numbers_off: "Desativados"
     line_numbers_absolute: "Absolutos"
     line_numbers_relative: "Relativos"
+    stats: "Estatísticas"
+    stats_description: "Mostrar estatísticas do documento no Explorador"
     indent: "Indentação"
     indent_description: "Espaços por nível de indentação"
     indent_spaces: "%{count} espaços"
