@@ -32,6 +32,11 @@ pt-BR:
 
   # Seção do cabeçalho
   header:
+    document_actions: "Ações do documento"
+    more_actions: "Mais ações"
+    rename_document: "Renomear documento"
+    workspace_navigation: "Navegação do espaço de trabalho"
+    close_explorer: "Fechar Explorador"
     toggle_explorer: "Alternar Explorador (Ctrl+E)"
     toggle_preview: "Alternar Visualização (Ctrl+Shift+P)"
     change_theme: "Alterar Tema"

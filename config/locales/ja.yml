@@ -32,6 +32,11 @@ ja:
 
   # Header section
   header:
+    document_actions: "ドキュメントの操作"
+    more_actions: "その他の操作"
+    rename_document: "ドキュメント名を変更"
+    workspace_navigation: "ワークスペースのナビゲーション"
+    close_explorer: "エクスプローラーを閉じる"
     toggle_explorer: "エクスプローラー切替 (Ctrl+E)"
     toggle_preview: "プレビュー切替 (Ctrl+Shift+P)"
     change_theme: "テーマ変更"

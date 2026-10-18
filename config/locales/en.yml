@@ -32,6 +32,11 @@ en:
 
   # Header section
   header:
+    document_actions: "Document actions"
+    more_actions: "More actions"
+    rename_document: "Rename document"
+    workspace_navigation: "Workspace navigation"
+    close_explorer: "Close Explorer"
     toggle_explorer: "Toggle Explorer (Ctrl+E)"
     toggle_preview: "Toggle Preview (Ctrl+Shift+P)"
     change_theme: "Change Theme"
