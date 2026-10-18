@@ -14,6 +14,9 @@ module WorkspaceHelper
       [ "copy", "copyCurrentPath", "header.click_to_copy_path", "document", false ],
       [ "help", "openHelp", "editor.toolbar.help_title", "global", false ],
       [ "about", "openAboutDialog", "header.about_app", "global", false ]
-    ].map { |id, handler, label, scope, pinned| { id: id, handler: handler, label: t(label), scope: scope, pinned: pinned } }
+    ].map do |id, handler, label, scope, pinned|
+      tooltip = t(label)
+      { id: id, handler: handler, label: tooltip.sub(/\s+\((?:Ctrl\+[^)]+|F\d+)\)\z/, ""), tooltip: tooltip, scope: scope, pinned: pinned }
+    end
   end
 end

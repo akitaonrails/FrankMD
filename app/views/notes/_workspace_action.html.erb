@@ -3,7 +3,7 @@
                class: menu ? "workspace-menu-action" : "workspace-icon workspace-pinned-action",
                role: menu ? "menuitem" : nil,
                tabindex: menu ? -1 : nil,
-               title: action[:label],
+               title: action[:tooltip],
                aria: { label: action[:label], pressed: !menu && action[:id] == "preview" ? false : nil },
                data: {
                  action: "#{'click->app#closeWorkspaceMenu ' if menu}click->app##{action[:handler]}",

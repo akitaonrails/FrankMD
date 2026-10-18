@@ -71,6 +71,21 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "workspace labels omit shortcuts while tooltips retain them in every locale" do
+    I18n.available_locales.each do |locale|
+      get root_url(locale: locale)
+      assert_select "#workspace-menu [role='menuitem']" do |buttons|
+        buttons.each do |button|
+          refute_match(/\((?:Ctrl\+|F\d+)/, button.at_css("span").text, "Shortcut in #{locale} menu label")
+          refute_match(/\((?:Ctrl\+|F\d+)/, button["aria-label"], "Shortcut in #{locale} accessible label")
+        end
+      end
+      [ "header.toggle_preview", "editor.toolbar.find_title", "editor.toolbar.emoji_title", "editor.toolbar.help_title" ].each do |key|
+        assert_select "#workspace-menu [role='menuitem'][title=?]", I18n.t(key, locale: locale), count: 1
+      end
+    end
+  end
+
   test "image picker has an inline alert target for folder browsing errors" do
     get root_url
     assert_response :success
