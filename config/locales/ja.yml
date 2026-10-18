@@ -32,6 +32,7 @@ ja:
 
   # Header section
   header:
+    copy_content: "内容をコピー"
     pin_action: "%{action} をツールバーに固定"
     unpin_action: "%{action} のツールバー固定を解除"
     rename_document_hint: "Enter で名前を変更します。Esc または欄外のクリックでキャンセルします。"
@@ -655,6 +656,7 @@ ja:
 
   # Error messages
   errors:
+    failed_to_copy_content: "ドキュメントの内容をコピーできませんでした。"
     title_required: "タイトルは必須です"
     note_not_found: "ノートが見つかりません"
     note_changed_since_loaded: "このノートは読み込み後に変更されています。削除する前に再読み込みしてください。"

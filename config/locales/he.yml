@@ -32,6 +32,7 @@ he:
 
   # אזור הכותרת
   header:
+    copy_content: "העתקת תוכן"
     pin_action: "הצמדת %{action} לסרגל הכלים"
     unpin_action: "ביטול הצמדת %{action} מסרגל הכלים"
     rename_document_hint: "לחצו Enter לשינוי השם. Escape או לחיצה מחוץ לשדה יבטלו."
@@ -655,6 +656,7 @@ he:
 
   # הודעות שגיאה
   errors:
+    failed_to_copy_content: "לא ניתן להעתיק את תוכן המסמך."
     title_required: "נדרשת כותרת"
     note_not_found: "ההערה לא נמצאה"
     note_changed_since_loaded: "הפתק השתנה מאז שנטען. יש לטעון אותו מחדש לפני המחיקה."

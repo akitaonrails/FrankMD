@@ -137,20 +137,32 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "dialog[open]:focus, dialog[open] :focus"
   end
 
-  test "overflow copies the complete path using the existing feedback" do
-    create_test_note("nested/note.md", "Copy path")
+  test "menu and pinned copy buttons copy the current document content" do
+    create_test_note("nested/note.md", "# Copy content\n\nOriginal")
     visit note_url(path: "nested/note.md")
     assert_selector "[data-app-target='currentPath']", text: "note"
     page.execute_script(<<~JS)
       Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
-        value: { writeText: async path => { window.copiedWorkspacePath = path } }
+        value: { writeText: async content => { window.copiedWorkspaceContent = content } }
       });
     JS
+    find(".cm-content").send_keys([ :control, :end ], " edited")
+    expected = "# Copy content\n\nOriginal edited"
     find("[data-app-target='overflowToggle']").click
-    find("[role='menuitem']", text: "Click to copy path", exact_text: true).click
+    find("[data-workspace-pin='copy']").click
+    find("[role='menuitem']", text: "Copy content", exact_text: true).click
     assert_selector "#app-toast", text: I18n.t("status.copied_to_clipboard")
-    assert_equal "nested/note.md", page.evaluate_script("window.copiedWorkspacePath")
+    assert_equal expected, page.evaluate_script("window.copiedWorkspaceContent")
+    page.execute_script(<<~JS)
+      window.copiedWorkspaceContent = null;
+      const root = document.querySelector('[data-controller~="app"]');
+      window.Stimulus.getControllerForElementAndIdentifier(root, 'app').setViewMode('single');
+    JS
+    find("[data-app-target='previewToggle']").click
+    assert_no_selector "[data-app-target='editorPanel']", visible: true
+    find("[data-workspace-pinned-action='copy']").click
+    assert_equal expected, page.evaluate_script("window.copiedWorkspaceContent")
   end
 
   test "menu pins expose action icons and survive a page reload" do

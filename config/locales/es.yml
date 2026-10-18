@@ -32,6 +32,7 @@ es:
 
   # Header section
   header:
+    copy_content: "Copiar contenido"
     pin_action: "Fijar %{action} en la barra de herramientas"
     unpin_action: "Desfijar %{action} de la barra de herramientas"
     rename_document_hint: "Pulsa Intro para renombrar. Esc o hacer clic fuera cancela."
@@ -655,6 +656,7 @@ es:
 
   # Error messages
   errors:
+    failed_to_copy_content: "No se pudo copiar el contenido del documento."
     title_required: "El título es obligatorio"
     note_not_found: "Nota no encontrada"
     note_changed_since_loaded: "Esta nota cambió desde que se cargó. Vuelve a cargarla antes de eliminarla."

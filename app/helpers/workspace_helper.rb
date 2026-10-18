@@ -11,7 +11,7 @@ module WorkspaceHelper
       [ "table", "openTableEditor", "editor.toolbar.table_title", "editing", false ],
       [ "emoji", "openEmojiPicker", "editor.toolbar.emoji_title", "editing", false ],
       [ "ai", "openAiDialog", "editor.toolbar.ai_title", "editing", false ],
-      [ "copy", "copyCurrentPath", "header.click_to_copy_path", "document", false ],
+      [ "copy", "copyCurrentContent", "header.copy_content", "document", false ],
       [ "help", "openHelp", "editor.toolbar.help_title", "global", false ],
       [ "about", "openAboutDialog", "header.about_app", "global", false ]
     ].map do |id, handler, label, scope, pinned|

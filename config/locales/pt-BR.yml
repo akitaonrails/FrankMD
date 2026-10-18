@@ -32,6 +32,7 @@ pt-BR:
 
   # Seção do cabeçalho
   header:
+    copy_content: "Copiar conteúdo"
     pin_action: "Fixar %{action} na barra de ferramentas"
     unpin_action: "Desafixar %{action} da barra de ferramentas"
     rename_document_hint: "Pressione Enter para renomear. Esc ou clicar fora cancela."
@@ -655,6 +656,7 @@ pt-BR:
 
   # Mensagens de erro
   errors:
+    failed_to_copy_content: "Não foi possível copiar o conteúdo do documento."
     title_required: "Título é obrigatório"
     note_not_found: "Nota não encontrada"
     note_changed_since_loaded: "Esta nota foi alterada desde que foi carregada. Recarregue-a antes de excluí-la."

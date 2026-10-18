@@ -1560,8 +1560,18 @@ export default class extends Controller {
     if (restoreFocus && !document.querySelector("dialog[open]")) this.titleInputTarget.focus()
   }
 
-  copyCurrentPath() {
-    if (this.currentFile) this.getPathDisplayController()?.copy()
+  async copyCurrentContent() {
+    if (!this.currentFile) return
+    const editor = this.getCodemirrorController()
+    const content = editor ? editor.getValue() : (this.hasTextareaTarget ? this.textareaTarget.value : null)
+    if (content === null) return
+    try {
+      await navigator.clipboard.writeText(content)
+      this.getPathDisplayController()?.showToast(window.t("status.copied_to_clipboard"))
+    } catch (error) {
+      console.error("Failed to copy document content:", error)
+      this.getPathDisplayController()?.showToast(window.t("errors.failed_to_copy_content"))
+    }
   }
 
   // Keep header controls synchronized even when their original editor pane is hidden.

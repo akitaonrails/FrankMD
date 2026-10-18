@@ -177,11 +177,50 @@ describe("workspace chrome", () => {
     expect(rename).not.toHaveBeenCalled()
   })
 
-  it("copies through the existing path-display controller", () => {
-    const copy = vi.fn()
-    vi.spyOn(app, "getPathDisplayController").mockReturnValue({ copy })
-    app.copyCurrentPath()
-    expect(copy).toHaveBeenCalledOnce()
+  describe("copy content", () => {
+    let writeText, showToast
+
+    beforeEach(() => {
+      writeText = vi.fn().mockResolvedValue(undefined)
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } })
+      showToast = vi.fn()
+      vi.spyOn(app, "getPathDisplayController").mockReturnValue({ showToast })
+      app.getCodemirrorController.mockReturnValue({ getValue: () => "# Current draft\n\nUnsaved changes" })
+    })
+
+    it.each(["folder/note.md", ".fed"])("copies the current editor content for %s", async path => {
+      app.currentFile = path
+      await app.copyCurrentContent()
+      expect(writeText).toHaveBeenCalledWith("# Current draft\n\nUnsaved changes")
+      expect(showToast).toHaveBeenCalledWith("status.copied_to_clipboard")
+    })
+
+    it("copies an empty file", async () => {
+      app.getCodemirrorController.mockReturnValue({ getValue: () => "" })
+      await app.copyCurrentContent()
+      expect(writeText).toHaveBeenCalledWith("")
+    })
+
+    it("uses the textarea fallback when CodeMirror is unavailable", async () => {
+      root.insertAdjacentHTML("beforeend", '<textarea data-app-target="textarea">Fallback content</textarea>')
+      app.getCodemirrorController.mockReturnValue(null)
+      await app.copyCurrentContent()
+      expect(writeText).toHaveBeenCalledWith("Fallback content")
+    })
+
+    it("does not copy when no file is open", async () => {
+      app.currentFile = null
+      await app.copyCurrentContent()
+      expect(writeText).not.toHaveBeenCalled()
+      expect(showToast).not.toHaveBeenCalled()
+    })
+
+    it("reports clipboard failures without success feedback", async () => {
+      writeText.mockRejectedValue(new Error("Clipboard permission denied"))
+      vi.spyOn(console, "error").mockImplementation(() => {})
+      await app.copyCurrentContent()
+      expect(showToast).toHaveBeenCalledExactlyOnceWith("errors.failed_to_copy_content")
+    })
   })
 
   it("keeps navigation in the collapsed rail and refreshes editor geometry", () => {
