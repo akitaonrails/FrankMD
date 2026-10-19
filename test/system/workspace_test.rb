@@ -118,6 +118,29 @@ class WorkspaceTest < ApplicationSystemTestCase
     wait_for_tree_refresh("empty.md")
   end
 
+  test "reloading an unchanged note does not mark it unsaved" do
+    create_test_note("clean-reload.md", "# Saved note")
+    visit note_url(path: "clean-reload.md")
+    assert_selector ".cm-content", text: "# Saved note"
+    assert_selector "[data-autosave-target='saveStatus'].hidden", visible: :all
+
+    page.refresh
+    assert_selector ".cm-content", text: "# Saved note"
+    page.execute_script(<<~JS)
+      window.Stimulus.getControllerForElementAndIdentifier(
+        document.querySelector('[data-controller~="app"]'), 'app'
+      ).onEditorChange({ detail: { docChanged: true } })
+    JS
+    assert_selector "[data-autosave-target='saveStatus'].hidden", visible: :all
+    assert_equal false, page.evaluate_script(<<~JS)
+      window.Stimulus.getControllerForElementAndIdentifier(
+        document.querySelector('[data-controller~="autosave"]'), 'autosave'
+      ).hasUnsavedChanges
+    JS
+    assert_nil page.evaluate_script("localStorage.getItem('frankmd:draft:clean-reload.md')")
+    wait_for_tree_refresh("clean-reload.md")
+  end
+
   test "empty and missing documents cannot be renamed while Help remains accessible" do
     visit root_url
     assert_selector "[data-app-target='documentTitle'][disabled]"
@@ -581,18 +604,5 @@ class WorkspaceTest < ApplicationSystemTestCase
 
     visit note_url(path: "stats.md")
     assert_selector "[data-app-target='statsPanel']", visible: true
-  end
-
-  private
-
-  def wait_for_tree_refresh(path)
-    Timeout.timeout(5) do
-      sleep 0.05 until page.evaluate_script(<<~JS)
-        performance.getEntriesByType("resource").some((entry) => {
-          const url = new URL(entry.name);
-          return url.pathname === "/notes/tree" && url.searchParams.get("selected") === #{path.to_json};
-        })
-      JS
-    end
   end
 end

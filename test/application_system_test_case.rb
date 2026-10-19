@@ -28,6 +28,17 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
 
   private
 
+  def wait_for_tree_refresh(path)
+    Timeout.timeout(5) do
+      sleep 0.05 until page.evaluate_script(<<~JS)
+        performance.getEntriesByType("resource").some((entry) => {
+          const url = new URL(entry.name);
+          return url.pathname === "/notes/tree" && url.searchParams.get("selected") === #{path.to_json};
+        })
+      JS
+    end
+  end
+
   # Helper to get the CodeMirror editor content via Stimulus controller
   def editor_content
     page.evaluate_script(<<~JS)

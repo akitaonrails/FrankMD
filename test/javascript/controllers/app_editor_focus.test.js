@@ -31,6 +31,7 @@ describe("AppController editor focus", () => {
     const explorerItem = element.querySelector("[data-explorer-item]")
     const editorContent = element.querySelector(".cm-content")
     const codemirrorController = {
+      editor: {},
       setUndoAtHistoryStartHandler: vi.fn(),
       setRedoAtHistoryEndHandler: vi.fn(),
       loadContent: vi.fn(),

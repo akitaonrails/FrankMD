@@ -68,6 +68,7 @@ export default class extends Controller {
     this._isSelecting = false // Track mouse selection state
     this._mouseTrackingAbortController = new AbortController()
     this.createEditor()
+    this.dispatch("ready")
   }
 
   disconnect() {
@@ -333,6 +334,9 @@ export default class extends Controller {
       }
     } finally {
       this._suppressDocumentChange = wasSuppressingDocumentChange
+      // Keep Stimulus's value in sync so a queued initial-value callback cannot
+      // replace a recovered draft with the server's preloaded content.
+      if (this.contentValue !== text) this.contentValue = text
       this.syncToHidden()
     }
   }

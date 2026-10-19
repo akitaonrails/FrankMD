@@ -141,6 +141,7 @@ export default class extends Controller {
     this.installUnauthorizedRedirect()
     this.currentFile = null
     this.currentFileType = null  // "markdown", "config", or null
+    this._pendingEditorContent = null
     this.explorerSelection = new Map()
     this.explorerSelectionAnchor = null
     this.explorerActiveKey = null
@@ -228,9 +229,23 @@ export default class extends Controller {
   }
 
   // Called by Stimulus when the codemirror outlet controller connects
-  codemirrorOutletConnected() {
+  codemirrorOutletConnected(codemirror) {
     this._completeInitialLoad()
+    this.hydratePendingEditorContent(codemirror)
     if (this._initializationReady) this.initializeTypewriterMode()
+  }
+
+  onCodemirrorReady() {
+    this.hydratePendingEditorContent(this.getCodemirrorController())
+  }
+
+  hydratePendingEditorContent(codemirror) {
+    const pending = this._pendingEditorContent
+    if (!pending || !codemirror?.editor) return
+    this._pendingEditorContent = null
+    if (pending.path !== this.currentFile) return
+    codemirror.loadContent(pending.content, pending.path)
+    if (pending.unsaved) this.getAutosaveController()?.scheduleAutoSave()
   }
 
   settingsOutletConnected() {
@@ -906,18 +921,24 @@ export default class extends Controller {
 
     // Set content via CodeMirror controller
     const codemirrorController = this.getCodemirrorController()
-    if (codemirrorController) {
+    if (codemirrorController?.editor) {
+      this._pendingEditorContent = null
       codemirrorController.setUndoAtHistoryStartHandler?.((path) => this.onUndoAtHistoryStart(path))
       codemirrorController.setRedoAtHistoryEndHandler?.((path) => this.onRedoAtHistoryEnd(path))
       codemirrorController.loadContent(editorContent, this.currentFile)
     } else {
       // Fallback to hidden textarea
       this.textareaTarget.value = editorContent
+      this._pendingEditorContent = {
+        path: this.currentFile,
+        content: editorContent,
+        unsaved: editorContent !== content
+      }
     }
 
     // Applying a recovered draft can be a programmatic editor change. Ensure
     // it remains queued for autosave even when CodeMirror sees no text delta.
-    if (autosave && editorContent !== content) autosave.scheduleAutoSave()
+    if (autosave && editorContent !== content && codemirrorController?.editor) autosave.scheduleAutoSave()
 
     // Only show toolbar and preview for markdown files
     const isMarkdown = fileType === "markdown"
