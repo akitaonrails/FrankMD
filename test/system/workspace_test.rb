@@ -3,6 +3,12 @@
 require "application_system_test_case"
 
 class WorkspaceTest < ApplicationSystemTestCase
+  test "empty notes focus the editor" do
+    create_test_note("empty.md", "")
+    visit note_url(path: "empty.md")
+    assert_selector ".cm-content:focus"
+  end
+
   test "empty and missing documents cannot be renamed while Help remains accessible" do
     visit root_url
     assert_selector "[data-app-target='documentTitle'][disabled]"

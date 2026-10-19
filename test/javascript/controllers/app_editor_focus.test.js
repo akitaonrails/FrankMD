@@ -7,9 +7,14 @@ import AppController from "../../../app/javascript/controllers/app_controller.js
 describe("AppController editor focus", () => {
   afterEach(() => {
     document.body.replaceChildren()
+    vi.unstubAllGlobals()
   })
 
-  it("keeps focus on the selected Explorer item when loading its file", () => {
+  it.each([
+    ["note content", false],
+    [" ", false],
+    ["", true]
+  ])("focuses the editor only when loaded content is empty (%j)", (content, shouldFocusEditor) => {
     const element = document.createElement("div")
     element.innerHTML = `
       <div data-app-target="editorPlaceholder"></div>
@@ -49,10 +54,13 @@ describe("AppController editor focus", () => {
     })
 
     explorerItem.focus()
-    app.showEditor("note content")
+    let frameCallback
+    vi.stubGlobal("requestAnimationFrame", (callback) => { frameCallback = callback; return 1 })
+    app.showEditor(content)
+    frameCallback?.()
 
-    expect(codemirrorController.loadContent).toHaveBeenCalledWith("note content", "note.md")
-    expect(codemirrorController.focus).not.toHaveBeenCalled()
-    expect(document.activeElement).toBe(explorerItem)
+    expect(codemirrorController.loadContent).toHaveBeenCalledWith(content, "note.md")
+    expect(codemirrorController.focus).toHaveBeenCalledTimes(shouldFocusEditor ? 1 : 0)
+    expect(document.activeElement).toBe(shouldFocusEditor ? editorContent : explorerItem)
   })
 })

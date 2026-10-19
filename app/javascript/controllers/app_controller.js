@@ -943,6 +943,15 @@ export default class extends Controller {
     this.applyEditorSettings()
     this.initializeTypewriterMode()
     this.updateWorkspaceChrome?.()
+    if (editorContent === "" && codemirrorController) {
+      const path = this.currentFile
+      const focusedBefore = document.activeElement
+      requestAnimationFrame(() => {
+        if (this.currentFile !== path || this.editorTarget.closest(".hidden") || document.querySelector("dialog[open]")) return
+        if (document.activeElement !== focusedBefore || (codemirrorController.getValue && codemirrorController.getValue() !== "")) return
+        codemirrorController.focus()
+      })
+    }
   }
 
   // Check if current file is markdown
