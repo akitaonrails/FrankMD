@@ -315,8 +315,8 @@ class WorkspaceTest < ApplicationSystemTestCase
           const header = document.querySelector('.workspace-header').getBoundingClientRect();
           const style = getComputedStyle(toolbar);
           return bounds.left >= header.left && bounds.right <= header.right &&
-            bounds.bottom <= header.bottom && style.boxShadow !== 'none' &&
-            parseFloat(style.borderRadius) >= 16 &&
+            bounds.bottom <= header.bottom && style.boxShadow === 'none' &&
+            style.borderWidth === '0px' && style.backgroundColor === 'rgba(0, 0, 0, 0)' &&
             (window.innerWidth > 767 || bounds.width < header.width);
         })()
       JS
