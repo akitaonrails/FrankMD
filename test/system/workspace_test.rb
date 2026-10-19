@@ -314,9 +314,14 @@ class WorkspaceTest < ApplicationSystemTestCase
           const bounds = toolbar.getBoundingClientRect();
           const header = document.querySelector('.workspace-header').getBoundingClientRect();
           const style = getComputedStyle(toolbar);
+          const icons = [...toolbar.querySelectorAll('.workspace-icon svg')];
           return bounds.left >= header.left && bounds.right <= header.right &&
             bounds.bottom <= header.bottom && style.boxShadow === 'none' &&
             style.borderWidth === '0px' && style.backgroundColor === 'rgba(0, 0, 0, 0)' &&
+            icons.every((icon) => {
+              const size = getComputedStyle(icon);
+              return size.width === '20px' && size.height === '20px';
+            }) &&
             (window.innerWidth > 767 || bounds.width < header.width);
         })()
       JS

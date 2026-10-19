@@ -216,6 +216,7 @@ body.single-view-mode [data-app-target="previewPanel"] {
 .workspace-pinned-utilities { display: flex; }
 .workspace-icon[hidden], .workspace-pinned-action:not([data-pinned="true"]) { display: none; }
 .workspace-icon svg { width: 1rem; height: 1rem; flex: none; }
+.workspace-toolbar .workspace-icon svg { width: 1.25rem; height: 1.25rem; }
 .workspace-icon > span { display: none; }
 .workspace-menu-row { display: flex; align-items: center; border-radius: .375rem; }
 .workspace-menu-row[hidden] { display: none; }
