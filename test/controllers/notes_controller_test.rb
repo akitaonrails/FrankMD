@@ -47,6 +47,7 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
       assert_equal I18n.t("status.unsaved"), labels.fetch("unsaved")
     end
     assert_select ".workspace-title-container input[type='text'][data-app-target='titleInput'].hidden[aria-label][aria-describedby='workspace-title-hint workspace-title-error']"
+    assert_select ".workspace-title-container [data-app-target='titleSizer'][aria-hidden='true']"
     assert_select "#workspace-title-hint", text: I18n.t("header.rename_document_hint")
     assert_select "#workspace-title-error[data-app-target='titleRenameError'][role='alert']"
     assert_select "header .workspace-toolbar button.workspace-icon" do |buttons|

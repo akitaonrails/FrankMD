@@ -108,7 +108,7 @@ export default class extends Controller {
     "sidebar",
     "sidebarToggle", "sidebarOpen",
     "explorerPanel", "sidebarBackdrop", "documentTitle",
-    "titleInput", "titleRenameError",
+    "titleInput", "titleSizer", "titleRenameError",
     "overflowContainer", "overflowToggle", "overflowMenu",
     "vimToggle",
     "vimStatus",
@@ -1530,7 +1530,11 @@ export default class extends Controller {
   onTitleRenameInput() {
     clearInlineError(this.titleRenameErrorTarget)
     this.titleInputTarget.removeAttribute("aria-invalid")
-    this.titleInputTarget.size = Math.max(8, Math.min(40, this.titleInputTarget.value.length + 1))
+    this.titleSizerTarget.textContent = this.titleInputTarget.value || " "
+    const style = getComputedStyle(this.titleInputTarget)
+    const spacing = [ style.paddingLeft, style.paddingRight, style.borderLeftWidth, style.borderRightWidth ]
+      .reduce((total, value) => total + (parseFloat(value) || 0), 0)
+    this.titleInputTarget.style.width = `${this.titleSizerTarget.getBoundingClientRect().width + spacing}px`
   }
 
   onTitleRenameKeydown(event) {

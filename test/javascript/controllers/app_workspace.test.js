@@ -26,6 +26,7 @@ describe("workspace chrome", () => {
       <div data-workspace-main><header>
       <div class="workspace-document"><button data-app-target="sidebarOpen" data-action="click->app#toggleSidebar" hidden></button><button data-app-target="documentTitle" data-action="click->app#renameCurrentNote"></button>
       <input data-app-target="titleInput" class="hidden" data-action="keydown->app#onTitleRenameKeydown input->app#onTitleRenameInput blur->app#cancelTitleRename">
+      <span data-app-target="titleSizer"></span>
       <p data-app-target="titleRenameError" class="hidden" role="alert"></p></div>
       <div class="workspace-toolbar" data-app-target="editorToolbar"></div><button data-app-target="previewToggle"></button>
       <div data-app-target="overflowContainer" data-action="keydown->app#navigateWorkspaceMenu">
@@ -68,6 +69,18 @@ describe("workspace chrome", () => {
     expect([input.selectionStart, input.selectionEnd]).toEqual([4, 4])
     expect(target("documentTitle").classList.contains("hidden")).toBe(true)
     expect(rename).not.toHaveBeenCalled()
+  })
+
+  it("updates the title width mirror as the name changes", () => {
+    const input = target("titleInput")
+    input.style.padding = "4px 8px"
+    input.style.border = "1px solid transparent"
+    vi.spyOn(target("titleSizer"), "getBoundingClientRect").mockReturnValue({ width: 100 })
+    target("documentTitle").click()
+    input.value = "a longer document title"
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+    expect(target("titleSizer").textContent).toBe("a longer document title")
+    expect(input.style.width).toBe("118px")
   })
 
   it("saves with Enter through file operations and restores title focus", async () => {

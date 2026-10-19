@@ -107,6 +107,37 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_equal "folder/renamed.md", find("[data-app-target='documentTitle']")["title"]
   end
 
+  test "title input matches its label and resizes with the text" do
+    create_test_note("rename-width.md", "# Title")
+    visit note_url(path: "rename-width.md")
+    assert_selector "[data-app-target='documentTitle']:not([disabled])"
+    label = page.evaluate_script(<<~JS)
+      (() => {
+        const title = document.querySelector('[data-app-target="documentTitle"]');
+        const bounds = title.getBoundingClientRect();
+        return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
+      })()
+    JS
+    find("[data-app-target='documentTitle']").click
+    assert_selector "[data-app-target='titleInput']:focus"
+    assert page.evaluate_script(<<~JS)
+      ((label) => {
+        const input = document.querySelector('[data-app-target="titleInput"]');
+        const bounds = input.getBoundingClientRect();
+        const style = getComputedStyle(input);
+        return Math.abs(bounds.x - label.x) < 1 && Math.abs(bounds.y - label.y) < 1 &&
+          Math.abs(bounds.width - label.width) < 2 && Math.abs(bounds.height - label.height) < 1 &&
+          style.paddingLeft === '8px' && style.paddingRight === '8px';
+      })(#{label.to_json})
+    JS
+    initial_width = page.evaluate_script("document.querySelector('[data-app-target=titleInput]').getBoundingClientRect().width")
+    find("[data-app-target='titleInput']").fill_in with: "a much longer document title"
+    assert_operator page.evaluate_script("document.querySelector('[data-app-target=titleInput]').getBoundingClientRect().width"), :>, initial_width
+    find("[data-app-target='titleInput']").fill_in with: "short"
+    assert_operator page.evaluate_script("document.querySelector('[data-app-target=titleInput]').getBoundingClientRect().width"), :<, initial_width
+    find("[data-app-target='titleInput']").send_keys(:escape)
+  end
+
   test "About remains accessible inside Settings on desktop and phone" do
     [ [ 1400, 900 ], [ 320, 720 ] ].each do |width, height|
       page.current_window.resize_to(width, height)

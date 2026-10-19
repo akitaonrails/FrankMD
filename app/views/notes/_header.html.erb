@@ -8,6 +8,7 @@
         <span class="block truncate" data-path-display-target="text" data-app-target="currentPath"><%= t('editor.select_note') %></span>
       </button>
       <input type="text" class="workspace-title-input hidden" data-app-target="titleInput" data-action="keydown->app#onTitleRenameKeydown input->app#onTitleRenameInput blur->app#cancelTitleRename" aria-label="<%= t('header.rename_document') %>" aria-describedby="workspace-title-hint workspace-title-error" title="<%= t('header.rename_document_hint') %>" autocomplete="off" spellcheck="false">
+      <span class="workspace-title-sizer" data-app-target="titleSizer" aria-hidden="true"></span>
       <span id="workspace-title-hint" class="sr-only"><%= t('header.rename_document_hint') %></span>
       <p id="workspace-title-error" class="workspace-title-error hidden" role="alert" data-app-target="titleRenameError"></p>
     </div>
