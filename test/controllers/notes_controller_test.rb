@@ -42,6 +42,10 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".workspace-navigation button span", count: 0
     assert_select "button[data-app-target='settingsToggle'][aria-pressed]", count: 0
     assert_select ".workspace-main > header button[data-app-target='documentTitle'][disabled][data-action='click->app#renameCurrentNote']"
+    assert_select "[data-controller~='autosave'][data-autosave-status-labels-value]" do |root|
+      labels = JSON.parse(root.first["data-autosave-status-labels-value"])
+      assert_equal I18n.t("status.unsaved"), labels.fetch("unsaved")
+    end
     assert_select ".workspace-title-container input[type='text'][data-app-target='titleInput'].hidden[aria-label][aria-describedby='workspace-title-hint workspace-title-error']"
     assert_select "#workspace-title-hint", text: I18n.t("header.rename_document_hint")
     assert_select "#workspace-title-error[data-app-target='titleRenameError'][role='alert']"

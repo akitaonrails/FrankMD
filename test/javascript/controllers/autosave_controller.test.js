@@ -119,6 +119,16 @@ describe("AutosaveController — Content Loss Detection", () => {
     return "x".repeat(length)
   }
 
+  it("uses the server-rendered save label before translations load", () => {
+    window.t.mockImplementation((key) => key)
+    controller.statusLabelsValue = { unsaved: "Unsaved changes" }
+
+    controller.showSaveStatus(window.t("status.unsaved"))
+
+    expect(controller.saveStatusTarget.textContent).toBe("Unsaved changes")
+    expect(controller.saveStatusTarget.classList.contains("hidden")).toBe(false)
+  })
+
   describe("saveNow()", () => {
     it("no warning for small deletion (< 20% or < 50 chars)", async () => {
       controller.setFile("test.md", makeContent(200), "revision-test")

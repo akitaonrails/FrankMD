@@ -9,6 +9,20 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector ".cm-content:focus"
   end
 
+  test "save status stays translated before locale data loads" do
+    create_test_note("empty.md", "")
+    visit note_url(path: "empty.md")
+    page.execute_script(<<~JS)
+      window.frankmdTranslations = {};
+      const root = document.querySelector('[data-controller~="app"]');
+      const app = window.Stimulus.getControllerForElementAndIdentifier(root, 'app');
+      app.getAutosaveController().constructor.SAVE_DEBOUNCE_MS = 60000;
+    JS
+    find(".cm-content").send_keys("Draft")
+    assert_selector "[data-autosave-target='saveStatus']", text: I18n.t("status.unsaved")
+    assert_no_selector "[data-autosave-target='saveStatus']", text: "status.unsaved"
+  end
+
   test "empty and missing documents cannot be renamed while Help remains accessible" do
     visit root_url
     assert_selector "[data-app-target='documentTitle'][disabled]"
