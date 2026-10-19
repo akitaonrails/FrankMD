@@ -56,7 +56,17 @@ class WorkspaceTest < ApplicationSystemTestCase
         const toggle = document.querySelector('[data-app-target="sidebarToggle"]').getBoundingClientRect();
         const actions = document.querySelector('.workspace-explorer-actions').getBoundingClientRect();
         const header = document.querySelector('.workspace-sidebar-header').getBoundingClientRect();
-        return toggle.left >= header.left && toggle.right <= actions.left && actions.right <= header.right;
+        const buttons = document.querySelectorAll('.workspace-sidebar-header .workspace-icon');
+        return toggle.left >= header.left && toggle.right <= actions.left && actions.right <= header.right &&
+          [...buttons].every(button => {
+            const style = getComputedStyle(button);
+            const icon = button.querySelector('svg').getBoundingClientRect();
+            return button.getBoundingClientRect().width === 32 &&
+              button.getBoundingClientRect().height === 32 &&
+              icon.width === 16 && icon.height === 16 &&
+              style.paddingTop === '8px' && style.paddingRight === '8px' &&
+              style.paddingBottom === '8px' && style.paddingLeft === '8px';
+          });
       })()
     JS
     assert page.evaluate_script(<<~JS)

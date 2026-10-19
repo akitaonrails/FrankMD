@@ -295,7 +295,7 @@ body.single-view-mode [data-app-target="previewPanel"] {
   user-select: none;
 }
 .workspace-brand span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.workspace-sidebar-header .workspace-icon { width: 1.5rem; height: 2rem; }
+.workspace-sidebar-header .workspace-icon { width: 2rem; height: 2rem; padding: .5rem; }
 .workspace-explorer { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .workspace-sidebar-footer { display: flex; align-items: center; gap: .5rem; flex: none; padding: .5rem; border-top: 1px solid var(--theme-border); margin-top: auto; }
 .workspace-navigation { display: flex; align-items: center; justify-content: flex-end; gap: .25rem; margin-inline-start: auto; }
