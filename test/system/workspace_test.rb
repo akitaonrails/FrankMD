@@ -23,12 +23,14 @@ class WorkspaceTest < ApplicationSystemTestCase
           return { edge: scrollBounds.right - pane.right,
             leftMargin: textBounds.left - scrollBounds.left,
             rightMargin: scrollBounds.right - textBounds.right,
+            scrollbarWidth: getComputedStyle(scroller, '::-webkit-scrollbar').width,
             scrollHeight: scroller.scrollHeight, clientHeight: scroller.clientHeight };
         })()
       JS
       assert_in_delta 0, bounds.fetch("edge"), 1
       assert_operator bounds.fetch("leftMargin"), :>, 40
       assert_operator bounds.fetch("rightMargin"), :>, 40
+      assert_equal "14px", bounds.fetch("scrollbarWidth")
       assert_operator bounds.fetch("scrollHeight"), :>, bounds.fetch("clientHeight")
 
       scroller = find(".cm-scroller").native
