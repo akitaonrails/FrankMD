@@ -310,6 +310,18 @@ class WorkspaceTest < ApplicationSystemTestCase
       assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
       assert page.evaluate_script(<<~JS)
         (() => {
+          const toolbar = document.querySelector('.workspace-toolbar');
+          const bounds = toolbar.getBoundingClientRect();
+          const header = document.querySelector('.workspace-header').getBoundingClientRect();
+          const style = getComputedStyle(toolbar);
+          return bounds.left >= header.left && bounds.right <= header.right &&
+            bounds.bottom <= header.bottom && style.boxShadow !== 'none' &&
+            parseFloat(style.borderRadius) >= 16 &&
+            (window.innerWidth > 767 || bounds.width < header.width);
+        })()
+      JS
+      assert page.evaluate_script(<<~JS)
+        (() => {
           const header = document.querySelector('.workspace-header').getBoundingClientRect();
           const editor = document.querySelector('[data-app-target="editorPanel"]').getBoundingClientRect();
           return editor.top >= header.bottom;
