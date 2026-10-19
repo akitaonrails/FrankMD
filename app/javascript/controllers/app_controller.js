@@ -1547,9 +1547,13 @@ export default class extends Controller {
     }
   }
 
-  cancelTitleRename(event) {
+  onTitleRenameBlur() {
+    this.submitTitleRename({ restoreFocus: false })
+  }
+
+  cancelTitleRename() {
     if (!this._titleRename || this._titleRename.pending) return
-    this.finishTitleRename(event?.type !== "blur")
+    this.finishTitleRename(true)
   }
 
   finishTitleRename(restoreFocus = false) {
@@ -1563,7 +1567,7 @@ export default class extends Controller {
     if (restoreFocus && !this.documentTitleTarget.disabled) this.documentTitleTarget.focus()
   }
 
-  async submitTitleRename() {
+  async submitTitleRename({ restoreFocus = true } = {}) {
     const edit = this._titleRename
     if (!edit || edit.pending) return
     if (this.currentFile !== edit.path) {
@@ -1577,9 +1581,10 @@ export default class extends Controller {
       { path: edit.path, type: "file" }, this.titleInputTarget.value
     )
     if (this._titleRename !== edit) return
-    const restoreFocus = document.activeElement === document.body || document.activeElement === this.titleInputTarget
+    const shouldRestoreFocus = restoreFocus &&
+      (document.activeElement === document.body || document.activeElement === this.titleInputTarget)
     if (result?.ok) {
-      this.finishTitleRename(restoreFocus)
+      this.finishTitleRename(shouldRestoreFocus)
       return
     }
     edit.pending = false
@@ -1589,7 +1594,7 @@ export default class extends Controller {
       showInlineError(this.titleRenameErrorTarget, error)
       this.titleInputTarget.setAttribute("aria-invalid", "true")
     }
-    if (restoreFocus && !document.querySelector("dialog[open]")) this.titleInputTarget.focus()
+    if (shouldRestoreFocus && !document.querySelector("dialog[open]")) this.titleInputTarget.focus()
   }
 
   async copyCurrentContent() {

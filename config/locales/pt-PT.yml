@@ -35,7 +35,7 @@ pt-PT:
     copy_content: "Copiar conteúdo"
     pin_action: "Fixar %{action} na barra de ferramentas"
     unpin_action: "Desafixar %{action} da barra de ferramentas"
-    rename_document_hint: "Prima Enter para mudar o nome. Esc ou clicar fora cancela."
+    rename_document_hint: "Prima Enter ou clique fora para mudar o nome. Esc cancela."
     document_actions: "Ações do documento"
     more_actions: "Mais ações"
     rename_document: "Mudar o nome do documento"

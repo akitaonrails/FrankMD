@@ -25,7 +25,7 @@ describe("workspace chrome", () => {
       </aside>
       <div data-workspace-main><header>
       <div class="workspace-document"><button data-app-target="sidebarOpen" data-action="click->app#toggleSidebar" hidden></button><button data-app-target="documentTitle" data-action="click->app#renameCurrentNote"></button>
-      <input data-app-target="titleInput" class="hidden" data-action="keydown->app#onTitleRenameKeydown input->app#onTitleRenameInput blur->app#cancelTitleRename">
+      <input data-app-target="titleInput" class="hidden" data-action="keydown->app#onTitleRenameKeydown input->app#onTitleRenameInput blur->app#onTitleRenameBlur">
       <span data-app-target="titleSizer"></span>
       <p data-app-target="titleRenameError" class="hidden" role="alert"></p></div>
       <div class="workspace-toolbar" data-app-target="editorToolbar"></div><button data-app-target="previewToggle"></button>
@@ -105,12 +105,24 @@ describe("workspace chrome", () => {
     expect(rename).not.toHaveBeenCalled()
   })
 
-  it("cancels when the field loses focus", () => {
+  it("submits when the field loses focus without taking focus back", async () => {
     target("documentTitle").click()
-    target("titleInput").value = "cancelled"
-    target("titleInput").blur()
-    expect(target("titleInput").classList.contains("hidden")).toBe(true)
-    expect(rename).not.toHaveBeenCalled()
+    target("titleInput").value = "renamed"
+    target("sidebarToggle").focus()
+    await vi.waitFor(() => expect(target("titleInput").classList.contains("hidden")).toBe(true))
+    expect(rename).toHaveBeenCalledWith({ path: "folder/note.md", type: "file" }, "renamed")
+    expect(document.activeElement).toBe(target("sidebarToggle"))
+  })
+
+  it("keeps a failed click-away rename editable without stealing focus", async () => {
+    rename.mockResolvedValueOnce({ ok: false, error: "Name already exists" })
+    target("documentTitle").click()
+    target("titleInput").value = "occupied"
+    target("sidebarToggle").focus()
+    await vi.waitFor(() => expect(target("titleRenameError").textContent).toBe("Name already exists"))
+    expect(target("titleInput").classList.contains("hidden")).toBe(false)
+    expect(target("titleInput").disabled).toBe(false)
+    expect(document.activeElement).toBe(target("sidebarToggle"))
   })
 
   it("keeps failures beside the field and allows retrying", async () => {
@@ -145,7 +157,7 @@ describe("workspace chrome", () => {
     target("documentTitle").click()
     const pending = app.submitTitleRename()
     await app.submitTitleRename()
-    app.cancelTitleRename(new Event("blur"))
+    app.onTitleRenameBlur()
     expect(rename).toHaveBeenCalledOnce()
     expect(target("titleInput").disabled).toBe(true)
     expect(target("titleInput").classList.contains("hidden")).toBe(false)

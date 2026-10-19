@@ -35,7 +35,7 @@ he:
     copy_content: "העתקת תוכן"
     pin_action: "הצמדת %{action} לסרגל הכלים"
     unpin_action: "ביטול הצמדת %{action} מסרגל הכלים"
-    rename_document_hint: "לחצו Enter לשינוי השם. Escape או לחיצה מחוץ לשדה יבטלו."
+    rename_document_hint: "לחצו Enter או לחצו מחוץ לשדה כדי לשנות את השם. Escape מבטל."
     document_actions: "פעולות מסמך"
     more_actions: "פעולות נוספות"
     rename_document: "שינוי שם המסמך"

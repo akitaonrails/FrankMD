@@ -186,21 +186,36 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_current_path "/notes/available.md"
   end
 
-  test "blank titles show inline validation and clicking away cancels" do
+  test "clicking away submits a title rename and preserves editor focus" do
+    create_test_note("folder/original.md", "Original")
+    visit note_url(path: "folder/original.md")
+    find("[data-app-target='documentTitle']").click
+    find("[data-app-target='titleInput']").fill_in with: "renamed"
+    find(".cm-content").click
+    assert_selector "[data-app-target='currentPath']", text: "renamed"
+    assert_current_path "/notes/folder/renamed.md"
+    assert_no_selector "[data-app-target='titleInput']", visible: true
+    assert_selector ".cm-content:focus"
+    assert_equal "Original", File.read(@test_notes_dir.join("folder/renamed.md"))
+  end
+
+  test "blank titles show inline validation and can be corrected on blur" do
     create_test_note("original.md", "Original")
     visit note_url(path: "original.md")
     find("[data-app-target='documentTitle']").click
     find("[data-app-target='titleInput']").fill_in with: " "
-    find("[data-app-target='titleInput']").send_keys(:enter)
+    find(".cm-content").click
     assert_selector "[data-app-target='titleRenameError']", text: I18n.t("errors.title_required")
-    find("[data-app-target='titleInput']").fill_in with: "cancelled"
+    assert_selector "[data-app-target='titleInput'][aria-invalid='true']", visible: true
+    assert_current_path "/notes/original.md"
+    find("[data-app-target='titleInput']").fill_in with: "corrected"
     find(".cm-content").click
     assert_no_selector "[data-app-target='titleInput']", visible: true
     assert_no_selector "[data-app-target='titleRenameError']", visible: true
-    assert_selector "[data-app-target='currentPath']", text: "original"
-    assert_current_path "/notes/original.md"
-    assert @test_notes_dir.join("original.md").exist?
-    refute @test_notes_dir.join("cancelled.md").exist?
+    assert_selector "[data-app-target='currentPath']", text: "corrected"
+    assert_current_path "/notes/corrected.md"
+    refute @test_notes_dir.join("original.md").exist?
+    assert @test_notes_dir.join("corrected.md").exist?
   end
 
   test "hidden Explorer reopens for Library and Settings and preserves preview mode" do

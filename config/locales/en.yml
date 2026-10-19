@@ -35,7 +35,7 @@ en:
     copy_content: "Copy content"
     pin_action: "Pin %{action} to toolbar"
     unpin_action: "Unpin %{action} from toolbar"
-    rename_document_hint: "Press Enter to rename. Escape or clicking away cancels."
+    rename_document_hint: "Press Enter or click away to rename. Escape cancels."
     document_actions: "Document actions"
     more_actions: "More actions"
     rename_document: "Rename document"
