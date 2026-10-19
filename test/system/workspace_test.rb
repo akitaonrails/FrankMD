@@ -221,6 +221,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     find(".cm-content").send_keys([ :control, :end ], " edited")
     expected = "# Copy content\n\nOriginal edited"
     find("[data-app-target='overflowToggle']").click
+    find("[data-workspace-pin='copy']", visible: :all).find(:xpath, "..").hover
     find("[data-workspace-pin='copy']").click
     find("[role='menuitem']", text: "Copy content", exact_text: true).click
     assert_selector "#app-toast", text: I18n.t("status.copied_to_clipboard")
@@ -241,6 +242,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     visit note_url(path: "pins.md")
     assert_no_selector "[data-workspace-pinned-action='table']", visible: true
     find("[data-app-target='overflowToggle']").click
+    find("[data-workspace-pin='table']", visible: :all).find(:xpath, "..").hover
     find("[data-workspace-pin='table']").click
     assert_selector "#workspace-menu", visible: true
     assert_selector "[data-workspace-pin='table'][aria-checked='true']"
@@ -280,8 +282,14 @@ class WorkspaceTest < ApplicationSystemTestCase
     visit note_url(path: "focus.md")
     find("[data-app-target='overflowToggle']").click
     assert_no_selector "#workspace-menu :focus"
+    assert_equal "0", page.evaluate_script("getComputedStyle(document.querySelector('[data-workspace-pin=table]')).opacity")
+    assert_equal "1", page.evaluate_script("getComputedStyle(document.querySelector('[data-workspace-pin=image]')).opacity")
+    find("[data-workspace-pin='table']", visible: :all).find(:xpath, "..").hover
+    assert_equal "1", page.evaluate_script("getComputedStyle(document.querySelector('[data-workspace-pin=table]')).opacity")
     find("[data-workspace-pin='table']").click
     find("[data-app-target='documentTitle']").hover
+    assert_equal "1", page.evaluate_script("getComputedStyle(document.querySelector('[data-workspace-pin=table]')).opacity")
+    assert_equal "0", page.evaluate_script("getComputedStyle(document.querySelector('[data-workspace-pin=video]')).opacity")
     assert_equal "rgba(0, 0, 0, 0)", page.evaluate_script(<<~JS)
       getComputedStyle(document.querySelector('[data-workspace-pin="table"]').parentElement).backgroundColor
     JS
@@ -292,6 +300,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "[data-workspace-pin='image']:focus-visible"
     page.send_keys(:enter)
     assert_selector "[data-workspace-pin='image'][aria-checked='false']:focus-visible"
+    assert_equal "1", page.evaluate_script("getComputedStyle(document.querySelector('[data-workspace-pin=image]')).opacity")
     refute_equal "rgba(0, 0, 0, 0)", page.evaluate_script(<<~JS)
       getComputedStyle(document.querySelector('[data-workspace-pin="image"]').parentElement).backgroundColor
     JS
@@ -337,7 +346,10 @@ class WorkspaceTest < ApplicationSystemTestCase
       assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
       find("[data-app-target='titleInput']").send_keys(:escape)
       find("[data-app-target='overflowToggle']").click
-      all("[data-workspace-pin][aria-checked='false']").each(&:click)
+      all("[data-workspace-pin][aria-checked='false']", visible: :all).each do |pin|
+        pin.find(:xpath, "..").hover
+        pin.click
+      end
       assert_selector "#workspace-menu", visible: true
       assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
       assert_equal "0px", page.evaluate_script("getComputedStyle(document.querySelector('.workspace-header')).borderBottomWidth")

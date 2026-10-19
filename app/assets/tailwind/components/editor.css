@@ -247,6 +247,12 @@ body.single-view-mode [data-app-target="previewPanel"] {
 .workspace-menu-pin svg { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; }
 .workspace-menu-pin[aria-checked="true"] svg { fill: currentColor; stroke: none; }
 .workspace-menu-pin:hover { color: var(--theme-accent); }
+.workspace-menu-pin[aria-checked="false"] { opacity: 0; pointer-events: none; }
+.workspace-menu-row:hover .workspace-menu-pin[aria-checked="false"],
+.workspace-menu-row:focus-within .workspace-menu-pin[aria-checked="false"] { opacity: 1; pointer-events: auto; }
+@media (any-pointer: coarse) {
+  .workspace-menu-pin[aria-checked="false"] { opacity: 1; pointer-events: auto; }
+}
 .workspace-menu svg { width: 1rem; height: 1rem; flex: none; }
 .workspace-sidebar {
   display: flex;
