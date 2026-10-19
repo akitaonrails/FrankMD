@@ -44,6 +44,7 @@ export function createEditorTheme(options = {}) {
     // Content container
     ".cm-content": {
       caretColor: "var(--theme-text-primary)",
+      marginInline: "auto",
       padding: "1rem 2rem"
     },
 

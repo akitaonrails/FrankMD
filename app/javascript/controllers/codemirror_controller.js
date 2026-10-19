@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { EditorView } from "@codemirror/view"
-import { EditorState } from "@codemirror/state"
+import { EditorState, Transaction } from "@codemirror/state"
 import { history } from "@codemirror/commands"
 import {
   createExtensions,
@@ -66,10 +66,12 @@ export default class extends Controller {
 
   connect() {
     this._isSelecting = false // Track mouse selection state
+    this._mouseTrackingAbortController = new AbortController()
     this.createEditor()
   }
 
   disconnect() {
+    this._mouseTrackingAbortController?.abort()
     if (this.editor) {
       this.editor.destroy()
       this.editor = null
@@ -133,11 +135,13 @@ export default class extends Controller {
     if (!this.editor) return
 
     const scrollDOM = this.editor.scrollDOM
+    const options = { signal: this._mouseTrackingAbortController?.signal }
 
     // Track when user starts selecting with mouse
     scrollDOM.addEventListener("mousedown", (e) => {
       // Only track left button (button 0)
       if (e.button === 0) {
+        this._marginPointerStart = e.target === scrollDOM ? { x: e.clientX, y: e.clientY } : null
         this._isSelecting = true
         this._mouseDownInContent = this.editor.contentDOM.contains(e.target)
         // Notify typewriter plugin to stop auto-scrolling during selection
@@ -145,7 +149,25 @@ export default class extends Controller {
           effects: setIsSelecting.of(true)
         })
       }
-    })
+    }, options)
+
+    // Handle blank space after CodeMirror's own click logic while allowing the
+    // event to reach workspace controls such as the overflow-menu dismissal.
+    document.addEventListener("click", (event) => {
+      const start = this._marginPointerStart
+      this._marginPointerStart = null
+      if (event.button !== 0 || event.target !== scrollDOM || !start || !this.editor) return
+      if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 4) return
+
+      const scrollbarWidth = scrollDOM.offsetWidth - scrollDOM.clientWidth
+      const scrollBounds = scrollDOM.getBoundingClientRect()
+      const onScrollbar = getComputedStyle(scrollDOM).direction === "rtl"
+        ? event.clientX < scrollBounds.left + scrollbarWidth
+        : event.clientX > scrollBounds.right - scrollbarWidth
+      if (scrollbarWidth > 0 && onScrollbar) return
+
+      this.placeCaretInEditorMargin(event)
+    }, options)
 
     // Track when user finishes selecting
     document.addEventListener("mouseup", (event) => {
@@ -174,7 +196,26 @@ export default class extends Controller {
           })
         }, 50)
       }
+    }, options)
+  }
+
+  placeCaretInEditorMargin(event) {
+    const view = this.editor
+    if (!view) return
+
+    const contentBounds = view.contentDOM.getBoundingClientRect()
+    const contentStyle = getComputedStyle(view.contentDOM)
+    const textLeft = contentBounds.left + parseFloat(contentStyle.paddingLeft) + 1
+    const textRight = contentBounds.right - parseFloat(contentStyle.paddingRight) - 1
+    const x = Math.max(textLeft, Math.min(event.clientX, textRight))
+    const position = view.posAtCoords({ x, y: event.clientY }) ??
+      (event.clientY < contentBounds.top ? 0 : view.state.doc.length)
+    view.dispatch({
+      selection: { anchor: position },
+      annotations: Transaction.userEvent.of("select.pointer")
     })
+    view.focus()
+    recenterCursorAfterClick(view)
   }
 
   // === Event Handlers ===

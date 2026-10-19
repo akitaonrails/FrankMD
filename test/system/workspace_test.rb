@@ -3,6 +3,97 @@
 require "application_system_test_case"
 
 class WorkspaceTest < ApplicationSystemTestCase
+  test "editor margins place the caret while the scrollbar stays at the pane edge" do
+    create_test_note("wide-editor.md", (1..200).map { |line| "Line #{line} of text" }.join("\n"))
+    visit note_url(path: "wide-editor.md")
+    assert_selector ".cm-content"
+
+    [ false, true ].each do |typewriter|
+      page.execute_script(<<~JS)
+        const element = document.querySelector('[data-controller~="typewriter"]');
+        window.Stimulus.getControllerForElementAndIdentifier(element, 'typewriter').setEnabled(#{typewriter});
+        document.body.classList.toggle('typewriter-mode', #{typewriter});
+      JS
+      bounds = page.evaluate_script(<<~JS)
+        (() => {
+          const pane = document.querySelector('[data-app-target="editorPanel"]').getBoundingClientRect();
+          const scroller = document.querySelector('.cm-scroller');
+          const scrollBounds = scroller.getBoundingClientRect();
+          const textBounds = document.querySelector('.cm-content').getBoundingClientRect();
+          return { edge: scrollBounds.right - pane.right,
+            leftMargin: textBounds.left - scrollBounds.left,
+            rightMargin: scrollBounds.right - textBounds.right,
+            scrollHeight: scroller.scrollHeight, clientHeight: scroller.clientHeight };
+        })()
+      JS
+      assert_in_delta 0, bounds.fetch("edge"), 1
+      assert_operator bounds.fetch("leftMargin"), :>, 40
+      assert_operator bounds.fetch("rightMargin"), :>, 40
+      assert_operator bounds.fetch("scrollHeight"), :>, bounds.fetch("clientHeight")
+
+      scroller = find(".cm-scroller").native
+      [ [ 8 - scroller.size.width / 2, 0 ], [ scroller.size.width / 2 - 30, :end ] ].each do |x, expected_column|
+        page.execute_script("document.activeElement.blur()")
+        assert_no_selector ".cm-content:focus"
+        page.driver.browser.action.move_to(scroller, x, 85 - scroller.size.height / 2).click.perform
+        assert_selector ".cm-content:focus"
+        position = Selenium::WebDriver::Wait.new(timeout: 3, interval: 0.05).until do
+          result = page.evaluate_script(<<~JS)
+            (() => {
+              const element = document.querySelector('[data-controller~="codemirror"]');
+              const view = window.Stimulus.getControllerForElementAndIdentifier(element, 'codemirror').editor;
+              const head = view.state.selection.main.head;
+              const line = view.state.doc.lineAt(head);
+              return { line: line.number, column: head - line.from, length: line.length };
+            })()
+          JS
+          expected = expected_column == :end ? result.fetch("length") : expected_column
+          result if result.fetch("line") > 1 && result.fetch("column") == expected
+        end
+        assert_operator position.fetch("line"), :>, 1
+        assert_equal expected_column == :end ? position.fetch("length") : expected_column, position.fetch("column")
+      end
+    end
+
+    find("[data-app-target='overflowToggle']").click
+    assert_selector "#workspace-menu", visible: true
+    scroller = find(".cm-scroller").native
+    page.driver.browser.action.move_to(scroller, 8 - scroller.size.width / 2, 85 - scroller.size.height / 2).click.perform
+    assert_no_selector "#workspace-menu", visible: true
+
+    page.execute_script(<<~JS)
+      const root = document.querySelector('[data-controller~="app"]');
+      const app = window.Stimulus.getControllerForElementAndIdentifier(root, 'app');
+      const editor = document.querySelector('[data-controller~="typewriter"]');
+      window.Stimulus.getControllerForElementAndIdentifier(editor, 'typewriter').setEnabled(false);
+      document.body.classList.remove('typewriter-mode');
+      app.setViewMode('split');
+    JS
+    find("[data-app-target='previewToggle']").click
+    assert_selector "[data-app-target='previewPanel']", visible: true
+    assert page.evaluate_script(<<~JS)
+      (() => {
+        const pane = document.querySelector('[data-app-target="editorPanel"]').getBoundingClientRect();
+        const scroller = document.querySelector('.cm-scroller').getBoundingClientRect();
+        return Math.abs(scroller.right - pane.right) < 1;
+      })()
+    JS
+
+    page.execute_script("window.Stimulus.getControllerForElementAndIdentifier(document.querySelector('[data-controller~=app]'), 'app').setViewMode('single')")
+    page.current_window.resize_to(320, 720)
+    assert page.evaluate_script(<<~JS)
+      (() => {
+        const pane = document.querySelector('[data-app-target="editorPanel"]').getBoundingClientRect();
+        const scroller = document.querySelector('.cm-scroller').getBoundingClientRect();
+        return Math.abs(scroller.right - pane.right) < 1 &&
+          scroller.right <= window.innerWidth &&
+          document.documentElement.scrollWidth <= window.innerWidth;
+      })()
+    JS
+  ensure
+    page.current_window.resize_to(1400, 900)
+  end
+
   test "empty notes focus the editor" do
     create_test_note("empty.md", "")
     visit note_url(path: "empty.md")
