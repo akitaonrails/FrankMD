@@ -280,6 +280,21 @@ describe("workspace chrome", () => {
     expect(document.activeElement).toBe(target("documentTitle"))
   })
 
+  it("moves focus to the sidebar toggle when the focused opener becomes hidden", () => {
+    app.mobileWorkspace = true
+    app.sidebarVisible = false
+    app.applySidebarVisibility()
+    target("sidebarOpen").focus()
+
+    app.mobileWorkspace = false
+    app.sidebarVisible = true
+    app.applySidebarVisibility()
+
+    expect(target("sidebarOpen").hidden).toBe(true)
+    expect(target("sidebar").inert).toBe(false)
+    expect(document.activeElement).toBe(target("sidebarToggle"))
+  })
+
   it("shows persisted Stats when Settings connects after the note", () => {
     const stats = { show: vi.fn(), hide: vi.fn(), update: vi.fn() }
     vi.spyOn(app, "getStatsPanelController").mockReturnValue(stats)

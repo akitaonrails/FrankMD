@@ -1530,6 +1530,9 @@ export default class extends Controller {
       this.sidebarToggleTarget.setAttribute("aria-expanded", this.sidebarVisible.toString())
     }
     if (this.hasSidebarOpenTarget) {
+      if (this.sidebarVisible && document.activeElement === this.sidebarOpenTarget && this.hasSidebarToggleTarget) {
+        this.sidebarToggleTarget.focus()
+      }
       this.sidebarOpenTarget.hidden = this.sidebarVisible
       this.sidebarOpenTarget.setAttribute("aria-expanded", this.sidebarVisible.toString())
     }

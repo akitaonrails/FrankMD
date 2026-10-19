@@ -626,6 +626,24 @@ class WorkspaceTest < ApplicationSystemTestCase
     page.current_window.resize_to(1400, 900)
   end
 
+  test "resizing from mobile restores focus to the visible sidebar toggle" do
+    page.current_window.resize_to(320, 720)
+    create_test_note("resize-focus.md", "Sidebar focus")
+    visit note_url(path: "resize-focus.md")
+    find("[data-app-target='sidebarOpen']").click
+    assert_selector ".workspace-sidebar.is-overlay"
+    page.send_keys(:escape)
+    assert_selector "[data-app-target='sidebarOpen']:focus"
+
+    page.current_window.resize_to(1400, 900)
+
+    assert_no_selector ".workspace-sidebar.is-hidden", visible: :all
+    assert_no_selector "[data-app-target='sidebarOpen']", visible: true
+    assert_selector "[data-app-target='sidebarToggle']:focus", visible: true
+  ensure
+    page.current_window.resize_to(1400, 900)
+  end
+
   test "Stats starts hidden and can be enabled in Settings" do
     create_test_note("stats.md", "Three words here")
     visit note_url(path: "stats.md")
