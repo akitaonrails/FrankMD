@@ -105,6 +105,8 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_equal "Initial edited", File.read(@test_notes_dir.join("folder/renamed.md"))
     refute @test_notes_dir.join("folder/original.md").exist?
     assert_equal "folder/renamed.md", find("[data-app-target='documentTitle']")["title"]
+    assert_selector "[data-app-target='documentTitle']:focus"
+    assert_equal "none", page.evaluate_script("getComputedStyle(document.querySelector('[data-app-target=documentTitle]')).outlineStyle")
   end
 
   test "title input matches its label and resizes with the text" do
@@ -125,8 +127,8 @@ class WorkspaceTest < ApplicationSystemTestCase
         const input = document.querySelector('[data-app-target="titleInput"]');
         const bounds = input.getBoundingClientRect();
         const style = getComputedStyle(input);
-        return Math.abs(bounds.x - label.x) < 1 && Math.abs(bounds.y - label.y) < 1 &&
-          Math.abs(bounds.width - label.width) < 2 && Math.abs(bounds.height - label.height) < 1 &&
+        return Math.abs(bounds.x - label.x) < 1 && Math.abs(bounds.y - label.y) < 0.01 &&
+          Math.abs(bounds.width - label.width) < 2 && Math.abs(bounds.height - label.height) < 0.01 &&
           style.paddingLeft === '8px' && style.paddingRight === '8px';
       })(#{label.to_json})
     JS

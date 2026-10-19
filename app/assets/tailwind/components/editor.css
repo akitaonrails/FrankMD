@@ -148,7 +148,7 @@ body.single-view-mode [data-app-target="previewPanel"] {
   z-index: 40;
 }
 .workspace-header .workspace-document { min-width: 8rem; }
-.workspace-title-container { position: relative; min-width: 0; max-width: 100%; }
+.workspace-title-container { display: flex; align-items: center; position: relative; min-width: 0; max-width: 100%; }
 .workspace-document-title,
 .workspace-title-input {
   box-sizing: border-box;
@@ -180,6 +180,7 @@ body.single-view-mode [data-app-target="previewPanel"] {
 .workspace-navigation [aria-pressed="true"] { color: var(--theme-accent); background: var(--theme-bg-hover); }
 .workspace-header button:focus-visible,
 .workspace-sidebar button:focus-visible { outline: 2px solid var(--theme-accent); outline-offset: -2px; }
+.workspace-header .workspace-document-title:focus-visible { outline: none; background: var(--theme-bg-hover); }
 .workspace-explorer-actions,
 .workspace-global-actions { display: flex; align-items: center; }
 .workspace-explorer-actions { flex: none; margin-inline-start: auto; }
