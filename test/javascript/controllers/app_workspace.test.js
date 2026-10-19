@@ -19,9 +19,9 @@ describe("workspace chrome", () => {
     window.t = key => key
     document.body.innerHTML = `<div data-controller="app" data-action="click@document->app#onWorkspaceOutsideClick keydown@document->app#onWorkspaceKeydown">
       <aside data-app-target="sidebar">
-        <header><div>FrankMD</div><div class="workspace-global-actions"><button>New note</button></div>
-        <button data-app-target="sidebarToggle" data-action="click->app#toggleSidebar"></button></header>
-        <div data-app-target="explorerPanel"><button tabindex="0">New note</button></div><nav><button data-app-target="libraryToggle">Library</button><button data-app-target="settingsToggle">Settings</button></nav>
+        <header><button data-app-target="sidebarToggle" data-action="click->app#toggleSidebar"></button>
+        <div class="workspace-global-actions"><button>New note</button></div></header>
+        <div data-app-target="explorerPanel"><button tabindex="0">New note</button></div><footer><div>FrankMD</div><nav><button data-app-target="libraryToggle">Library</button><button data-app-target="settingsToggle">Settings</button></nav></footer>
       </aside>
       <div data-workspace-main><header>
       <div class="workspace-document"><button data-app-target="sidebarOpen" data-action="click->app#toggleSidebar" hidden></button><button data-app-target="documentTitle" data-action="click->app#renameCurrentNote"></button>
@@ -316,7 +316,7 @@ describe("workspace chrome", () => {
     expect(target("sidebarToggle").closest("[inert]")).toBeNull()
     target("settingsToggle").focus()
     key(target("settingsToggle"), "Tab")
-    expect(document.activeElement).toBe(root.querySelector(".workspace-global-actions button"))
+    expect(document.activeElement).toBe(target("sidebarToggle"))
     key(target("sidebarToggle"), "Escape")
     expect(target("sidebar").classList.contains("is-overlay")).toBe(false)
     expect(root.querySelector("[data-workspace-main]").inert).toBe(false)

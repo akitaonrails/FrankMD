@@ -36,10 +36,10 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "[data-app-target='currentPath']", text: I18n.t("editor.select_note"), wait: 6
   end
 
-  test "Explorer header owns the brand and actions while editor header owns the document" do
+  test "Explorer header separates toggle and actions while footer owns the brand" do
     create_test_note("headers.md", "# Separate headers")
     visit note_url(path: "headers.md")
-    assert_selector ".workspace-sidebar > header .workspace-brand span", text: "FrankMD"
+    assert_selector ".workspace-sidebar > footer .workspace-brand span", text: "FrankMD"
     assert_selector ".workspace-sidebar > header .workspace-global-actions button", count: 4
     assert_selector ".workspace-sidebar > header [data-app-target='sidebarToggle']"
     assert_no_selector ".workspace-main > header .workspace-explorer-actions"
@@ -53,10 +53,23 @@ class WorkspaceTest < ApplicationSystemTestCase
     JS
     assert page.evaluate_script(<<~JS)
       (() => {
-        const title = document.querySelector('.workspace-brand').getBoundingClientRect();
+        const toggle = document.querySelector('[data-app-target="sidebarToggle"]').getBoundingClientRect();
         const actions = document.querySelector('.workspace-explorer-actions').getBoundingClientRect();
         const header = document.querySelector('.workspace-sidebar-header').getBoundingClientRect();
-        return actions.left >= title.right && actions.right <= header.right;
+        return toggle.left >= header.left && toggle.right <= actions.left && actions.right <= header.right;
+      })()
+    JS
+    assert page.evaluate_script(<<~JS)
+      (() => {
+        const brand = document.querySelector('.workspace-brand');
+        const label = brand.querySelector('span');
+        const navigation = document.querySelector('.workspace-navigation');
+        const footer = document.querySelector('.workspace-sidebar-footer').getBoundingClientRect();
+        return brand.getBoundingClientRect().left >= footer.left &&
+          brand.getBoundingClientRect().right <= navigation.getBoundingClientRect().left &&
+          navigation.getBoundingClientRect().right <= footer.right &&
+          getComputedStyle(label).cursor === 'default' &&
+          getComputedStyle(label).userSelect === 'none';
       })()
     JS
     find("[data-app-target='sidebarToggle']").click
@@ -422,7 +435,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "[data-app-target='sidebarOpen']", visible: true
     find("[data-app-target='sidebarOpen']").click
     assert_selector ".workspace-sidebar.is-overlay"
-    assert_selector ".workspace-sidebar-header .workspace-brand span", text: "FrankMD"
+    assert_selector ".workspace-sidebar-footer .workspace-brand span", text: "FrankMD"
     assert_selector "[data-workspace-main][inert]"
     assert_selector ".workspace-global-actions button", visible: true, count: 4
     assert_nil page.evaluate_script("document.querySelector('[data-app-target=sidebarToggle]').closest('[inert]')")

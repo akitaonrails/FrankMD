@@ -1,9 +1,8 @@
 <aside id="workspace-sidebar" class="workspace-sidebar" data-app-target="sidebar">
   <header class="workspace-sidebar-header">
-    <div class="workspace-brand">
-      <img src="/icon.svg" class="w-5 h-5 shrink-0" alt="<%= t('app.name') %>">
-      <span aria-hidden="true"><%= t('app.name') %></span>
-    </div>
+    <button type="button" class="workspace-icon" data-action="click->app#toggleSidebar" data-app-target="sidebarToggle" aria-controls="workspace-sidebar" aria-expanded="true" title="<%= t('header.close_explorer') %>" aria-label="<%= t('header.close_explorer') %>">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/><path d="m10 15-3-3 3-3"/></svg>
+    </button>
     <%= render "notes/explorer_actions" %>
   </header>
   <div id="workspace-explorer" class="workspace-explorer" data-app-target="explorerPanel">
@@ -49,8 +48,14 @@
   </div>
 
   </div>
-  <nav class="workspace-navigation" aria-label="<%= t('header.workspace_navigation') %>">
-    <%= render "notes/library_button" %>
-    <%= render "notes/settings_button" %>
-  </nav>
+  <footer class="workspace-sidebar-footer">
+    <div class="workspace-brand">
+      <img src="/icon.svg" class="w-5 h-5 shrink-0" alt="<%= t('app.name') %>">
+      <span aria-hidden="true"><%= t('app.name') %></span>
+    </div>
+    <nav class="workspace-navigation" aria-label="<%= t('header.workspace_navigation') %>">
+      <%= render "notes/library_button" %>
+      <%= render "notes/settings_button" %>
+    </nav>
+  </footer>
 </aside>

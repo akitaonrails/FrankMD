@@ -64,11 +64,13 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     %w[newNote newFolder openFileFinder openContentSearch].each do |action|
       assert_select ".workspace-sidebar > header .workspace-global-actions button[data-action='click->app##{action}']", count: 1
     end
-    assert_select ".workspace-sidebar > header .workspace-brand" do
+    assert_select ".workspace-sidebar > footer .workspace-brand" do
       assert_select "img[src='/icon.svg']"
       assert_select "span", text: "FrankMD"
     end
-    assert_select ".workspace-sidebar > header .workspace-explorer-actions > button[data-app-target='sidebarToggle'][aria-controls='workspace-sidebar'][aria-label='#{I18n.t('header.close_explorer')}']", count: 1
+    assert_select ".workspace-sidebar > header .workspace-brand", count: 0
+    assert_select ".workspace-sidebar > footer .workspace-navigation button", count: 2
+    assert_select ".workspace-sidebar > header > button[data-app-target='sidebarToggle'][aria-controls='workspace-sidebar'][aria-label='#{I18n.t('header.close_explorer')}']", count: 1
     assert_select ".workspace-sidebar > header [data-app-target='sidebarToggle'] svg path[d='m10 15-3-3 3-3']", count: 1
     assert_select ".workspace-main > header .workspace-document > button[data-app-target='sidebarOpen'][hidden][aria-controls='workspace-sidebar'][aria-label='#{I18n.t('header.open_explorer')}']", count: 1
     assert_select ".workspace-main > header .workspace-explorer-actions", count: 0
