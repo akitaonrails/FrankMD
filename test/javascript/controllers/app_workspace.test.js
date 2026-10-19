@@ -24,7 +24,7 @@ describe("workspace chrome", () => {
         <div data-app-target="explorerPanel"><button tabindex="0">New note</button></div><nav><button data-app-target="libraryToggle">Library</button><button data-app-target="settingsToggle">Settings</button></nav>
       </aside>
       <div data-workspace-main><header>
-      <div class="workspace-document"><button data-app-target="documentTitle" data-action="click->app#renameCurrentNote"></button>
+      <div class="workspace-document"><button data-app-target="sidebarOpen" data-action="click->app#toggleSidebar" hidden></button><button data-app-target="documentTitle" data-action="click->app#renameCurrentNote"></button>
       <input data-app-target="titleInput" class="hidden" data-action="keydown->app#onTitleRenameKeydown input->app#onTitleRenameInput blur->app#cancelTitleRename">
       <p data-app-target="titleRenameError" class="hidden" role="alert"></p></div>
       <div class="workspace-toolbar" data-app-target="editorToolbar"></div><button data-app-target="previewToggle"></button>
@@ -226,16 +226,33 @@ describe("workspace chrome", () => {
     })
   })
 
-  it("keeps navigation in the collapsed rail and refreshes editor geometry", () => {
+  it("hides the entire sidebar, focuses its opener, and restores it", () => {
     target("explorerPanel").querySelector("button").focus()
     app.toggleSidebar()
-    expect(document.activeElement).toBe(target("sidebarToggle"))
-    expect(target("sidebar").classList.contains("is-collapsed")).toBe(true)
-    expect(target("sidebar").classList.contains("hidden")).toBe(false)
+    expect(document.activeElement).toBe(target("sidebarOpen"))
+    expect(target("sidebar").classList.contains("is-hidden")).toBe(true)
+    expect(target("sidebar").inert).toBe(true)
     expect(target("explorerPanel").inert).toBe(true)
-    expect(target("libraryToggle").closest("[inert]")).toBeNull()
+    expect(target("sidebarOpen").hidden).toBe(false)
+    expect(target("sidebarOpen").getAttribute("aria-expanded")).toBe("false")
     expect(target("sidebarToggle").getAttribute("aria-expanded")).toBe("false")
     expect(app.getCodemirrorController().refreshTypewriterLayout).toHaveBeenCalled()
+    target("sidebarOpen").click()
+    expect(target("sidebar").classList.contains("is-hidden")).toBe(false)
+    expect(target("sidebar").inert).toBe(false)
+    expect(target("sidebarOpen").hidden).toBe(true)
+    expect(document.activeElement).toBe(target("sidebarToggle"))
+  })
+
+  it("keeps editor focus when the Explorer is opened by a keyboard shortcut", () => {
+    app.sidebarVisible = false
+    app.applySidebarVisibility()
+    target("documentTitle").focus()
+
+    app.toggleSidebar()
+
+    expect(target("sidebar").classList.contains("is-hidden")).toBe(false)
+    expect(document.activeElement).toBe(target("documentTitle"))
   })
 
   it("shows persisted Stats when Settings connects after the note", () => {
@@ -266,7 +283,7 @@ describe("workspace chrome", () => {
     app.mobileWorkspace = true
     app.sidebarVisible = false
     vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([{}])
-    target("sidebarToggle").click()
+    target("sidebarOpen").click()
     expect(target("sidebar").classList.contains("is-overlay")).toBe(true)
     expect(target("sidebarBackdrop").classList.contains("hidden")).toBe(false)
     expect(root.querySelector("[data-workspace-main]").inert).toBe(true)
@@ -278,7 +295,8 @@ describe("workspace chrome", () => {
     key(target("sidebarToggle"), "Escape")
     expect(target("sidebar").classList.contains("is-overlay")).toBe(false)
     expect(root.querySelector("[data-workspace-main]").inert).toBe(false)
-    expect(document.activeElement).toBe(target("sidebarToggle"))
+    expect(target("sidebar").classList.contains("is-hidden")).toBe(true)
+    expect(document.activeElement).toBe(target("sidebarOpen"))
   })
 
   it("shows only applicable actions in single preview, Library, and empty states", () => {

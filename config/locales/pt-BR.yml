@@ -41,6 +41,7 @@ pt-BR:
     rename_document: "Renomear documento"
     workspace_navigation: "Navegação do espaço de trabalho"
     close_explorer: "Fechar Explorador"
+    open_explorer: "Abrir Explorador"
     toggle_explorer: "Alternar Explorador (Ctrl+E)"
     toggle_preview: "Alternar Visualização (Ctrl+Shift+P)"
     change_theme: "Alterar Tema"

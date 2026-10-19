@@ -106,7 +106,7 @@ export default class extends Controller {
     "undoCreatedNoteMessage",
     "tableHint",
     "sidebar",
-    "sidebarToggle",
+    "sidebarToggle", "sidebarOpen",
     "explorerPanel", "sidebarBackdrop", "documentTitle",
     "titleInput", "titleRenameError",
     "overflowContainer", "overflowToggle", "overflowMenu",
@@ -159,7 +159,7 @@ export default class extends Controller {
     document.addEventListener("pointerup", this.boundExplorerPointerUp, true)
     document.addEventListener("pointercancel", this.boundExplorerPointerUp, true)
 
-    // Start desktop Explorer expanded and mobile navigation as a rail.
+    // Start desktop Explorer expanded and mobile Explorer closed.
     // Visibility remains session-only.
     this.mobileWorkspace = window.innerWidth < 768
     this.sidebarVisible = !this.mobileWorkspace
@@ -1456,13 +1456,17 @@ export default class extends Controller {
   }
 
   // === Sidebar/Explorer Toggle ===
-  toggleSidebar() {
+  toggleSidebar(event) {
+    const openedFromButton = this.hasSidebarOpenTarget &&
+      (event?.currentTarget === this.sidebarOpenTarget || document.activeElement === this.sidebarOpenTarget)
     this.sidebarVisible = !this.sidebarVisible
     this.applySidebarVisibility()
     if (this.mobileWorkspace && this.sidebarVisible) {
       const firstItem = this.explorerPanelTarget.querySelector('[tabindex="0"], button') ||
         this.sidebarTarget.querySelector(".workspace-navigation button")
       firstItem?.focus()
+    } else if (this.sidebarVisible && openedFromButton) {
+      this.sidebarToggleTarget.focus()
     }
   }
 
@@ -1470,29 +1474,35 @@ export default class extends Controller {
     if (!this.mobileWorkspace || !this.sidebarVisible) return
     this.sidebarVisible = false
     this.applySidebarVisibility()
-    this.sidebarToggleTarget.focus()
+    this.sidebarOpenTarget.focus()
   }
 
   applySidebarVisibility() {
+    const overlayOpen = Boolean(this.mobileWorkspace && this.sidebarVisible)
+    const workspace = this.context?.element?.querySelector('[data-workspace-main]')
+    if (workspace) workspace.inert = overlayOpen
     if (this.hasSidebarTarget) {
-      this.sidebarTarget.classList.toggle("is-collapsed", !this.sidebarVisible)
-      this.sidebarTarget.classList.toggle("is-overlay", Boolean(this.mobileWorkspace && this.sidebarVisible))
+      if (!this.sidebarVisible && this.sidebarTarget.contains(document.activeElement) && this.hasSidebarOpenTarget) {
+        this.sidebarOpenTarget.hidden = false
+        this.sidebarOpenTarget.focus()
+      }
+      this.sidebarTarget.classList.toggle("is-hidden", !this.sidebarVisible)
+      this.sidebarTarget.classList.toggle("is-overlay", overlayOpen)
+      this.sidebarTarget.inert = !this.sidebarVisible
     }
     if (this.hasExplorerPanelTarget) {
-      if (!this.sidebarVisible && this.explorerPanelTarget.contains(document.activeElement) && this.hasSidebarToggleTarget) {
-        this.sidebarToggleTarget.focus()
-      }
       this.explorerPanelTarget.inert = !this.sidebarVisible
     }
     if (this.hasSidebarBackdropTarget) {
-      this.sidebarBackdropTarget.classList.toggle("hidden", !(this.mobileWorkspace && this.sidebarVisible))
+      this.sidebarBackdropTarget.classList.toggle("hidden", !overlayOpen)
     }
     if (this.hasSidebarToggleTarget) {
       this.sidebarToggleTarget.setAttribute("aria-expanded", this.sidebarVisible.toString())
     }
-    const overlayOpen = Boolean(this.mobileWorkspace && this.sidebarVisible)
-    const workspace = this.context?.element?.querySelector('[data-workspace-main]')
-    if (workspace) workspace.inert = overlayOpen
+    if (this.hasSidebarOpenTarget) {
+      this.sidebarOpenTarget.hidden = this.sidebarVisible
+      this.sidebarOpenTarget.setAttribute("aria-expanded", this.sidebarVisible.toString())
+    }
     this.getCodemirrorController?.()?.refreshTypewriterLayout?.()
   }
 

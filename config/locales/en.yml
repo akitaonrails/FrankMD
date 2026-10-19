@@ -41,6 +41,7 @@ en:
     rename_document: "Rename document"
     workspace_navigation: "Workspace navigation"
     close_explorer: "Close Explorer"
+    open_explorer: "Open Explorer"
     toggle_explorer: "Toggle Explorer (Ctrl+E)"
     toggle_preview: "Toggle Preview (Ctrl+Shift+P)"
     change_theme: "Change Theme"

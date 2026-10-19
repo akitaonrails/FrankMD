@@ -38,10 +38,19 @@ class WorkspaceTest < ApplicationSystemTestCase
       })()
     JS
     find("[data-app-target='sidebarToggle']").click
-    assert_selector ".workspace-sidebar.is-collapsed header .workspace-brand img", visible: true
-    assert_selector ".workspace-sidebar.is-collapsed header [data-app-target='sidebarToggle']", visible: true
-    assert_no_selector ".workspace-sidebar.is-collapsed header .workspace-global-actions", visible: true
-    assert_no_selector ".workspace-brand span", visible: true
+    assert_selector ".workspace-sidebar.is-hidden", visible: :all
+    assert_no_selector ".workspace-sidebar", visible: true
+    assert_selector ".workspace-main > header [data-app-target='sidebarOpen']:focus", visible: true
+    assert page.evaluate_script(<<~JS)
+      (() => {
+        const opener = document.querySelector('[data-app-target="sidebarOpen"]').getBoundingClientRect();
+        const title = document.querySelector('[data-app-target="documentTitle"]').getBoundingClientRect();
+        const main = document.querySelector('.workspace-main').getBoundingClientRect();
+        return opener.right <= title.left && main.left === 0;
+      })()
+    JS
+    find("[data-app-target='sidebarOpen']").click
+    assert_selector ".workspace-sidebar", visible: true
     assert_no_selector "button.workspace-brand"
     find("[data-app-target='settingsToggle']").click
     find("#settings-dialog [data-settings-target='navButton'][data-category='about']").send_keys(:enter)
@@ -80,6 +89,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     [ [ 1400, 900 ], [ 320, 720 ] ].each do |width, height|
       page.current_window.resize_to(width, height)
       visit root_url
+      find("[data-app-target='sidebarOpen']").click if width < 768
       find("[data-app-target='settingsToggle']").click
       find("#settings-dialog [data-settings-target='navButton'][data-category='about']").click
       assert_selector "#settings-dialog [data-category='about'] h3", text: "FrankMD"
@@ -138,12 +148,15 @@ class WorkspaceTest < ApplicationSystemTestCase
     refute @test_notes_dir.join("cancelled.md").exist?
   end
 
-  test "collapsed navigation opens Library and Settings and preserves preview mode" do
+  test "hidden Explorer reopens for Library and Settings and preserves preview mode" do
     create_test_note("note.md", "# Preview")
     visit note_url(path: "note.md")
     find("[data-app-target='previewToggle']").click
     find("[data-app-target='sidebarToggle']").click
-    assert_selector ".workspace-sidebar.is-collapsed"
+    assert_selector ".workspace-sidebar.is-hidden", visible: :all
+    assert_no_selector "[data-app-target='libraryToggle']", visible: true
+    assert_no_selector "[data-app-target='settingsToggle']", visible: true
+    find("[data-app-target='sidebarOpen']").click
     find("[data-app-target='libraryToggle']").click
     assert_selector "[data-app-target='libraryPanel']", visible: true
     assert_no_selector "[data-app-target='editorToolbar']", visible: true
@@ -304,27 +317,29 @@ class WorkspaceTest < ApplicationSystemTestCase
     page.current_window.resize_to(320, 720)
     create_test_note("mobile.md", "Mobile")
     visit root_url
-    assert_selector ".workspace-sidebar.is-collapsed"
-    assert_selector "[data-app-target='libraryToggle']", visible: true
-    assert_selector "[data-app-target='settingsToggle']", visible: true
-    find("[data-app-target='sidebarToggle']").click
+    assert_selector ".workspace-sidebar.is-hidden", visible: :all
+    assert_no_selector "[data-app-target='libraryToggle']", visible: true
+    assert_no_selector "[data-app-target='settingsToggle']", visible: true
+    assert_selector "[data-app-target='sidebarOpen']", visible: true
+    find("[data-app-target='sidebarOpen']").click
     assert_selector ".workspace-sidebar.is-overlay"
     assert_selector ".workspace-sidebar-header .workspace-brand span", text: "FrankMD"
     assert_selector "[data-workspace-main][inert]"
     assert_selector ".workspace-global-actions button", visible: true, count: 4
     assert_nil page.evaluate_script("document.querySelector('[data-app-target=sidebarToggle]').closest('[inert]')")
     find("[data-path='mobile.md'][data-type='file']").click
-    assert_selector ".workspace-sidebar.is-collapsed"
+    assert_selector ".workspace-sidebar.is-hidden", visible: :all
+    assert_selector "[data-app-target='sidebarOpen']", visible: true
     assert_selector ".cm-content", text: "Mobile"
     assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
-    find("[data-app-target='sidebarToggle']").click
+    find("[data-app-target='sidebarOpen']").click
     find("[data-app-target='settingsToggle']").click
     assert_selector "#settings-dialog[open]"
     find("#settings-dialog").send_keys(:escape)
     assert_no_selector "#settings-dialog[open]"
     page.send_keys(:escape)
-    assert_selector ".workspace-sidebar.is-collapsed"
-    assert_selector "[data-app-target='sidebarToggle']:focus"
+    assert_selector ".workspace-sidebar.is-hidden", visible: :all
+    assert_selector "[data-app-target='sidebarOpen']:focus"
     find("[data-app-target='overflowToggle']").click
     assert_selector "#workspace-menu", visible: true
     assert page.evaluate_script("document.querySelector('#workspace-menu').getBoundingClientRect().right <= window.innerWidth")

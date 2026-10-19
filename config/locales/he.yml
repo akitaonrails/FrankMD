@@ -41,6 +41,7 @@ he:
     rename_document: "שינוי שם המסמך"
     workspace_navigation: "ניווט בסביבת העבודה"
     close_explorer: "סגירת סייר הקבצים"
+    open_explorer: "פתיחת סייר הקבצים"
     toggle_explorer: "הצג/הסתר סייר (Ctrl+E)"
     toggle_preview: "הצג/הסתר תצוגה מקדימה (Ctrl+Shift+P)"
     change_theme: "שנה ערכת נושא"

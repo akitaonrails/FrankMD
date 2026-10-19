@@ -41,6 +41,7 @@ ja:
     rename_document: "ドキュメント名を変更"
     workspace_navigation: "ワークスペースのナビゲーション"
     close_explorer: "エクスプローラーを閉じる"
+    open_explorer: "エクスプローラーを開く"
     toggle_explorer: "エクスプローラー切替 (Ctrl+E)"
     toggle_preview: "プレビュー切替 (Ctrl+Shift+P)"
     change_theme: "テーマ変更"

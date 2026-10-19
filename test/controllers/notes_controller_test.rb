@@ -63,7 +63,9 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
       assert_select "img[src='/icon.svg']"
       assert_select "span", text: "FrankMD"
     end
-    assert_select ".workspace-sidebar > header .workspace-explorer-actions > button[data-app-target='sidebarToggle']", count: 1
+    assert_select ".workspace-sidebar > header .workspace-explorer-actions > button[data-app-target='sidebarToggle'][aria-controls='workspace-sidebar'][aria-label='#{I18n.t('header.close_explorer')}']", count: 1
+    assert_select ".workspace-sidebar > header [data-app-target='sidebarToggle'] svg path[d='m10 15-3-3 3-3']", count: 1
+    assert_select ".workspace-main > header .workspace-document > button[data-app-target='sidebarOpen'][hidden][aria-controls='workspace-sidebar'][aria-label='#{I18n.t('header.open_explorer')}']", count: 1
     assert_select ".workspace-main > header .workspace-explorer-actions", count: 0
     assert_select "#settings-dialog [data-settings-target='statsToggle'][aria-pressed='false'][aria-label]"
   end

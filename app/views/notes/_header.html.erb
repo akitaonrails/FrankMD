@@ -1,5 +1,8 @@
 <header class="workspace-header">
   <div class="workspace-document min-w-0 flex-1 flex items-center gap-2">
+    <button type="button" class="workspace-icon" data-action="click->app#toggleSidebar" data-app-target="sidebarOpen" aria-controls="workspace-sidebar" aria-expanded="false" title="<%= t('header.open_explorer') %>" aria-label="<%= t('header.open_explorer') %>" hidden>
+      <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></svg>
+    </button>
     <div class="workspace-title-container">
       <button type="button" class="workspace-document-title min-w-0" data-controller="path-display" data-path-display-basename-value="true" data-path-display-rename-label-value="<%= t('header.rename_document') %>" data-app-target="documentTitle" data-action="click->app#renameCurrentNote" title="<%= t('header.rename_document') %>" aria-label="<%= t('header.rename_document') %>" disabled>
         <span class="block truncate" data-path-display-target="text" data-app-target="currentPath"><%= t('editor.select_note') %></span>

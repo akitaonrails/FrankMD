@@ -41,6 +41,7 @@ ko:
     rename_document: "문서 이름 변경"
     workspace_navigation: "작업 공간 탐색"
     close_explorer: "탐색기 닫기"
+    open_explorer: "탐색기 열기"
     toggle_explorer: "탐색기 전환 (Ctrl+E)"
     toggle_preview: "미리보기 전환 (Ctrl+Shift+P)"
     change_theme: "테마 변경"
