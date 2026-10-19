@@ -3,6 +3,47 @@
 require "application_system_test_case"
 
 class WorkspaceTest < ApplicationSystemTestCase
+  test "multiline editor selection follows the text" do
+    content = "First line of text\nShort line\nLast line of text"
+    create_test_note("selection.md", content)
+    visit note_url(path: "selection.md")
+    assert_selector ".cm-content"
+
+    selection = page.evaluate_script(<<~JS)
+      (() => {
+        const element = document.querySelector('[data-controller~="codemirror"]');
+        const view = window.Stimulus.getControllerForElementAndIdentifier(element, 'codemirror').editor;
+        view.focus();
+        view.dispatch({ selection: { anchor: 6, head: 31 } });
+        return {
+          text: window.getSelection().toString(),
+          customSelection: !!document.querySelector('.cm-selectionLayer')
+        };
+      })()
+    JS
+
+    assert_equal content[6...31], selection.fetch("text")
+    assert_equal false, selection.fetch("customSelection")
+
+    # Native selection can only show the main range in Chrome. Secondary ranges
+    # still need their own highlight and caret when multiple selections are enabled.
+    page.execute_script(<<~JS)
+      import('@codemirror/state').then(({ EditorSelection, EditorState, StateEffect }) => {
+        const element = document.querySelector('[data-controller~="codemirror"]');
+        const view = window.Stimulus.getControllerForElementAndIdentifier(element, 'codemirror').editor;
+        view.dispatch({ effects: StateEffect.appendConfig.of(EditorState.allowMultipleSelections.of(true)) });
+        view.dispatch({
+          selection: EditorSelection.create([
+            EditorSelection.range(0, 5), EditorSelection.range(19, 24), EditorSelection.cursor(31)
+          ])
+        });
+      });
+    JS
+    assert_selector ".cm-secondarySelectionLayer .cm-selectionBackground", count: 1
+    assert_selector ".cm-cursor-secondary", count: 1
+    assert_equal "First", page.evaluate_script("window.getSelection().toString()")
+  end
+
   test "editor margins place the caret while the scrollbar stays at the pane edge" do
     create_test_note("wide-editor.md", (1..200).map { |line| "Line #{line} of text" }.join("\n"))
     visit note_url(path: "wide-editor.md")

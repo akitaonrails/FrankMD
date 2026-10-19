@@ -1,7 +1,7 @@
 // CodeMirror Extensions Bundle
 // Combines all necessary CodeMirror extensions for the markdown editor
 
-import { EditorView, keymap, placeholder, lineNumbers, highlightActiveLineGutter, drawSelection, rectangularSelection, highlightActiveLine, ViewPlugin } from "@codemirror/view"
+import { EditorView, keymap, placeholder, lineNumbers, highlightActiveLineGutter, layer, RectangleMarker, rectangularSelection, highlightActiveLine, ViewPlugin } from "@codemirror/view"
 import { EditorState, Compartment, Prec } from "@codemirror/state"
 import { history, historyKeymap, redoDepth, undoDepth, defaultKeymap, indentWithTab } from "@codemirror/commands"
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
@@ -23,6 +23,38 @@ export const lineNumbersCompartment = new Compartment()
 export const readOnlyCompartment = new Compartment()
 export const vimCompartment = new Compartment()
 export const historyCompartment = new Compartment()
+
+// The browser draws the main selection tightly around text. Keep CodeMirror's
+// secondary ranges visible for rectangular and multi-cursor selections.
+const secondarySelectionLayer = layer({
+  above: false,
+  class: "cm-secondarySelectionLayer",
+  markers(view) {
+    return view.state.selection.ranges.flatMap(range =>
+      range === view.state.selection.main || range.empty
+        ? []
+        : RectangleMarker.forRange(view, "cm-selectionBackground", range)
+    )
+  },
+  update(update) {
+    return update.docChanged || update.selectionSet || update.viewportChanged
+  }
+})
+
+const secondaryCursorLayer = layer({
+  above: true,
+  class: "cm-cursorLayer",
+  markers(view) {
+    return view.state.selection.ranges.flatMap(range =>
+      range === view.state.selection.main || !range.empty
+        ? []
+        : RectangleMarker.forRange(view, "cm-cursor cm-cursor-secondary", range)
+    )
+  },
+  update(update) {
+    return update.docChanged || update.selectionSet || update.viewportChanged
+  }
+})
 
 // @replit/codemirror-vim ships its block-cursor colours at Prec.highest, so a
 // rule in the theme compartment (default precedence) never wins. Re-declare them
@@ -256,7 +288,9 @@ export function createExtensions(options = {}) {
     markdown({ base: markdownLanguage }),
 
     // Visual features
-    drawSelection(),
+    // Native selection follows the text on multiline and wrapped lines.
+    secondarySelectionLayer,
+    secondaryCursorLayer,
     rectangularSelection(),
     highlightActiveLine(),
     highlightSelectionMatches({ minSelectionLength: 3, wholeWords: true }),
