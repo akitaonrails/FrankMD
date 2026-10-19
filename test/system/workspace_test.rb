@@ -7,6 +7,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     create_test_note("empty.md", "")
     visit note_url(path: "empty.md")
     assert_selector ".cm-content:focus"
+    wait_for_tree_refresh("empty.md")
   end
 
   test "save status stays translated before locale data loads" do
@@ -21,6 +22,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     find(".cm-content").send_keys("Draft")
     assert_selector "[data-autosave-target='saveStatus']", text: I18n.t("status.unsaved")
     assert_no_selector "[data-autosave-target='saveStatus']", text: "status.unsaved"
+    wait_for_tree_refresh("empty.md")
   end
 
   test "empty and missing documents cannot be renamed while Help remains accessible" do
@@ -386,5 +388,18 @@ class WorkspaceTest < ApplicationSystemTestCase
 
     visit note_url(path: "stats.md")
     assert_selector "[data-app-target='statsPanel']", visible: true
+  end
+
+  private
+
+  def wait_for_tree_refresh(path)
+    Timeout.timeout(5) do
+      sleep 0.05 until page.evaluate_script(<<~JS)
+        performance.getEntriesByType("resource").some((entry) => {
+          const url = new URL(entry.name);
+          return url.pathname === "/notes/tree" && url.searchParams.get("selected") === #{path.to_json};
+        })
+      JS
+    end
   end
 end
