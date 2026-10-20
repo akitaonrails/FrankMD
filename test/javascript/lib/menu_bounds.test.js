@@ -42,6 +42,27 @@ describe("clampMenuToViewport", () => {
   it("ignores missing menu elements", () => {
     expect(() => clampMenuToViewport(null, 900)).not.toThrow()
   })
+
+  it.each([
+    [177, 449, "translateX(-137px)"],
+    [-20, 252, "translateX(28px)"]
+  ])("shifts an overhanging menu into a 320px viewport", (left, right, expected) => {
+    const menu = makeMenu("frankmd-menu")
+    menu.getBoundingClientRect = () => ({ top: 80, left, right })
+    clampMenuToViewport(menu, 720, 320)
+    expect(menu.style.transform).toBe(expected)
+  })
+
+  it("resets an old horizontal shift before measuring after a resize", () => {
+    const menu = makeMenu("frankmd-menu")
+    menu.style.transform = "translateX(-137px)"
+    menu.getBoundingClientRect = () => {
+      expect(menu.style.transform).toBe("")
+      return { top: 80, left: 8, right: 280 }
+    }
+    clampMenuToViewport(menu, 720, 320)
+    expect(menu.style.transform).toBe("")
+  })
 })
 
 describe("toggleMenu", () => {

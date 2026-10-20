@@ -75,6 +75,20 @@ describe("PathDisplayController", () => {
     })
   })
 
+  it("shows a basename while preserving the full path for tooltips and copying", async () => {
+    controller.basenameValue = true
+    controller.renameLabelValue = "Rename document"
+    controller.update("nested/<note>.md")
+    expect(controller.textTarget.textContent).toBe("<note>")
+    expect(element.title).toBe("nested/<note>.md")
+    expect(element.getAttribute("aria-label")).toBe("Rename document: <note>")
+    expect(element.querySelector("note")).toBeNull()
+    controller.copy()
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("nested/<note>.md")
+    controller.update(null)
+    expect(element.title).toBe("editor.select_note")
+  })
+
   describe("copy()", () => {
     it("copies full path to clipboard", async () => {
       controller.textTarget.dataset.fullPath = "folder/test.md"

@@ -11,6 +11,7 @@
   data-settings-editor-width-value="<%= [40, [(@config_obj.get('editor_width') || 72).to_i, 200].min].max %>"
   data-settings-preview-zoom-value="<%= @config_obj.get('preview_zoom') || 100 %>"
   data-settings-line-numbers-value="<%= @config_obj.get('editor_line_numbers') || 0 %>"
+  data-settings-show-stats-value="<%= @config_obj.get('show_stats') == true %>"
   data-settings-typewriter-mode-value="<%= @config_obj.get('typewriter_mode') || false %>"
   data-settings-cursor-recenter-on-click-value="<%= @config_obj.get('cursor_recenter_on_click') || false %>"
   data-settings-vim-mode-value="<%= @config_obj.get('vim_mode') || false %>"
@@ -101,6 +102,19 @@
             <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
           <%= t('settings.preview') %>
+        </button>
+        <button
+          type="button"
+          class="settings-nav-button"
+          data-settings-target="navButton"
+          data-category="about"
+          data-action="click->settings#showCategory"
+          aria-pressed="false"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 11v6m0-10h.01 M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <%= t('settings.about') %>
         </button>
       </nav>
 
@@ -288,6 +302,20 @@
 
           <div class="settings-card">
             <div class="min-w-0">
+              <p class="text-sm font-medium"><%= t('settings.stats') %></p>
+              <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.stats_description') %></p>
+            </div>
+            <button type="button" class="settings-switch shrink-0"
+                    data-settings-target="statsToggle" data-action="click->settings#toggleStats"
+                    aria-label="<%= t('settings.stats') %>"
+                    aria-pressed="<%= @config_obj.get('show_stats') ? 'true' : 'false' %>"
+                    title="<%= t('settings.stats') %>">
+              <span class="settings-switch-knob" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <div class="settings-card">
+            <div class="min-w-0">
               <p class="text-sm font-medium"><%= t('settings.indent') %></p>
               <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.indent_description') %></p>
             </div>
@@ -396,6 +424,11 @@
             </select>
           </div>
         </div>
+
+        <section class="settings-section hidden" data-settings-target="section" data-category="about" aria-labelledby="settings-about-title">
+          <h2 id="settings-about-title" class="settings-section-title"><%= t('settings.about') %></h2>
+          <%= render "notes/settings/about" %>
+        </section>
 
         <p class="hidden mt-4 text-sm text-[var(--theme-text-muted)]" data-settings-target="status" role="status" aria-live="polite"></p>
       </div>

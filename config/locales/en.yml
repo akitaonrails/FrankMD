@@ -32,6 +32,16 @@ en:
 
   # Header section
   header:
+    copy_content: "Copy content"
+    pin_action: "Pin %{action} to toolbar"
+    unpin_action: "Unpin %{action} from toolbar"
+    rename_document_hint: "Press Enter or click away to rename. Escape cancels."
+    document_actions: "Document actions"
+    more_actions: "More actions"
+    rename_document: "Rename document"
+    workspace_navigation: "Workspace navigation"
+    close_explorer: "Close Explorer"
+    open_explorer: "Open Explorer"
     toggle_explorer: "Toggle Explorer (Ctrl+E)"
     toggle_preview: "Toggle Preview (Ctrl+Shift+P)"
     change_theme: "Change Theme"
@@ -97,6 +107,7 @@ en:
 
   # Settings workspace
   settings:
+    about: "About"
     title: "Settings"
     categories: "Settings categories"
     general: "General"
@@ -121,6 +132,8 @@ en:
     line_numbers_off: "Off"
     line_numbers_absolute: "Absolute"
     line_numbers_relative: "Relative"
+    stats: "Stats"
+    stats_description: "Show document statistics in the Explorer"
     indent: "Indentation"
     indent_description: "Spaces per indent level"
     indent_spaces: "%{count} spaces"
@@ -649,6 +662,7 @@ en:
 
   # Error messages
   errors:
+    failed_to_copy_content: "Could not copy the document content."
     title_required: "Title is required"
     note_not_found: "Note not found"
     note_changed_since_loaded: "This note changed since it was loaded. Reload it before deleting."

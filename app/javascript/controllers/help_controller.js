@@ -1,12 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
 // Help Controller
-// Manages help and about dialogs with tabbed content
+// Manages the help dialog with tabbed content
 
 export default class extends Controller {
   static targets = [
     "helpDialog",
-    "aboutDialog",
     "tabMarkdown",
     "tabShortcuts",
     "tabVim",
@@ -16,20 +15,15 @@ export default class extends Controller {
   ]
 
   connect() {
-    // Setup click-outside-to-close for dialogs
+    // Setup click-outside-to-close for the help dialog
     this.setupDialogClickOutside()
     this.currentTab = "markdown"
   }
 
   setupDialogClickOutside() {
-    const dialogs = [this.helpDialogTarget, this.aboutDialogTarget].filter(d => d)
-
-    dialogs.forEach(dialog => {
-      dialog.addEventListener("click", (event) => {
-        if (event.target === dialog) {
-          dialog.close()
-        }
-      })
+    const dialog = this.helpDialogTarget
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close()
     })
   }
 
@@ -129,28 +123,11 @@ export default class extends Controller {
     }
   }
 
-  // Open about dialog
-  openAbout() {
-    if (this.hasAboutDialogTarget) {
-      this.aboutDialogTarget.showModal()
-    }
-  }
-
-  // Close about dialog
-  closeAbout() {
-    if (this.hasAboutDialogTarget) {
-      this.aboutDialogTarget.close()
-    }
-  }
-
-  // Handle escape key for closing dialogs
+  // Handle escape key for closing the help dialog
   onKeydown(event) {
     if (event.key === "Escape") {
       if (this.hasHelpDialogTarget && this.helpDialogTarget.open) {
         this.helpDialogTarget.close()
-      }
-      if (this.hasAboutDialogTarget && this.aboutDialogTarget.open) {
-        this.aboutDialogTarget.close()
       }
     }
   }

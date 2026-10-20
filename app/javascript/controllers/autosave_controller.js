@@ -6,6 +6,7 @@ import { undo } from "@codemirror/commands"
 
 export default class extends Controller {
   static targets = ["contentLossBanner", "saveStatus"]
+  static values = { statusLabels: Object }
   static outlets = ["codemirror", "offline-backup", "recovery-diff"]
 
   // Auto-save configuration
@@ -127,6 +128,7 @@ export default class extends Controller {
     if (this._baseRevision) this._knownBaseRevisions.set(path, this._baseRevision)
     this.hasUnsavedChanges = false
     this._fileVersion += 1
+    this.showSaveStatus("")
     this.updateBeforeUnloadListener()
   }
 
@@ -791,7 +793,16 @@ export default class extends Controller {
   // === Auto Save ===
 
   scheduleAutoSave() {
-    if (this.hasPendingRecovery() || this._draftBlockedPaths.has(this.currentFile)) return
+    if (!this.currentFile || this.hasPendingRecovery() || this._draftBlockedPaths.has(this.currentFile)) return
+
+    const content = this.getCodemirrorController()?.getValue()
+    if (content === this._lastSavedContent) {
+      this.clearPendingTimers()
+      this.scheduleDraftWrite()
+      this.hasUnsavedChanges = false
+      this.showSaveStatus("")
+      return
+    }
 
     this.scheduleDraftWrite()
 
@@ -1258,8 +1269,10 @@ export default class extends Controller {
 
   showSaveStatus(text, isError = false) {
     if (!this.hasSaveStatusTarget) return
-    this.saveStatusTarget.textContent = text
-    this.saveStatusTarget.classList.toggle("hidden", !text)
+    const statusKey = text?.startsWith("status.") ? text.slice("status.".length) : null
+    const label = statusKey ? this.statusLabelsValue[statusKey] || "" : text
+    this.saveStatusTarget.textContent = label
+    this.saveStatusTarget.classList.toggle("hidden", !label)
     this.saveStatusTarget.classList.toggle("text-red-500", isError)
     this.saveStatusTarget.classList.toggle("dark:text-red-400", isError)
   }

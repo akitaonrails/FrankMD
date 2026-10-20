@@ -96,6 +96,19 @@ describe("CodemirrorController", () => {
   })
 
   describe("loadContent()", () => {
+    it("keeps a recovered draft when the preloaded value callback runs", async () => {
+      const changeHandler = vi.fn()
+      element.addEventListener("codemirror:change", changeHandler)
+
+      controller.loadContent("Local draft", "draft.md")
+      await Promise.resolve()
+      controller.contentValueChanged()
+
+      expect(controller.contentValue).toBe("Local draft")
+      expect(controller.getValue()).toBe("Local draft")
+      expect(changeHandler).not.toHaveBeenCalled()
+    })
+
     it("loads content without recording it as a user change", () => {
       const changeHandler = vi.fn()
       element.addEventListener("codemirror:change", changeHandler)

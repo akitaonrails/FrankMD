@@ -6,7 +6,7 @@ class NotesTest < ApplicationSystemTestCase
   test "visiting the home page shows the app" do
     visit root_url
 
-    assert_selector "header", text: "FrankMD"
+    assert_selector "header [data-app-target='documentTitle'][disabled]"
     assert_selector "[data-app-target='fileTree']"
   end
 
@@ -209,6 +209,7 @@ class NotesTest < ApplicationSystemTestCase
     create_test_note("settings-preview.md", "# Settings Preview")
     visit root_url
     find("[data-path='settings-preview.md'][data-type='file']").click
+    assert_selector "[data-app-target='currentPath']", text: "settings-preview"
 
     find("[data-app-target='previewToggle']").click
     assert_selector "[data-app-target='previewPanel']:not(.hidden)"
@@ -216,7 +217,7 @@ class NotesTest < ApplicationSystemTestCase
 
     find("button[title='Open Settings']").click
     assert_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
-    assert_equal "true", find("[data-app-target='settingsToggle']")["aria-pressed"]
+    assert_nil find("[data-app-target='settingsToggle']")["aria-pressed"]
     assert_selector "[data-app-target='previewPanel']:not(.hidden)"
 
     # Get initial theme text
@@ -245,7 +246,7 @@ class NotesTest < ApplicationSystemTestCase
 
     find("dialog[open] [data-action='click->settings#closeSettings']").click
     assert_no_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
-    assert_equal "false", find("[data-app-target='settingsToggle']")["aria-pressed"]
+    assert_selector "[data-app-target='settingsToggle']:not([aria-pressed])"
     assert_equal "true", find("[data-app-target='previewToggle']")["aria-pressed"]
     assert_selector "[data-app-target='previewPanel']:not(.hidden)"
 
@@ -258,7 +259,7 @@ class NotesTest < ApplicationSystemTestCase
     assert_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
     find("dialog[open]").send_keys(:escape)
     assert_no_selector "dialog[data-app-target='settingsDialog'][open]", wait: 2
-    assert_equal "false", find("[data-app-target='settingsToggle']")["aria-pressed"]
+    assert_selector "[data-app-target='settingsToggle']:not([aria-pressed])"
     assert_equal "true", find("[data-app-target='previewToggle']")["aria-pressed"]
     assert_selector "[data-app-target='previewPanel']:not(.hidden)"
   end
@@ -354,12 +355,10 @@ class NotesTest < ApplicationSystemTestCase
     # Right-click and delete
     find("[data-path='to_delete.md']").right_click
 
-    # Accept the confirmation
-    accept_confirm do
-      within "[data-app-target='contextMenu']" do
-        click_button "Delete"
-      end
+    within "[data-app-target='contextMenu']" do
+      click_button "Delete"
     end
+    find('dialog[role="alertdialog"] button', text: "Delete").click
 
     # Note should be gone
     assert_no_selector "[data-path='to_delete.md']", wait: 3
@@ -387,6 +386,9 @@ class NotesTest < ApplicationSystemTestCase
 
     first_note = find("[data-path='first_selected.md'][data-type='file']")
     first_note.right_click
+    within "[data-app-target='contextMenu']" do
+      click_button "Delete"
+    end
     assert_selector 'dialog[role="alertdialog"]', text: "2 selected items"
     find('dialog[role="alertdialog"] button', text: "Delete").click
 
@@ -412,7 +414,7 @@ class NotesTest < ApplicationSystemTestCase
     refute @test_notes_dir.join("keyboard_delete.md").exist?
   end
 
-  test "selecting a folder keeps its expansion behavior and Delete removes it" do
+  test "selecting a folder keeps expansion and Delete rejects nonempty folders" do
     create_test_folder("keyboard_folder")
     create_test_note("keyboard_folder/nested.md", "Nested note")
 
@@ -427,8 +429,8 @@ class NotesTest < ApplicationSystemTestCase
     assert_selector 'dialog[role="alertdialog"]'
     find('dialog[role="alertdialog"] button', text: "Delete").click
 
-    assert_no_selector "[data-path='keyboard_folder']", wait: 3
-    refute @test_notes_dir.join("keyboard_folder").exist?
+    assert_selector 'dialog[role="alertdialog"]', text: "Folder not empty"
+    assert @test_notes_dir.join("keyboard_folder/nested.md").exist?
   end
 
   test "Delete in the editor removes text instead of deleting the selected note" do
@@ -455,7 +457,8 @@ class NotesTest < ApplicationSystemTestCase
 
     # Toolbar should be visible
     assert_selector "[data-app-target='editorToolbar']", visible: true
-    assert_selector "button[title='Insert/Edit Table']"
+    find("[data-app-target='overflowToggle']").click
+    assert_selector "[role='menuitem']", text: "Insert/Edit Table"
   end
 
   test "table editor dialog opens and shows grid" do
@@ -465,7 +468,7 @@ class NotesTest < ApplicationSystemTestCase
     find("[data-path='table_test.md']").click
 
     # Click table button
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     # Dialog should open with grid
     assert_selector "dialog[open]"
@@ -478,7 +481,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='table_cols.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -499,7 +502,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='table_rows.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -520,7 +523,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='insert_table.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -570,7 +573,7 @@ class NotesTest < ApplicationSystemTestCase
     sleep 0.2
 
     # Open table editor
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -587,7 +590,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='context_table.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -611,7 +614,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='move_col.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -641,7 +644,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='move_row.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -672,7 +675,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='del_col.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -696,7 +699,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='del_row.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -720,7 +723,7 @@ class NotesTest < ApplicationSystemTestCase
 
     visit root_url
     find("[data-path='no_del_header.md']").click
-    find("button[title='Insert/Edit Table']").click
+    open_table_editor
 
     assert_selector "dialog[open]"
 
@@ -754,6 +757,13 @@ class NotesTest < ApplicationSystemTestCase
     assert_selector "button[title='Insert Image']"
   ensure
     ENV["IMAGES_PATH"] = original_images_path
+  end
+
+  private
+
+  def open_table_editor
+    find("[data-app-target='overflowToggle']").click
+    find("[role='menuitem']", text: "Insert/Edit Table", exact_text: true).click
   end
 end
 
@@ -821,6 +831,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
 
     assert_selector "dialog[open]"
     assert_selector ".image-grid-item", count: 2
@@ -836,6 +848,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
     assert_selector "dialog[open]"
 
     # Initially both images visible
@@ -858,6 +872,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
     assert_selector "dialog[open]"
 
     # Click on image
@@ -881,6 +897,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
     assert_selector "dialog[open]"
 
     # Wait for images to load then select one
@@ -910,6 +928,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
     assert_selector "dialog[open]"
 
     # Wait for images to load then select one
@@ -943,6 +963,8 @@ class NotesWithImagesTest < ApplicationSystemTestCase
     sleep 0.5
 
     find("button[title='Insert Image']").click
+    find("[data-image-picker-target='tabLocal']").click
+    find("[data-local-images-target='collection'] option[value='server']").select_option
     assert_selector "dialog[open]"
 
     # Wait for images to load then select one

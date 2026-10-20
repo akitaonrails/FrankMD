@@ -29,6 +29,11 @@ export function createEditorTheme(options = {}) {
       color: "var(--theme-text-primary)"
     },
 
+    // Override CodeMirror's unlayered dotted focus outline.
+    "&.cm-editor.cm-focused": {
+      outline: "none"
+    },
+
     // Content area (scroller)
     ".cm-scroller": {
       fontFamily: fontFamily,
@@ -39,6 +44,7 @@ export function createEditorTheme(options = {}) {
     // Content container
     ".cm-content": {
       caretColor: "var(--theme-text-primary)",
+      marginInline: "auto",
       padding: "1rem 2rem"
     },
 

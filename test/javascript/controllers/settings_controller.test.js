@@ -20,6 +20,7 @@ function makePanelDom() {
            data-settings-editor-width-value="72"
            data-settings-preview-zoom-value="100"
            data-settings-line-numbers-value="0"
+           data-settings-show-stats-value="false"
            data-settings-cursor-recenter-on-click-value="false"
            data-settings-indent-value="2"
            data-settings-scroll-sync-value="true"
@@ -32,6 +33,7 @@ function makePanelDom() {
           <button type="button" data-settings-target="navButton" data-category="editor" aria-pressed="false">Editor</button>
           <button type="button" data-settings-target="navButton" data-category="writing" aria-pressed="false">Writing</button>
           <button type="button" data-settings-target="navButton" data-category="preview" aria-pressed="false">Preview</button>
+          <button type="button" data-settings-target="navButton" data-category="about" data-action="click->settings#showCategory" aria-pressed="false">About</button>
         </nav>
         <div>
           <div data-settings-target="section" data-category="general"></div>
@@ -53,6 +55,7 @@ function makePanelDom() {
               <option value="1">Absolute</option>
               <option value="2">Relative</option>
             </select>
+            <button type="button" data-settings-target="statsToggle" aria-pressed="false"></button>
             <select data-settings-target="indentSelect">
               <option value="2" selected>2 spaces</option>
               <option value="4">4 spaces</option>
@@ -72,11 +75,12 @@ function makePanelDom() {
               <option value="150">150%</option>
             </select>
           </div>
+          <section class="hidden" data-settings-target="section" data-category="about">About FrankMD</section>
           <p class="hidden" data-settings-target="status"></p>
         </div>
       </dialog>
       <button data-app-target="libraryToggle" aria-pressed="false"></button>
-      <button data-app-target="settingsToggle" aria-pressed="false"></button>
+      <button data-app-target="settingsToggle"></button>
     </div>
     <div data-controller="mock-codemirror" data-mock-codemirror-content-value="">
       <div data-mock-codemirror-target="container"></div>
@@ -359,6 +363,18 @@ describe("SettingsController", () => {
   // === New workspace behavior ===
 
   describe("showCategory()", () => {
+    it("opens About within Settings and returns to an editable category", () => {
+      controller.openDialog()
+      const about = controller.navButtonTargets.find(button => button.dataset.category === "about")
+      controller.showCategory({ currentTarget: about })
+      expect(about.getAttribute("aria-pressed")).toBe("true")
+      expect(controller.sectionTargets.filter(section => !section.classList.contains("hidden")).map(section => section.dataset.category)).toEqual(["about"])
+      expect(controller.isDialogOpen).toBe(true)
+      controller.showCategory({ currentTarget: controller.navButtonTargets.find(button => button.dataset.category === "editor") })
+      expect(about.getAttribute("aria-pressed")).toBe("false")
+      expect(controller.sectionTargets.find(section => section.dataset.category === "about").classList.contains("hidden")).toBe(true)
+    })
+
     it("switches the visible section and nav aria-pressed state", () => {
       controller.showCategory({ currentTarget: controller.navButtonTargets.find(b => b.dataset.category === "editor") })
 
@@ -495,6 +511,30 @@ describe("SettingsController", () => {
       expect(patchCall()).toEqual({ editor_line_numbers: 2 })
     })
 
+    it("enables Stats only when requested and persists the setting", async () => {
+      const stats = { show: vi.fn(), hide: vi.fn(), update: vi.fn() }
+      const app = { currentFile: "note.md", getStatsPanelController: () => stats,
+        getSettingsController: () => controller, getCodemirrorController: () => ({ getValue: () => "text", getCursorInfo: () => ({ line: 1 }) }) }
+      controller.getAppController = () => {
+        app.showStatsPanel = AppController.prototype.showStatsPanel
+        app.updateStats = AppController.prototype.updateStats
+        return app
+      }
+
+      expect(controller.showStatsEnabled).toBe(false)
+      controller.toggleStats()
+      await flush()
+
+      expect(controller.statsToggleTarget.getAttribute("aria-pressed")).toBe("true")
+      expect(stats.show).toHaveBeenCalled()
+      expect(stats.update).toHaveBeenCalled()
+      vi.advanceTimersByTime(600)
+      expect(patchCall()).toEqual({ show_stats: true })
+      controller.toggleStats()
+      await flush()
+      expect(stats.hide).toHaveBeenCalled()
+    })
+
     it("cursor recenter toggle applies live and PATCHes cursor_recenter_on_click", async () => {
       const setCursorRecenterOnClick = vi.fn()
       controller.getCodemirrorController = () => ({ setCursorRecenterOnClick })
@@ -603,6 +643,7 @@ describe("SettingsController", () => {
             editor_font_size: 18,
             editor_width: 120,
             editor_line_numbers: 2,
+            show_stats: true,
             editor_indent: 4,
             preview_zoom: 150,
             vim_mode: true,
@@ -621,6 +662,8 @@ describe("SettingsController", () => {
       expect(controller.fontSizeValue).toBe(18)
       expect(controller.editorWidthValue).toBe(120)
       expect(controller.lineNumbersValue).toBe(2)
+      expect(controller.showStatsValue).toBe(true)
+      expect(controller.statsToggleTarget.getAttribute("aria-pressed")).toBe("true")
       expect(controller.indentValue).toBe(4)
       expect(controller.previewZoomValue).toBe(150)
       expect(controller.vimModeValue).toBe(true)
@@ -714,7 +757,7 @@ describe("AppController Settings dialog", () => {
       <section data-app-target="libraryPanel" class="hidden"></section>
       <dialog data-app-target="settingsDialog"></dialog>
       <button data-app-target="libraryToggle" aria-pressed="false"></button>
-      <button data-app-target="settingsToggle" aria-pressed="false"></button>
+      <button data-app-target="settingsToggle"></button>
     `
     document.body.replaceChildren(element)
     const app = Object.create(AppController.prototype)
@@ -734,11 +777,15 @@ describe("AppController Settings dialog", () => {
     }
     const settingsController = {
       isDialogOpen: false,
-      toggleDialog: vi.fn(function () {
-        this.isDialogOpen = !this.isDialogOpen
-        dialog.toggleAttribute("open", this.isDialogOpen)
-        app.onSettingsDialogStateChanged({ detail: { open: this.isDialogOpen } })
-        return this.isDialogOpen
+      openDialog: vi.fn(function () {
+        if (this.isDialogOpen) return false
+        this.isDialogOpen = true
+        dialog.setAttribute("open", "")
+        return true
+      }),
+      closeSettings: vi.fn(function () {
+        this.isDialogOpen = false
+        dialog.removeAttribute("open")
       })
     }
     Object.defineProperty(app, "settingsOutlets", { value: [settingsController] })
@@ -759,21 +806,23 @@ describe("AppController Settings dialog", () => {
     const dialog = element.querySelector('[data-app-target="settingsDialog"]')
     const button = element.querySelector('[data-app-target="settingsToggle"]')
 
-    expect(app.toggleSettings()).toBe(true)
+    expect(app.openSettings()).toBe(true)
 
     expect(editor.isConnected).toBe(true)
     expect(editor.classList.contains("hidden")).toBe(false)
     expect(dialog.open).toBe(true)
     expect(previewController.isVisible).toBe(previewVisible)
-    expect(button.getAttribute("aria-pressed")).toBe("true")
+    expect(button.hasAttribute("aria-pressed")).toBe(false)
 
-    expect(app.toggleSettings()).toBe(false)
+    expect(app.openSettings()).toBe(false)
+    expect(dialog.open).toBe(true)
+    settingsController.closeSettings()
 
     expect(dialog.open).toBe(false)
     expect(editor.classList.contains("hidden")).toBe(false)
     expect(previewController.isVisible).toBe(previewVisible)
-    expect(button.getAttribute("aria-pressed")).toBe("false")
-    expect(settingsController.toggleDialog).toHaveBeenCalledTimes(2)
+    expect(button.hasAttribute("aria-pressed")).toBe(false)
+    expect(settingsController.openDialog).toHaveBeenCalledTimes(2)
   })
 
   it("can overlay the Library without changing its workspace state", () => {
@@ -785,12 +834,12 @@ describe("AppController Settings dialog", () => {
     expect(library.classList.contains("hidden")).toBe(false)
     expect(previewController.isVisible).toBe(false)
 
-    app.toggleSettings()
+    app.openSettings()
     expect(element.querySelector('[data-app-target="settingsDialog"]').open).toBe(true)
     expect(library.classList.contains("hidden")).toBe(false)
     expect(libraryButton.getAttribute("aria-pressed")).toBe("true")
 
-    app.toggleSettings()
+    app.openSettings()
     expect(library.classList.contains("hidden")).toBe(false)
     expect(libraryButton.getAttribute("aria-pressed")).toBe("true")
   })

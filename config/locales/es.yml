@@ -32,6 +32,16 @@ es:
 
   # Header section
   header:
+    copy_content: "Copiar contenido"
+    pin_action: "Fijar %{action} en la barra de herramientas"
+    unpin_action: "Desfijar %{action} de la barra de herramientas"
+    rename_document_hint: "Pulsa Intro o haz clic fuera para renombrar. Esc cancela."
+    document_actions: "Acciones del documento"
+    more_actions: "Más acciones"
+    rename_document: "Renombrar documento"
+    workspace_navigation: "Navegación del espacio de trabajo"
+    close_explorer: "Cerrar Explorador"
+    open_explorer: "Abrir Explorador"
     toggle_explorer: "Alternar Explorador (Ctrl+E)"
     toggle_preview: "Alternar Vista Previa (Ctrl+Shift+P)"
     change_theme: "Cambiar Tema"
@@ -97,6 +107,7 @@ es:
 
   # Espacio de trabajo de configuración
   settings:
+    about: "Acerca de"
     title: "Configuración"
     categories: "Categorías de configuración"
     general: "General"
@@ -121,6 +132,8 @@ es:
     line_numbers_off: "Desactivados"
     line_numbers_absolute: "Absolutos"
     line_numbers_relative: "Relativos"
+    stats: "Estadísticas"
+    stats_description: "Mostrar estadísticas del documento en el Explorador"
     indent: "Sangría"
     indent_description: "Espacios por nivel de sangría"
     indent_spaces: "%{count} espacios"
@@ -647,6 +660,7 @@ es:
 
   # Error messages
   errors:
+    failed_to_copy_content: "No se pudo copiar el contenido del documento."
     title_required: "El título es obligatorio"
     note_not_found: "Nota no encontrada"
     note_changed_since_loaded: "Esta nota cambió desde que se cargó. Vuelve a cargarla antes de eliminarla."

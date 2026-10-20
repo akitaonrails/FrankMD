@@ -1,64 +1,18 @@
-<header class="flex-none h-12 border-b border-[var(--theme-border)] flex items-center px-4 bg-[var(--theme-bg-secondary)]">
-  <!-- Left: Sidebar toggle + App name -->
-  <div class="flex items-center gap-2 shrink-0">
-    <!-- Sidebar Toggle (Burger Menu) -->
-    <button
-      type="button"
-      data-action="click->app#toggleSidebar"
-      data-app-target="sidebarToggle"
-      class="p-1.5 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
-      title="<%= t('header.toggle_explorer') %>"
-      aria-expanded="true"
-    >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
+<header class="workspace-header">
+  <div class="workspace-document min-w-0 flex-1 flex items-center gap-2">
+    <button type="button" class="workspace-icon" data-action="click->app#toggleSidebar" data-app-target="sidebarOpen" aria-controls="workspace-sidebar" aria-expanded="false" title="<%= t('header.open_explorer') %>" aria-label="<%= t('header.open_explorer') %>" hidden>
+      <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></svg>
     </button>
-    <button
-      type="button"
-      data-action="click->app#openAboutDialog"
-      class="flex items-center gap-2 p-1 rounded hover:bg-[var(--theme-bg-hover)] transition-colors"
-      title="<%= t('header.about_app') %>"
-    >
-<img src="/icon.svg" class="w-5 h-5" alt="<%= t('app.name') %>">
-      <span class="font-semibold text-sm"><%= t('app.name') %></span>
-    </button>
-  </div>
-
-  <!-- Center: Current file path (truncates from left with ... when overflowing) -->
-  <div class="flex-1 min-w-0 mx-3 flex items-center gap-2">
-    <div
-      class="path-container relative cursor-pointer"
-      data-controller="path-display"
-      data-action="click->path-display#copy mouseenter->path-display#showFull mouseleave->path-display#hideFull"
-      title="<%= t('header.click_to_copy_path') %>"
-    >
-      <span
-        class="path-text text-sm text-[var(--theme-text-muted)] whitespace-nowrap"
-        data-path-display-target="text"
-        data-app-target="currentPath"
-      ><%= t('editor.select_note') %></span>
+    <div class="workspace-title-container">
+      <button type="button" class="workspace-document-title min-w-0" data-controller="path-display" data-path-display-basename-value="true" data-path-display-rename-label-value="<%= t('header.rename_document') %>" data-app-target="documentTitle" data-action="click->app#renameCurrentNote" title="<%= t('header.rename_document') %>" aria-label="<%= t('header.rename_document') %>" disabled>
+        <span class="block truncate" data-path-display-target="text" data-app-target="currentPath"><%= t('editor.select_note') %></span>
+      </button>
+      <input type="text" class="workspace-title-input hidden" data-app-target="titleInput" data-action="keydown->app#onTitleRenameKeydown input->app#onTitleRenameInput blur->app#onTitleRenameBlur" aria-label="<%= t('header.rename_document') %>" aria-describedby="workspace-title-hint workspace-title-error" title="<%= t('header.rename_document_hint') %>" autocomplete="off" spellcheck="false">
+      <span class="workspace-title-sizer" data-app-target="titleSizer" aria-hidden="true"></span>
+      <span id="workspace-title-hint" class="sr-only"><%= t('header.rename_document_hint') %></span>
+      <p id="workspace-title-error" class="workspace-title-error hidden" role="alert" data-app-target="titleRenameError"></p>
     </div>
-    <span class="text-xs text-[var(--theme-text-faint)] hidden shrink-0" data-autosave-target="saveStatus"></span>
+    <span class="workspace-save-status text-xs text-[var(--theme-text-faint)] hidden shrink-0" role="status" data-autosave-target="saveStatus"></span>
   </div>
-
-  <!-- Right: Toolbar buttons (editing chrome; preferences live in Settings) -->
-  <div class="flex items-center gap-2 shrink-0">
-    <button
-      type="button"
-      data-action="click->app#togglePreview"
-      data-app-target="previewToggle"
-      class="preview-toggle p-1.5 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
-      title="<%= t('header.toggle_preview') %>"
-      aria-pressed="false"
-    >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-      </svg>
-    </button>
-    <div class="w-px h-5 bg-[var(--theme-border)] mx-0.5"></div>
-    <%= render "notes/library_button" %>
-    <%= render "notes/settings_button" %>
-  </div>
+  <%= render "notes/workspace_toolbar" %>
 </header>

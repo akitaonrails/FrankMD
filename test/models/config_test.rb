@@ -136,6 +136,7 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal 100, config.get(:preview_zoom)
     assert_equal true, config.get(:sidebar_visible)
     assert_equal false, config.get(:typewriter_mode)
+    assert_equal false, config.get(:show_stats)
     assert_equal false, config.get(:cursor_recenter_on_click)
     assert_equal false, config.get(:vim_mode)
     assert_nil config.get(:theme)
@@ -145,6 +146,15 @@ class ConfigTest < ActiveSupport::TestCase
     assert_includes Config::UI_KEYS, "vim_mode"
     assert_equal :boolean, Config::SCHEMA["vim_mode"][:type]
     assert_equal false, Config::SCHEMA["vim_mode"][:default]
+  end
+
+  test "show_stats is disabled by default and persists in the config file" do
+    assert_includes Config::UI_KEYS, "show_stats"
+    assert_equal :boolean, Config::SCHEMA["show_stats"][:type]
+    config = Config.new(base_path: @test_dir)
+    assert_equal false, config.get(:show_stats)
+    assert config.set(:show_stats, true)
+    assert_equal true, Config.new(base_path: @test_dir).get(:show_stats)
   end
 
   test "reads vim_mode from the config file" do

@@ -23,6 +23,7 @@
 
   /* Content area - respects editor width setting */
   .cm-editor .cm-content {
+    width: 100%;
     max-width: var(--editor-width, 72ch);
     margin: 0 auto;
     padding: 1rem 2rem;
@@ -35,6 +36,7 @@
     font-family: inherit;
     line-height: 1.6;
     overflow: auto;
+    cursor: text;
   }
 
   /* Line styling */
@@ -322,32 +324,10 @@
     /* Content styling in typewriter mode */
   }
 
-  /* Body-level typewriter mode - centers editor on screen */
-  body.typewriter-mode .editor-wrapper {
-    /* Center the content wrapper */
-    justify-content: center;
-  }
-
-  body.typewriter-mode .editor-body {
-    /* Don't stretch to full width, let content determine width */
-    flex: 0 1 auto;
-    width: 100%;
-    max-width: calc(var(--editor-width, 72ch) + 4rem); /* Content width + padding */
-  }
-
-  body.typewriter-mode .cm-editor-container {
-    width: 100%;
-  }
-
-  body.typewriter-mode .cm-editor .cm-scroller {
-    /* Ensure scroller takes full width */
-    width: 100%;
-  }
-
   body.typewriter-mode .cm-editor .cm-content {
-    /* In typewriter mode, content takes full width of container (already constrained by parent) */
-    max-width: 100%;
-    margin: 0;
+    /* Keep the reading column centered while the scroller spans the pane. */
+    max-width: calc(var(--editor-width, 72ch) + 4rem);
+    margin-inline: auto;
     padding: 1rem 2rem;
   }
 
@@ -364,27 +344,30 @@
   /* === Scrollbar Styling === */
 
   .cm-editor .cm-scroller::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 14px;
+    height: 14px;
   }
 
   .cm-editor .cm-scroller::-webkit-scrollbar-track {
-    background: var(--theme-bg-primary);
+    background: transparent;
   }
 
   .cm-editor .cm-scroller::-webkit-scrollbar-thumb {
-    background: var(--theme-border);
-    border-radius: 4px;
+    background: var(--theme-scrollbar-hover);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 999px;
   }
 
   .cm-editor .cm-scroller::-webkit-scrollbar-thumb:hover {
-    background: var(--theme-text-faint);
+    background: color-mix(in srgb, var(--theme-scrollbar-hover) 75%, var(--theme-text-primary));
+    background-clip: padding-box;
   }
 
   /* Firefox scrollbar */
   .cm-editor .cm-scroller {
-    scrollbar-width: thin;
-    scrollbar-color: var(--theme-border) var(--theme-bg-primary);
+    scrollbar-width: auto;
+    scrollbar-color: var(--theme-scrollbar-hover) transparent;
   }
 
   /* === Fold Gutter === */

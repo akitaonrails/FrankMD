@@ -1,10 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
 // Path Display Controller
-// Handles the file path display in the header with smart truncation
+// Displays document names or truncated paths while preserving the full path for copying.
 
 export default class extends Controller {
   static targets = ["text"]
+  static values = { basename: Boolean, renameLabel: String }
 
   connect() {
     this.setupResizeListener()
@@ -21,7 +22,7 @@ export default class extends Controller {
     window.addEventListener("resize", this.resizeHandler)
   }
 
-  // Update path display with smart truncation from the left
+  // Basename mode uses CSS truncation; full paths truncate from the left.
   update(path) {
     if (!this.hasTextTarget) return
 
@@ -32,11 +33,22 @@ export default class extends Controller {
       this.textTarget.textContent = window.t("editor.select_note")
       this.textTarget.dataset.fullPath = ""
       container.classList.remove("truncated")
+      if (this.basenameValue) {
+        this.element.title = window.t("editor.select_note")
+        this.element.setAttribute("aria-label", window.t("editor.select_note"))
+      }
       return
     }
 
     // Store full path for hover and copy
     this.textTarget.dataset.fullPath = path
+
+    if (this.basenameValue) {
+      this.textTarget.textContent = path.split("/").pop().replace(/\.md$/, "")
+      this.element.title = path
+      this.element.setAttribute("aria-label", `${this.renameLabelValue}: ${this.textTarget.textContent}`)
+      return
+    }
 
     // Measure available width from the wrapper (flex-1 container)
     // Subtract some padding for the save status and margins

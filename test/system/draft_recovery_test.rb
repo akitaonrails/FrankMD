@@ -75,7 +75,9 @@ class DraftRecoveryTest < ApplicationSystemTestCase
 
     page.refresh
     assert_equal "# Local draft", wait_for_editor_content("# Local draft")
+    assert_selector "[data-autosave-target='saveStatus']", text: I18n.t("status.unsaved")
     assert_equal server_content, @test_notes_dir.join("draft.md").read
+    wait_for_tree_refresh("draft.md")
   end
 
   test "moves an active dirty draft with a renamed file" do

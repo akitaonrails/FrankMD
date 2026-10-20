@@ -32,6 +32,16 @@ ja:
 
   # Header section
   header:
+    copy_content: "内容をコピー"
+    pin_action: "%{action} をツールバーに固定"
+    unpin_action: "%{action} のツールバー固定を解除"
+    rename_document_hint: "Enter または欄外のクリックで名前を変更します。Esc でキャンセルします。"
+    document_actions: "ドキュメントの操作"
+    more_actions: "その他の操作"
+    rename_document: "ドキュメント名を変更"
+    workspace_navigation: "ワークスペースのナビゲーション"
+    close_explorer: "エクスプローラーを閉じる"
+    open_explorer: "エクスプローラーを開く"
     toggle_explorer: "エクスプローラー切替 (Ctrl+E)"
     toggle_preview: "プレビュー切替 (Ctrl+Shift+P)"
     change_theme: "テーマ変更"
@@ -97,6 +107,7 @@ ja:
 
   # 設定ワークスペース
   settings:
+    about: "このアプリについて"
     title: "設定"
     categories: "設定カテゴリ"
     general: "全般"
@@ -121,6 +132,8 @@ ja:
     line_numbers_off: "オフ"
     line_numbers_absolute: "絶対"
     line_numbers_relative: "相対"
+    stats: "統計"
+    stats_description: "エクスプローラーに文書の統計を表示"
     indent: "インデント"
     indent_description: "インデントレベルごとのスペース数"
     indent_spaces: "%{count} スペース"
@@ -647,6 +660,7 @@ ja:
 
   # Error messages
   errors:
+    failed_to_copy_content: "ドキュメントの内容をコピーできませんでした。"
     title_required: "タイトルは必須です"
     note_not_found: "ノートが見つかりません"
     note_changed_since_loaded: "このノートは読み込み後に変更されています。削除する前に再読み込みしてください。"

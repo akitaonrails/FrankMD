@@ -119,6 +119,25 @@ describe("AutosaveController — Content Loss Detection", () => {
     return "x".repeat(length)
   }
 
+  it("uses the server-rendered save label before translations load", () => {
+    window.t.mockImplementation((key) => key)
+    controller.statusLabelsValue = { unsaved: "Unsaved changes" }
+
+    controller.showSaveStatus(window.t("status.unsaved"))
+
+    expect(controller.saveStatusTarget.textContent).toBe("Unsaved changes")
+    expect(controller.saveStatusTarget.classList.contains("hidden")).toBe(false)
+  })
+
+  it("never renders an unresolved status key", () => {
+    window.t.mockImplementation((key) => key)
+
+    controller.showSaveStatus(window.t("status.unsaved"))
+
+    expect(controller.saveStatusTarget.textContent).toBe("")
+    expect(controller.saveStatusTarget.classList.contains("hidden")).toBe(true)
+  })
+
   describe("saveNow()", () => {
     it("no warning for small deletion (< 20% or < 50 chars)", async () => {
       controller.setFile("test.md", makeContent(200), "revision-test")
@@ -192,6 +211,8 @@ describe("AutosaveController — Content Loss Detection", () => {
 
   describe("scheduleAutoSave()", () => {
     it("blocked while warning is active", () => {
+      controller.setFile("test.md", "saved", "revision-test")
+      mockCodemirrorValue = "changed"
       controller._contentLossWarningActive = true
       controller.saveTimeout = null
 
@@ -201,6 +222,36 @@ describe("AutosaveController — Content Loss Detection", () => {
       expect(controller.saveTimeout).toBeNull()
       // But unsaved changes should be tracked
       expect(controller.hasUnsavedChanges).toBe(true)
+    })
+
+    it("does not mark unchanged content unsaved after a change event", () => {
+      controller.setFile("test.md", "saved", "revision-test")
+      mockCodemirrorValue = "saved"
+
+      controller.scheduleAutoSave()
+
+      expect(controller.hasUnsavedChanges).toBe(false)
+      expect(controller.saveTimeout).toBeNull()
+      expect(controller.saveStatusTarget.textContent).toBe("")
+      expect(draftStorage.readDraft("test.md").draft).toBeNull()
+    })
+
+    it("clears the unsaved status when an edit returns to saved content", () => {
+      vi.useFakeTimers()
+      controller.statusLabelsValue = { unsaved: "Unsaved changes" }
+      controller.setFile("test.md", "saved", "revision-test")
+      mockCodemirrorValue = "changed"
+      controller.scheduleAutoSave()
+      expect(controller.hasUnsavedChanges).toBe(true)
+
+      mockCodemirrorValue = "saved"
+      controller.scheduleAutoSave()
+
+      expect(controller.hasUnsavedChanges).toBe(false)
+      expect(controller.saveTimeout).toBeNull()
+      expect(controller.saveMaxIntervalTimeout).toBeNull()
+      expect(controller.saveStatusTarget.textContent).toBe("")
+      expect(draftStorage.readDraft("test.md").draft).toBeNull()
     })
   })
 
@@ -268,20 +319,24 @@ describe("AutosaveController — Content Loss Detection", () => {
       vi.spyOn(draftStorage, "writeDraft").mockReturnValue({ ok: false, error })
       vi.spyOn(console, "error").mockImplementation(() => {})
       window.t.mockImplementation((key) => key)
+      controller.statusLabelsValue = {
+        draft_storage_error: "Unable to save draft",
+        unsaved: "Unsaved changes"
+      }
       Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" })
 
       document.dispatchEvent(new Event("visibilitychange"))
       const beforeUnload = new Event("beforeunload", { cancelable: true })
       window.dispatchEvent(beforeUnload)
 
-      expect(controller.saveStatusTarget.textContent).toBe("status.draft_storage_error")
+      expect(controller.saveStatusTarget.textContent).toBe("Unable to save draft")
       expect(controller.saveStatusTarget.classList.contains("text-red-500")).toBe(true)
       expect(beforeUnload.defaultPrevented).toBe(true)
 
       draftStorage.writeDraft.mockRestore()
       window.dispatchEvent(new Event("pagehide"))
 
-      expect(controller.saveStatusTarget.textContent).toBe("status.unsaved")
+      expect(controller.saveStatusTarget.textContent).toBe("Unsaved changes")
       expect(controller._beforeUnloadListenerActive).toBe(false)
     })
   })
@@ -738,6 +793,7 @@ describe("AutosaveController — Content Loss Detection", () => {
       const error = new Error("storage unavailable")
       vi.spyOn(draftStorage, "writeDraft").mockReturnValue({ ok: false, error })
       window.t.mockImplementation((key) => key)
+      controller.statusLabelsValue = { draft_storage_error: "Unable to save draft" }
       vi.spyOn(console, "error").mockImplementation(() => {})
       controller.setFile("test.md", "server", "baseline")
       mockCodemirrorValue = "local edit"
@@ -745,7 +801,7 @@ describe("AutosaveController — Content Loss Detection", () => {
       controller.scheduleDraftWrite()
       await vi.advanceTimersByTimeAsync(AutosaveController.DRAFT_DEBOUNCE_MS)
 
-      expect(controller.saveStatusTarget.textContent).toBe("status.draft_storage_error")
+      expect(controller.saveStatusTarget.textContent).toBe("Unable to save draft")
       expect(controller.saveStatusTarget.classList.contains("text-red-500")).toBe(true)
     })
 
@@ -1242,6 +1298,8 @@ describe("AutosaveController — Content Loss Detection", () => {
     })
 
     it("scheduleAutoSave is a no-op while offline", () => {
+      controller.setFile("test.md", "saved", "revision-test")
+      mockCodemirrorValue = "changed"
       controller.isOffline = true
       controller.saveTimeout = null
 

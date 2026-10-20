@@ -796,6 +796,45 @@ describe("FileOperationsController", () => {
     })
   })
 
+  describe("renamePath()", () => {
+    it("renames a captured item without changing the Explorer dialog context", async () => {
+      const selected = { path: "unrelated", type: "folder" }
+      controller.contextItem = selected
+      const result = await controller.renamePath({ path: "nested/original.md", type: "file" }, "renamed")
+      expect(result).toEqual({ ok: true, path: "nested/renamed.md" })
+      expect(controller.contextItem).toBe(selected)
+      expect(controller.renameDialogTarget.showModal).not.toHaveBeenCalled()
+      expect(controller.renameDialogTarget.close).not.toHaveBeenCalled()
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining("nested/original.md/rename"), expect.objectContaining({ body: expect.stringContaining("nested/renamed.md") }))
+    })
+
+    it("rejects blank names without a request", async () => {
+      expect(await controller.renamePath({ path: "note.md", type: "file" }, "  ")).toEqual({ ok: false, error: "errors.title_required" })
+      expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    it("accepts unchanged names without sending a request", async () => {
+      expect(await controller.renamePath({ path: "folder/note.md", type: "file" }, " note ")).toEqual({ ok: true, path: "folder/note.md" })
+      expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    it("returns request failures and resumes the active draft", async () => {
+      const autosave = { prepareForTransition: vi.fn(() => ({ ok: true })), resumeAfterTransition: vi.fn() }
+      controller.getAppController = () => ({ currentFile: "note.md", getAutosaveController: () => autosave })
+      global.fetch.mockResolvedValue({ ok: false, headers: { get: () => "application/json" }, json: async () => ({ error: "already exists" }) })
+      const result = await controller.renamePath({ path: "note.md", type: "file" }, "occupied")
+      expect(result).toEqual({ ok: false, error: "already exists" })
+      expect(autosave.prepareForTransition).toHaveBeenCalledOnce()
+      expect(autosave.resumeAfterTransition).toHaveBeenCalledOnce()
+      expect(controller.renameErrorTarget.textContent).toBe("")
+    })
+
+    it("preserves folder names without appending a Markdown extension", async () => {
+      expect(await controller.renamePath({ path: "parent/old", type: "folder" }, "new")).toEqual({ ok: true, path: "parent/new" })
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining("/folders/parent/old/rename"), expect.objectContaining({ body: expect.stringContaining("parent/new") }))
+    })
+  })
+
   describe("deleteItem()", () => {
     it("hides context menu", async () => {
       controller.contextItem = { path: "test.md", type: "file" }

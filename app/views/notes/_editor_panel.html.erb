@@ -1,111 +1,5 @@
-<main class="flex-1 flex flex-col min-w-0" data-app-target="editorPanel">
-  <!-- Editor Toolbar (visible when editing) -->
-  <!-- Group 1: image, video, code, table | Group 2: emoji, find, ai | Group 3: help -->
-  <div class="editor-toolbar flex-none h-10 border-b border-[var(--theme-border)] hidden items-center px-2 gap-1 bg-[var(--theme-bg-secondary)] overflow-x-auto overflow-y-hidden" data-app-target="editorToolbar">
-    <!-- Group 1: Media & Content -->
-    <button
-      type="button"
-      data-action="click->app#openImagePicker"
-      class="px-2 py-1 text-xs rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] flex items-center gap-1"
-      title="<%= t('editor.toolbar.image_title') %>"
-    >
-      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-      <span class="toolbar-label"><%= t('editor.toolbar.image') %></span>
-    </button>
-    <button
-      type="button"
-      data-action="click->app#openVideoDialog"
-      class="px-2 py-1 text-xs rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] flex items-center gap-1"
-      title="<%= t('editor.toolbar.video_title') %>"
-    >
-      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span class="toolbar-label"><%= t('editor.toolbar.video') %></span>
-    </button>
-    <button
-      type="button"
-      data-action="click->app#openCodeEditor"
-      class="px-2 py-1 text-xs rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] flex items-center gap-1"
-      title="<%= t('editor.toolbar.code_title') %>"
-    >
-      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-      </svg>
-      <span class="toolbar-label"><%= t('editor.toolbar.code') %></span>
-    </button>
-    <button
-      type="button"
-      data-action="click->app#openTableEditor"
-      class="px-2 py-1 text-xs rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] flex items-center gap-1"
-      title="<%= t('editor.toolbar.table_title') %>"
-    >
-      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 3v18M14 3v18M3 6a3 3 0 013-3h12a3 3 0 013 3v12a3 3 0 01-3 3H6a3 3 0 01-3-3V6z" />
-      </svg>
-      <span class="toolbar-label"><%= t('editor.toolbar.table') %></span>
-    </button>
-    <div class="h-5 w-px bg-[var(--theme-border)] mx-1 shrink-0"></div>
-    <!-- Group 2: Emoji & AI -->
-    <button
-      type="button"
-      data-action="click->app#openEmojiPicker"
-      class="px-2 py-1 text-xs rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] flex items-center gap-1"
-      title="<%= t('editor.toolbar.emoji_title') %>"
-    >
-      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span class="toolbar-label"><%= t('editor.toolbar.emoji') %></span>
-    </button>
-    <button
-      type="button"
-      data-action="click->app#openFindReplace"
-      class="px-2 py-1 text-xs rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] flex items-center gap-1"
-      title="<%= t('editor.toolbar.find_title') %>"
-    >
-      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-      </svg>
-      <span class="toolbar-label"><%= t('editor.toolbar.find') %></span>
-    </button>
-    <button
-      type="button"
-      data-action="click->app#openAiDialog"
-      data-app-target="aiButton"
-      class="px-2 py-1 text-xs rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] flex items-center gap-1"
-      title="<%= t('editor.toolbar.ai_title') %>"
-    >
-      <svg class="w-4 h-4 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
-        <circle cx="7.5" cy="14.5" r="1.5"/>
-        <circle cx="16.5" cy="14.5" r="1.5"/>
-      </svg>
-      <span class="toolbar-label"><%= t('editor.toolbar.ai') %></span>
-    </button>
-    <div class="h-5 w-px bg-[var(--theme-border)] mx-1 shrink-0"></div>
-    <!-- Group 3: Help -->
-    <button
-      type="button"
-      data-action="click->app#openHelp"
-      class="px-2 py-1 text-xs rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] flex items-center gap-1"
-      title="<%= t('editor.toolbar.help_title') %>"
-    >
-      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span class="toolbar-label"><%= t('editor.toolbar.help') %></span>
-    </button>
-    <div class="h-5 w-px bg-[var(--theme-border)] mx-1 shrink-0"></div>
-    <%= render "notes/library_button" %>
-    <span class="text-xs text-[var(--theme-text-faint)] hidden ml-auto min-w-0 max-w-56 truncate whitespace-nowrap overflow-hidden text-ellipsis text-right" data-app-target="tableHint">
-      <%= t('editor.cursor_in_table') %>
-    </span>
-  </div>
-
+<main class="flex-1 flex flex-col min-w-0 relative" data-app-target="editorPanel">
+  <span class="workspace-table-hint hidden" data-app-target="tableHint"><%= t('editor.cursor_in_table') %></span>
   <!-- Editor Container -->
   <div class="flex-1 overflow-hidden" data-app-target="editorContainer">
     <div class="h-full flex items-center justify-center text-[var(--theme-text-faint)]" data-app-target="editorPlaceholder">
@@ -115,14 +9,11 @@
         </svg>
         <p class="text-sm"><%= t('editor.select_note_description') %></p>
         <p class="text-xs mt-1"><%= t('editor.select_note_hint') %></p>
-        <div class="mt-4">
-          <%= render "notes/library_button" %>
-        </div>
       </div>
     </div>
     <div class="h-full hidden relative" data-app-target="editor"
          data-controller="codemirror typewriter"
-         data-action="codemirror:change->app#onEditorChange codemirror:selection-change->app#onEditorSelectionChange codemirror:scroll->scroll-sync#onEditorScroll codemirror:image-pasted->app#onImagePaste codemirror:vim-command->app#onVimCommand codemirror:vim-mode->app#onVimModeStatus typewriter:toggled->app#onTypewriterToggled">
+         data-action="codemirror:ready->app#onCodemirrorReady codemirror:change->app#onEditorChange codemirror:selection-change->app#onEditorSelectionChange codemirror:scroll->scroll-sync#onEditorScroll codemirror:image-pasted->app#onImagePaste codemirror:vim-command->app#onVimCommand codemirror:vim-mode->app#onVimModeStatus typewriter:toggled->app#onTypewriterToggled">
       <div class="h-full flex editor-wrapper" data-app-target="editorWrapper" data-typewriter-target="wrapper">
         <div class="flex-1 h-full editor-body" data-app-target="editorBody" data-typewriter-target="body">
           <!-- CodeMirror container -->

@@ -22,6 +22,8 @@ import {
 import { setWikilinkFileProvider } from "lib/codemirror_wikilink"
 import { appAlert } from "lib/app_prompt"
 import { setSlashCommandsEnabledProvider } from "lib/codemirror_slash_commands"
+import { clampMenuToViewport, toggleMenu } from "lib/menu_bounds"
+import { clearInlineError, showInlineError } from "lib/inline_messages"
 
 function pathMatchesScope(candidatePath, path, type) {
   if (typeof candidatePath !== "string") return false
@@ -104,7 +106,10 @@ export default class extends Controller {
     "undoCreatedNoteMessage",
     "tableHint",
     "sidebar",
-    "sidebarToggle",
+    "sidebarToggle", "sidebarOpen",
+    "explorerPanel", "sidebarBackdrop", "documentTitle",
+    "titleInput", "titleSizer", "titleRenameError",
+    "overflowContainer", "overflowToggle", "overflowMenu",
     "vimToggle",
     "vimStatus",
     "scrollSyncToggle",
@@ -136,6 +141,7 @@ export default class extends Controller {
     this.installUnauthorizedRedirect()
     this.currentFile = null
     this.currentFileType = null  // "markdown", "config", or null
+    this._pendingEditorContent = null
     this.explorerSelection = new Map()
     this.explorerSelectionAnchor = null
     this.explorerActiveKey = null
@@ -154,9 +160,10 @@ export default class extends Controller {
     document.addEventListener("pointerup", this.boundExplorerPointerUp, true)
     document.addEventListener("pointercancel", this.boundExplorerPointerUp, true)
 
-    // Sidebar/Explorer visibility - always start visible
-    // (don't persist closed state across sessions)
-    this.sidebarVisible = true
+    // Start desktop Explorer expanded and mobile Explorer closed.
+    // Visibility remains session-only.
+    this.mobileWorkspace = window.innerWidth < 768
+    this.sidebarVisible = !this.mobileWorkspace
 
     // Library replaces the editor workspace; Settings is a modal dialog.
     this.libraryVisible = false
@@ -176,7 +183,18 @@ export default class extends Controller {
     this.setupDialogClickOutside()
     this.boundTreeStreamRenderHandler = this.invalidateTreeRefreshesForStream.bind(this)
     document.addEventListener("turbo:before-stream-render", this.boundTreeStreamRenderHandler)
+    this.boundWorkspaceResize = () => {
+      const mobile = window.innerWidth < 768
+      if (mobile !== this.mobileWorkspace) {
+        this.mobileWorkspace = mobile
+        this.sidebarVisible = !mobile
+      }
+      this.closeWorkspaceMenu(null, { restoreFocus: false })
+      this.applySidebarVisibility()
+    }
+    window.addEventListener("resize", this.boundWorkspaceResize)
     this.applySidebarVisibility()
+    this.updateWorkspaceChrome()
     this.setupConfigFileListener()
     this.setupTableEditorListener()
     this.setupSlashCommandListener()
@@ -211,13 +229,34 @@ export default class extends Controller {
   }
 
   // Called by Stimulus when the codemirror outlet controller connects
-  codemirrorOutletConnected() {
+  codemirrorOutletConnected(codemirror) {
     this._completeInitialLoad()
+    this.hydratePendingEditorContent(codemirror)
     if (this._initializationReady) this.initializeTypewriterMode()
   }
 
+  onCodemirrorReady() {
+    this.hydratePendingEditorContent(this.getCodemirrorController())
+  }
+
+  hydratePendingEditorContent(codemirror) {
+    const pending = this._pendingEditorContent
+    if (!pending || !codemirror?.editor) return
+    this._pendingEditorContent = null
+    if (pending.path !== this.currentFile) return
+    codemirror.loadContent(pending.content, pending.path)
+    if (pending.unsaved) this.getAutosaveController()?.scheduleAutoSave()
+  }
+
   settingsOutletConnected() {
-    if (this._initializationReady) this.initializeTypewriterMode()
+    if (!this._initializationReady) return
+    this.initializeTypewriterMode()
+    this.showStatsPanel()
+    this.updateStats()
+  }
+
+  pathDisplayOutletConnected() {
+    if (this._initializationReady && this.currentFile) this.updatePathDisplay(this.currentFile)
   }
 
   typewriterOutletConnected() {
@@ -266,6 +305,7 @@ export default class extends Controller {
 
   disconnect() {
     this._initializationReady = false
+    if (this.boundWorkspaceResize) window.removeEventListener("resize", this.boundWorkspaceResize)
     if (window.fetch === this.unauthorizedFetch) window.fetch = this.originalFetch
 
     // Clear all timeouts
@@ -446,6 +486,10 @@ export default class extends Controller {
     this.updatePathDisplay(displayPath)
     this.expandParentFolders(path)
     this.showEditor(content, fileType, revision)
+    if (this.mobileWorkspace && this.sidebarVisible) {
+      this.closeMobileSidebar()
+      this.getCodemirrorController()?.focus?.()
+    }
     this.refreshTree(generation)
 
     if (updateHistory && this.isCurrentNavigation(generation)) this.updateUrl(path)
@@ -460,6 +504,7 @@ export default class extends Controller {
     this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
+    this.updateWorkspaceChrome?.()
     this.getAutosaveController()?.clearFile?.()
     this.showFileNotFoundMessage(path, message, generation)
     this.refreshTree(generation)
@@ -477,6 +522,7 @@ export default class extends Controller {
     this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
+    this.updateWorkspaceChrome?.()
     this.getAutosaveController()?.clearFile?.()
     this.updatePathDisplay(null)
     this.textareaTarget.disabled = false
@@ -526,6 +572,7 @@ export default class extends Controller {
     this.textareaTarget.value = ""
     this.textareaTarget.disabled = true
 
+    this.updateWorkspaceChrome?.()
     this.currentPathTarget.innerHTML = `
       <span class="text-red-500">${escapeHtml(path)}</span>
       <span class="text-[var(--theme-text-muted)] ml-2">(${escapeHtml(message)})</span>
@@ -874,18 +921,24 @@ export default class extends Controller {
 
     // Set content via CodeMirror controller
     const codemirrorController = this.getCodemirrorController()
-    if (codemirrorController) {
+    if (codemirrorController?.editor) {
+      this._pendingEditorContent = null
       codemirrorController.setUndoAtHistoryStartHandler?.((path) => this.onUndoAtHistoryStart(path))
       codemirrorController.setRedoAtHistoryEndHandler?.((path) => this.onRedoAtHistoryEnd(path))
       codemirrorController.loadContent(editorContent, this.currentFile)
     } else {
       // Fallback to hidden textarea
       this.textareaTarget.value = editorContent
+      this._pendingEditorContent = {
+        path: this.currentFile,
+        content: editorContent,
+        unsaved: editorContent !== content
+      }
     }
 
     // Applying a recovered draft can be a programmatic editor change. Ensure
     // it remains queued for autosave even when CodeMirror sees no text delta.
-    if (autosave && editorContent !== content) autosave.scheduleAutoSave()
+    if (autosave && editorContent !== content && codemirrorController?.editor) autosave.scheduleAutoSave()
 
     // Only show toolbar and preview for markdown files
     const isMarkdown = fileType === "markdown"
@@ -910,6 +963,16 @@ export default class extends Controller {
     // Apply editor settings (font, size, line numbers)
     this.applyEditorSettings()
     this.initializeTypewriterMode()
+    this.updateWorkspaceChrome?.()
+    if (editorContent === "" && codemirrorController) {
+      const path = this.currentFile
+      const focusedBefore = document.activeElement
+      requestAnimationFrame(() => {
+        if (this.currentFile !== path || this.editorTarget.closest(".hidden") || document.querySelector("dialog[open]")) return
+        if (document.activeElement !== focusedBefore || (codemirrorController.getValue && codemirrorController.getValue() !== "")) return
+        codemirrorController.focus()
+      })
+    }
   }
 
   // Check if current file is markdown
@@ -1077,12 +1140,14 @@ export default class extends Controller {
       previewController.hide()
       editorPanel?.classList.remove("hidden")
       this.getCodemirrorController()?.focus?.()
+      this.updateWorkspaceChrome?.()
       return false
     }
 
     // Editor pane → full-width preview
     previewController.show()
     editorPanel?.classList.add("hidden")
+    this.updateWorkspaceChrome?.()
     return true
   }
 
@@ -1330,7 +1395,7 @@ export default class extends Controller {
   updatePathDisplay(path) {
     const pathDisplayController = this.getPathDisplayController()
     if (pathDisplayController) {
-      pathDisplayController.update(path)
+      pathDisplayController.update(this.currentFile || path)
     }
   }
 
@@ -1421,18 +1486,304 @@ export default class extends Controller {
   }
 
   // === Sidebar/Explorer Toggle ===
-  toggleSidebar() {
+  toggleSidebar(event) {
+    const openedFromButton = this.hasSidebarOpenTarget &&
+      (event?.currentTarget === this.sidebarOpenTarget || document.activeElement === this.sidebarOpenTarget)
     this.sidebarVisible = !this.sidebarVisible
     this.applySidebarVisibility()
+    if (this.mobileWorkspace && this.sidebarVisible) {
+      const firstItem = this.explorerPanelTarget.querySelector('[tabindex="0"], button') ||
+        this.sidebarTarget.querySelector(".workspace-navigation button")
+      firstItem?.focus()
+    } else if (this.sidebarVisible && openedFromButton) {
+      this.sidebarToggleTarget.focus()
+    }
+  }
+
+  closeMobileSidebar() {
+    if (!this.mobileWorkspace || !this.sidebarVisible) return
+    this.sidebarVisible = false
+    this.applySidebarVisibility()
+    this.sidebarOpenTarget.focus()
   }
 
   applySidebarVisibility() {
+    const overlayOpen = Boolean(this.mobileWorkspace && this.sidebarVisible)
+    const workspace = this.context?.element?.querySelector('[data-workspace-main]')
+    if (workspace) workspace.inert = overlayOpen
     if (this.hasSidebarTarget) {
-      this.sidebarTarget.classList.toggle("hidden", !this.sidebarVisible)
+      if (!this.sidebarVisible && this.sidebarTarget.contains(document.activeElement) && this.hasSidebarOpenTarget) {
+        this.sidebarOpenTarget.hidden = false
+        this.sidebarOpenTarget.focus()
+      }
+      this.sidebarTarget.classList.toggle("is-hidden", !this.sidebarVisible)
+      this.sidebarTarget.classList.toggle("is-overlay", overlayOpen)
+      this.sidebarTarget.inert = !this.sidebarVisible
+    }
+    if (this.hasExplorerPanelTarget) {
+      this.explorerPanelTarget.inert = !this.sidebarVisible
+    }
+    if (this.hasSidebarBackdropTarget) {
+      this.sidebarBackdropTarget.classList.toggle("hidden", !overlayOpen)
     }
     if (this.hasSidebarToggleTarget) {
       this.sidebarToggleTarget.setAttribute("aria-expanded", this.sidebarVisible.toString())
     }
+    if (this.hasSidebarOpenTarget) {
+      if (this.sidebarVisible && document.activeElement === this.sidebarOpenTarget && this.hasSidebarToggleTarget) {
+        this.sidebarToggleTarget.focus()
+      }
+      this.sidebarOpenTarget.hidden = this.sidebarVisible
+      this.sidebarOpenTarget.setAttribute("aria-expanded", this.sidebarVisible.toString())
+    }
+    this.getCodemirrorController?.()?.refreshTypewriterLayout?.()
+  }
+
+  renameCurrentNote() {
+    if (!this.currentFile || this.getFileType(this.currentFile) === "config" || this._titleRename || !this.hasTitleInputTarget) return
+    this._titleRename = { path: this.currentFile, pending: false }
+    this.titleInputTarget.value = this.currentFile.split("/").pop().replace(/\.md$/, "")
+    this.onTitleRenameInput()
+    this.documentTitleTarget.classList.add("hidden")
+    this.titleInputTarget.classList.remove("hidden")
+    this.titleInputTarget.focus()
+    const end = this.titleInputTarget.value.length
+    this.titleInputTarget.setSelectionRange(end, end)
+  }
+
+  onTitleRenameInput() {
+    clearInlineError(this.titleRenameErrorTarget)
+    this.titleInputTarget.removeAttribute("aria-invalid")
+    this.titleSizerTarget.textContent = this.titleInputTarget.value || " "
+    const style = getComputedStyle(this.titleInputTarget)
+    const spacing = [ style.paddingLeft, style.paddingRight, style.borderLeftWidth, style.borderRightWidth ]
+      .reduce((total, value) => total + (parseFloat(value) || 0), 0)
+    this.titleInputTarget.style.width = `${this.titleSizerTarget.getBoundingClientRect().width + spacing}px`
+  }
+
+  onTitleRenameKeydown(event) {
+    if (event.isComposing) return
+    if (event.key === "Enter" || event.key === "Escape") {
+      event.preventDefault()
+      event.stopPropagation()
+      if (event.key === "Enter") this.submitTitleRename()
+      else this.cancelTitleRename()
+    }
+  }
+
+  onTitleRenameBlur() {
+    this.submitTitleRename({ restoreFocus: false })
+  }
+
+  cancelTitleRename() {
+    if (!this._titleRename || this._titleRename.pending) return
+    this.finishTitleRename(true)
+  }
+
+  finishTitleRename(restoreFocus = false) {
+    this._titleRename = null
+    if (!this.hasTitleInputTarget) return
+    this.titleInputTarget.classList.add("hidden")
+    this.titleInputTarget.disabled = false
+    this.titleInputTarget.removeAttribute("aria-invalid")
+    this.documentTitleTarget.classList.remove("hidden")
+    clearInlineError(this.titleRenameErrorTarget)
+    if (restoreFocus && !this.documentTitleTarget.disabled) this.documentTitleTarget.focus()
+  }
+
+  async submitTitleRename({ restoreFocus = true } = {}) {
+    const edit = this._titleRename
+    if (!edit || edit.pending) return
+    if (this.currentFile !== edit.path) {
+      this.finishTitleRename()
+      return
+    }
+    edit.pending = true
+    this.onTitleRenameInput()
+    this.titleInputTarget.disabled = true
+    const result = await this.getFileOperationsController()?.renamePath(
+      { path: edit.path, type: "file" }, this.titleInputTarget.value
+    )
+    if (this._titleRename !== edit) return
+    const shouldRestoreFocus = restoreFocus &&
+      (document.activeElement === document.body || document.activeElement === this.titleInputTarget)
+    if (result?.ok) {
+      this.finishTitleRename(shouldRestoreFocus)
+      return
+    }
+    edit.pending = false
+    this.titleInputTarget.disabled = false
+    const error = result ? result.error : window.t("errors.failed_to_rename")
+    if (error) {
+      showInlineError(this.titleRenameErrorTarget, error)
+      this.titleInputTarget.setAttribute("aria-invalid", "true")
+    }
+    if (shouldRestoreFocus && !document.querySelector("dialog[open]")) this.titleInputTarget.focus()
+  }
+
+  async copyCurrentContent() {
+    if (!this.currentFile) return
+    const editor = this.getCodemirrorController()
+    const content = editor ? editor.getValue() : (this.hasTextareaTarget ? this.textareaTarget.value : null)
+    if (content === null) return
+    try {
+      await navigator.clipboard.writeText(content)
+      this.getPathDisplayController()?.showToast(window.t("status.copied_to_clipboard"))
+    } catch (error) {
+      console.error("Failed to copy document content:", error)
+      this.getPathDisplayController()?.showToast(window.t("errors.failed_to_copy_content"))
+    }
+  }
+
+  // Keep header controls synchronized even when their original editor pane is hidden.
+  updateWorkspaceChrome() {
+    const root = this.context?.element
+    if (!root) return
+    if (this._titleRename && this.currentFile !== this._titleRename.path) this.finishTitleRename()
+    const markdown = Boolean(this.currentFile && this.isMarkdownFile())
+    const editorVisible = !this.libraryVisible && !root.querySelector('[data-app-target~="editorPanel"]')?.classList.contains("hidden")
+    const editing = markdown && editorVisible
+    const previewPanel = root.querySelector('[data-app-target~="previewPanel"]')
+    const previewVisible = markdown && !this.libraryVisible && Boolean(previewPanel && !previewPanel.classList.contains("hidden"))
+    const previewOnly = previewVisible && this.viewMode === "single" && !editing
+    const editingActionsVisible = editing || previewOnly
+    const toolbar = root.querySelector('[data-app-target~="editorToolbar"]')
+    toolbar?.classList.toggle("hidden", !editingActionsVisible)
+    toolbar?.classList.toggle("flex", editingActionsVisible)
+    const zoomControls = root.querySelector('[data-app-target~="previewZoomControls"]')
+    if (zoomControls) zoomControls.hidden = !previewVisible
+    root.querySelectorAll('.workspace-pinned-action[data-workspace-editing-action]').forEach(button => {
+      button.hidden = !editingActionsVisible
+      button.disabled = !editing || button.getAttribute("aria-busy") === "true"
+    })
+    root.querySelectorAll(".workspace-menu-row[data-workspace-editing-action]").forEach(row => {
+      row.hidden = !editingActionsVisible
+      const action = row.querySelector(".workspace-menu-action")
+      if (action) action.disabled = !editing || action.getAttribute("aria-busy") === "true"
+    })
+    root.querySelectorAll("[data-workspace-document-action]").forEach(button => { button.hidden = !this.currentFile })
+    root.querySelectorAll('[data-workspace-preview-action], [data-app-target~="previewToggle"]').forEach(button => {
+      button.disabled = !markdown || Boolean(this.libraryVisible)
+    })
+    root.querySelectorAll('[data-workspace-preview-row]').forEach(row => { row.hidden = !markdown || Boolean(this.libraryVisible) })
+    this.updateWorkspacePins()
+    const title = root.querySelector('[data-app-target~="documentTitle"]')
+    if (title) title.disabled = !this.currentFile || this.getFileType(this.currentFile) === "config"
+    if (this.hasOverflowMenuTarget && !this.overflowMenuTarget.classList.contains("hidden")) {
+      if (this.overflowMenuTarget.contains(document.activeElement) && (document.activeElement.disabled || document.activeElement.closest('[hidden]'))) {
+        this.workspaceMenuItems()[0]?.focus()
+      }
+      clampMenuToViewport(this.overflowMenuTarget)
+    }
+  }
+
+  updateWorkspacePins() {
+    const root = this.context?.element
+    if (!root) return
+    const buttons = Array.from(root.querySelectorAll('[data-workspace-pinned-action]'))
+    if (!this._workspacePinnedActions) {
+      const defaults = buttons.filter(button => button.dataset.pinned === "true").map(button => button.dataset.workspacePinnedAction)
+      let saved
+      try { saved = JSON.parse(sessionStorage.getItem("frankmd.workspacePins")) } catch { /* Storage may be unavailable. */ }
+      const known = new Set(buttons.map(button => button.dataset.workspacePinnedAction))
+      this._workspacePinnedActions = new Set(Array.isArray(saved) ? saved.filter(id => known.has(id)) : defaults)
+    }
+    buttons.forEach(button => { button.dataset.pinned = String(this._workspacePinnedActions.has(button.dataset.workspacePinnedAction)) })
+    root.querySelectorAll('[data-workspace-pin]').forEach(button => {
+      const pinned = this._workspacePinnedActions.has(button.dataset.workspacePin)
+      button.setAttribute("aria-checked", String(pinned))
+      button.title = pinned ? button.dataset.unpinLabel : button.dataset.pinLabel
+      button.setAttribute("aria-label", button.title)
+    })
+  }
+
+  toggleWorkspacePin(event) {
+    const id = event.currentTarget.dataset.workspacePin
+    if (!Array.from(this.context.element.querySelectorAll('[data-workspace-pinned-action]')).some(button => button.dataset.workspacePinnedAction === id)) return
+    this.updateWorkspacePins()
+    if (this._workspacePinnedActions.has(id)) this._workspacePinnedActions.delete(id)
+    else this._workspacePinnedActions.add(id)
+    try { sessionStorage.setItem("frankmd.workspacePins", JSON.stringify([...this._workspacePinnedActions])) } catch { /* Keep pins usable without storage. */ }
+    this.updateWorkspacePins()
+    clampMenuToViewport(this.overflowMenuTarget)
+  }
+
+  workspaceMenuItems() {
+    return Array.from(this.overflowMenuTarget.querySelectorAll('[role="menuitem"], [role="menuitemcheckbox"]')).filter(item => !item.closest('[hidden]') && !item.disabled)
+  }
+
+  toggleWorkspaceMenu(event) {
+    const visible = toggleMenu(this.overflowMenuTarget)
+    this.overflowToggleTarget.setAttribute("aria-expanded", String(visible))
+    if (visible && !event?.detail) this.workspaceMenuItems()[0]?.focus()
+  }
+
+  closeWorkspaceMenu(event, { restoreFocus = true } = {}) {
+    if (!this.hasOverflowMenuTarget || this.overflowMenuTarget.classList.contains("hidden")) return
+    toggleMenu(this.overflowMenuTarget, true)
+    this.overflowToggleTarget.setAttribute("aria-expanded", "false")
+    if (restoreFocus) this.overflowToggleTarget.focus()
+  }
+
+  navigateWorkspaceMenu(event) {
+    if (event.key === "Tab") {
+      this.closeWorkspaceMenu()
+      return
+    }
+    if (["ArrowLeft", "ArrowRight"].includes(event.key)) {
+      const row = document.activeElement.closest('.workspace-menu-row')
+      if (!row) return
+      event.preventDefault()
+      const towardPin = event.key === (getComputedStyle(this.overflowMenuTarget).direction === "rtl" ? "ArrowLeft" : "ArrowRight")
+      row.querySelector(towardPin ? '[data-workspace-pin]' : '[role="menuitem"]')?.focus()
+      return
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return
+    event.preventDefault()
+    if (this.overflowMenuTarget.classList.contains("hidden")) {
+      this.toggleWorkspaceMenu()
+      if (event.key === "ArrowUp" || event.key === "End") this.workspaceMenuItems().at(-1)?.focus()
+      return
+    }
+    const items = this.workspaceMenuItems()
+    if (!items.length) return
+    const index = items.indexOf(document.activeElement)
+    const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 :
+      index === -1 ? (event.key === "ArrowUp" ? items.length - 1 : 0) :
+      (index + (event.key === "ArrowUp" ? -1 : 1) + items.length) % items.length
+    items[next].focus()
+  }
+
+  onWorkspaceOutsideClick(event) {
+    if (this.hasOverflowContainerTarget && !this.overflowContainerTarget.contains(event.target)) {
+      this.closeWorkspaceMenu(null, { restoreFocus: false })
+    }
+  }
+
+  onWorkspaceKeydown(event) {
+    if (document.querySelector("dialog[open]")) return false
+    if (event.key === "Escape") {
+      if (this._titleRename) {
+        this.cancelTitleRename()
+      } else if (this.hasOverflowMenuTarget && !this.overflowMenuTarget.classList.contains("hidden")) {
+        this.closeWorkspaceMenu()
+      } else if (this.mobileWorkspace && this.sidebarVisible) {
+        this.closeMobileSidebar()
+      } else return false
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      return true
+    }
+    if (event.key === "Tab" && this.mobileWorkspace && this.sidebarVisible) {
+      const items = [...this.sidebarTarget.querySelectorAll('button, [tabindex="0"]')]
+        .filter(item => !item.disabled && !item.closest(".hidden") && item.getClientRects().length)
+      const index = items.indexOf(document.activeElement)
+      if ((event.shiftKey && index <= 0) || (!event.shiftKey && (index === -1 || index === items.length - 1))) {
+        event.preventDefault()
+        items[event.shiftKey ? items.length - 1 : 0]?.focus()
+      }
+    }
+    return false
   }
 
   // === Library Workspace ===
@@ -1471,6 +1822,8 @@ export default class extends Controller {
     editorPanel?.classList.add("hidden")
     libraryPanel.classList.remove("hidden")
     toggles?.forEach((toggle) => toggle.setAttribute("aria-pressed", "true"))
+    this.closeMobileSidebar?.()
+    this.updateWorkspaceChrome?.()
     if (openingLibrary) {
       const libraryController = this.application?.getControllerForElementAndIdentifier(libraryPanel, "library")
       libraryController?.resetUsageForLibraryOpen()
@@ -1480,14 +1833,8 @@ export default class extends Controller {
   }
 
   // === Settings Dialog ===
-  toggleSettings() {
-    return this.getSettingsController()?.toggleDialog() ?? false
-  }
-
-  onSettingsDialogStateChanged(event) {
-    const root = this.context?.element
-    root?.querySelector('[data-app-target~="settingsToggle"]')
-      ?.setAttribute("aria-pressed", String(Boolean(event.detail?.open)))
+  openSettings() {
+    return this.getSettingsController()?.openDialog() ?? false
   }
 
   // Hide the Library pane without touching the stashed preview state.
@@ -1540,6 +1887,7 @@ export default class extends Controller {
     // Re-measure CodeMirror after revealing the editor from the Library.
     this.codemirrorOutlets?.[0]?.refreshTypewriterLayout?.()
     this.initializeTypewriterMode()
+    this.updateWorkspaceChrome?.()
     return true
   }
 
@@ -1648,6 +1996,7 @@ export default class extends Controller {
       // state, exactly as the classic layout behaved
       editorPanel?.classList.remove("hidden")
     }
+    this.updateWorkspaceChrome?.()
   }
 
   toggleTypewriterMode() {
@@ -1953,14 +2302,6 @@ export default class extends Controller {
     this.onEditorChange({ detail: { docChanged: true } })
   }
 
-  // About Dialog - delegates to help controller
-  openAboutDialog() {
-    const helpController = this.getHelpController()
-    if (helpController) {
-      helpController.openAbout()
-    }
-  }
-
   // Video Dialog - delegates to video-dialog controller
   openVideoDialog() {
     if (this.hasVideoDialogOutlet) {
@@ -2023,15 +2364,18 @@ export default class extends Controller {
     }
 
     if (this.hasAiButtonTarget) {
-      this.aiButtonOriginalContent = this.aiButtonTarget.innerHTML
-      this.aiButtonTarget.innerHTML = `
+      this.aiButtonOriginalContent = new Map(this.aiButtonTargets.map(button => [button, button.innerHTML]))
+      this.aiButtonTargets.forEach(button => {
+        button.innerHTML = `
         <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
         <span>${window.t("status.processing")}</span>
       `
-      this.aiButtonTarget.disabled = true
+        button.disabled = true
+        button.setAttribute("aria-busy", "true")
+      })
     }
   }
 
@@ -2043,9 +2387,13 @@ export default class extends Controller {
     }
 
     if (this.hasAiButtonTarget && this.aiButtonOriginalContent) {
-      this.aiButtonTarget.innerHTML = this.aiButtonOriginalContent
-      this.aiButtonTarget.disabled = false
+      this.aiButtonOriginalContent.forEach((content, button) => {
+        button.innerHTML = content
+        button.disabled = false
+        button.removeAttribute("aria-busy")
+      })
     }
+    this.updateWorkspaceChrome?.()
   }
 
   // Handle AI correction accepted event - update editor with corrected text
@@ -2080,6 +2428,7 @@ export default class extends Controller {
         previewController.setupEditorSync(this.textareaTarget)
       }
     }
+    this.updateWorkspaceChrome?.()
   }
 
   // Handle preview:toggle-task — a task checkbox was clicked in the preview
@@ -2577,6 +2926,7 @@ export default class extends Controller {
       this.clearPendingSlashInsertion()
       this.currentFile = null
       this.currentFileType = null
+      this.updateWorkspaceChrome?.()
       this.updatePathDisplay(null)
       if (this.hasTextareaTarget) this.textareaTarget.disabled = false
       this.editorPlaceholderTarget.classList.remove("hidden")
@@ -2676,6 +3026,7 @@ export default class extends Controller {
 
     this.boundWorkspaceEscapeHandler = (event) => {
       if (event.key !== "Escape") return
+      if (this.onWorkspaceKeydown?.(event)) return
       if (!this.libraryVisible) return
       if (document.querySelector("dialog[open]")) {
         this._workspaceDeferredEscapeEvents.add(event)
@@ -3023,9 +3374,9 @@ export default class extends Controller {
 
   showStatsPanel() {
     const statsController = this.getStatsPanelController()
-    if (statsController) {
-      statsController.show()
-    }
+    if (!statsController) return
+    if (this.currentFile && this.getSettingsController()?.showStatsEnabled) statsController.show()
+    else statsController.hide()
   }
 
   hideStatsPanel() {
@@ -3036,6 +3387,7 @@ export default class extends Controller {
   }
 
   scheduleStatsUpdate() {
+    if (!this.getSettingsController()?.showStatsEnabled) return
     const statsController = this.getStatsPanelController()
     const codemirrorController = this.getCodemirrorController()
     if (statsController && codemirrorController) {
@@ -3044,6 +3396,7 @@ export default class extends Controller {
   }
 
   updateStats() {
+    if (!this.getSettingsController()?.showStatsEnabled) return
     const statsController = this.getStatsPanelController()
     const codemirrorController = this.getCodemirrorController()
     if (statsController && codemirrorController) {
@@ -3052,6 +3405,7 @@ export default class extends Controller {
   }
 
   updateLinePosition() {
+    if (!this.getSettingsController()?.showStatsEnabled) return
     const statsController = this.getStatsPanelController()
     const codemirrorController = this.getCodemirrorController()
     if (statsController && codemirrorController) {

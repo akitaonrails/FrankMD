@@ -12,7 +12,6 @@ describe("HelpController", () => {
     document.body.innerHTML = `
       <div data-controller="help">
         <dialog data-help-target="helpDialog"></dialog>
-        <dialog data-help-target="aboutDialog"></dialog>
       </div>
     `
 
@@ -58,23 +57,6 @@ describe("HelpController", () => {
     })
   })
 
-  describe("openAbout()", () => {
-    it("shows the about dialog", () => {
-      controller.openAbout()
-
-      expect(controller.aboutDialogTarget.showModal).toHaveBeenCalled()
-    })
-  })
-
-  describe("closeAbout()", () => {
-    it("closes the about dialog", () => {
-      controller.openAbout()
-      controller.closeAbout()
-
-      expect(controller.aboutDialogTarget.close).toHaveBeenCalled()
-    })
-  })
-
   describe("onKeydown()", () => {
     it("closes help dialog on Escape", () => {
       controller.openHelp()
@@ -83,15 +65,6 @@ describe("HelpController", () => {
       controller.onKeydown(event)
 
       expect(controller.helpDialogTarget.close).toHaveBeenCalled()
-    })
-
-    it("closes about dialog on Escape", () => {
-      controller.openAbout()
-      const event = { key: "Escape" }
-
-      controller.onKeydown(event)
-
-      expect(controller.aboutDialogTarget.close).toHaveBeenCalled()
     })
 
     it("does nothing for other keys", () => {

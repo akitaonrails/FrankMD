@@ -32,6 +32,51 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "workspace renders unique footer navigation and accessible header controls" do
+    get root_url
+    assert_select "button[data-app-target='libraryToggle']", count: 1
+    assert_select "button[data-app-target='settingsToggle']", count: 1
+    assert_select ".workspace-navigation button[data-app-target='libraryToggle'][aria-label]"
+    assert_select ".workspace-navigation button[data-app-target='settingsToggle'][aria-label]"
+    assert_select ".workspace-navigation button svg[width='20'][height='20']", count: 2
+    assert_select ".workspace-navigation button span", count: 0
+    assert_select "button[data-app-target='settingsToggle'][aria-pressed]", count: 0
+    assert_select ".workspace-main > header button[data-app-target='documentTitle'][disabled][data-action='click->app#renameCurrentNote']"
+    assert_select "[data-controller~='autosave'][data-autosave-status-labels-value]" do |root|
+      labels = JSON.parse(root.first["data-autosave-status-labels-value"])
+      assert_equal I18n.t("status.unsaved"), labels.fetch("unsaved")
+    end
+    assert_select ".workspace-title-container input[type='text'][data-app-target='titleInput'].hidden[aria-label][aria-describedby='workspace-title-hint workspace-title-error'][data-action*='blur->app#onTitleRenameBlur']"
+    assert_select ".workspace-title-container [data-app-target='titleSizer'][aria-hidden='true']"
+    assert_select "#workspace-title-hint", text: I18n.t("header.rename_document_hint")
+    assert_select "#workspace-title-error[data-app-target='titleRenameError'][role='alert']"
+    assert_select "header .workspace-toolbar button.workspace-icon" do |buttons|
+      buttons.each { |button| assert button["aria-label"].present?, "Icon buttons require accessible labels" }
+    end
+    assert_select "header [role='menu'] [role='menuitem']", count: 10
+    assert_select "header [role='menu'] [role='menuitemcheckbox'][data-workspace-pin][aria-label]", count: 10
+    assert_select "header [role='menu'] .workspace-menu-action svg", count: 10
+    assert_select "header [data-workspace-pinned-action]", count: 10
+    assert_select "header [data-workspace-pinned-action][data-pinned='true']", count: 3
+    assert_select "main [data-app-target='editorToolbar']", count: 0
+    assert_select ".workspace-sidebar #workspace-explorer > div:first-child[data-app-target='fileTree']"
+    assert_select ".workspace-sidebar #workspace-explorer", text: /FrankMD v\d+/, count: 0
+    %w[newNote newFolder openFileFinder openContentSearch].each do |action|
+      assert_select ".workspace-sidebar > header .workspace-global-actions button[data-action='click->app##{action}']", count: 1
+    end
+    assert_select ".workspace-sidebar > footer .workspace-brand" do
+      assert_select "img[src='/icon.svg']"
+      assert_select "span", text: "FrankMD"
+    end
+    assert_select ".workspace-sidebar > header .workspace-brand", count: 0
+    assert_select ".workspace-sidebar > footer .workspace-navigation button", count: 2
+    assert_select ".workspace-sidebar > header > button[data-app-target='sidebarToggle'][aria-controls='workspace-sidebar'][aria-label='#{I18n.t('header.close_explorer')}']", count: 1
+    assert_select ".workspace-sidebar > header [data-app-target='sidebarToggle'] svg path[d='m10 15-3-3 3-3']", count: 1
+    assert_select ".workspace-main > header .workspace-document > button[data-app-target='sidebarOpen'][hidden][aria-controls='workspace-sidebar'][aria-label='#{I18n.t('header.open_explorer')}']", count: 1
+    assert_select ".workspace-main > header .workspace-explorer-actions", count: 0
+    assert_select "#settings-dialog [data-settings-target='statsToggle'][aria-pressed='false'][aria-label]"
+  end
+
   test "General settings renders the shared storage menu" do
     get root_url
     assert_response :success
@@ -41,6 +86,36 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
       assert_select "button[value='local'][aria-pressed='true']", text: /Local/
       assert_select "button[value='s3']", text: /S3/
       assert_select "p[data-media-storage-target='error'][role='alert']"
+    end
+  end
+
+  test "About is a Settings section without standalone controls or dialog" do
+    get root_url
+    assert_select "#settings-dialog button[data-settings-target='navButton'][data-category='about'][aria-pressed='false']", text: I18n.t("settings.about")
+    assert_select "#settings-dialog section[data-settings-target='section'][data-category='about'].hidden[aria-labelledby='settings-about-title']" do
+      assert_select "h2#settings-about-title", text: I18n.t("settings.about")
+      assert_select "h3", text: "FrankMD"
+      assert_select "p", text: I18n.t("dialogs.about.description")
+      assert_select "p", text: /v\d+\.\d+/
+      assert_select "p", text: /Fabio Akita/
+      assert_select "a[href='https://github.com/akitaonrails/FrankMD'][target='_blank'][rel='noopener noreferrer']", text: I18n.t("dialogs.about.view_github")
+    end
+    assert_select "[data-help-target='aboutDialog'], [data-app-target='aboutDialog'], [data-workspace-pin='about'], [data-workspace-pinned-action='about']", count: 0
+    assert_select "button.workspace-brand, [data-action*='openAbout']", count: 0
+  end
+
+  test "workspace labels omit shortcuts while tooltips retain them in every locale" do
+    I18n.available_locales.each do |locale|
+      get root_url(locale: locale)
+      assert_select "#workspace-menu [role='menuitem']" do |buttons|
+        buttons.each do |button|
+          refute_match(/\((?:Ctrl\+|F\d+)/, button.at_css("span").text, "Shortcut in #{locale} menu label")
+          refute_match(/\((?:Ctrl\+|F\d+)/, button["aria-label"], "Shortcut in #{locale} accessible label")
+        end
+      end
+      [ "header.toggle_preview", "editor.toolbar.find_title", "editor.toolbar.emoji_title", "editor.toolbar.help_title" ].each do |key|
+        assert_select "#workspace-menu [role='menuitem'][title=?]", I18n.t(key, locale: locale), count: 1
+      end
     end
   end
 

@@ -32,6 +32,16 @@ pt-PT:
 
   # Secção do cabeçalho
   header:
+    copy_content: "Copiar conteúdo"
+    pin_action: "Fixar %{action} na barra de ferramentas"
+    unpin_action: "Desafixar %{action} da barra de ferramentas"
+    rename_document_hint: "Prima Enter ou clique fora para mudar o nome. Esc cancela."
+    document_actions: "Ações do documento"
+    more_actions: "Mais ações"
+    rename_document: "Mudar o nome do documento"
+    workspace_navigation: "Navegação do espaço de trabalho"
+    close_explorer: "Fechar Explorador"
+    open_explorer: "Abrir Explorador"
     toggle_explorer: "Alternar Explorador (Ctrl+E)"
     toggle_preview: "Alternar Pré-visualização (Ctrl+Shift+P)"
     change_theme: "Alterar Tema"
@@ -97,6 +107,7 @@ pt-PT:
 
   # Espaço de trabalho de configurações
   settings:
+    about: "Sobre"
     title: "Configurações"
     categories: "Categorias de configurações"
     general: "Geral"
@@ -121,6 +132,8 @@ pt-PT:
     line_numbers_off: "Desativados"
     line_numbers_absolute: "Absolutos"
     line_numbers_relative: "Relativos"
+    stats: "Estatísticas"
+    stats_description: "Mostrar estatísticas do documento no Explorador"
     indent: "Indentação"
     indent_description: "Espaços por nível de indentação"
     indent_spaces: "%{count} espaços"
@@ -647,6 +660,7 @@ pt-PT:
 
   # Mensagens de erro
   errors:
+    failed_to_copy_content: "Não foi possível copiar o conteúdo do documento."
     title_required: "O título é obrigatório"
     note_not_found: "Nota não encontrada"
     note_changed_since_loaded: "Esta nota foi alterada desde que foi carregada. Volte a carregá-la antes de a eliminar."

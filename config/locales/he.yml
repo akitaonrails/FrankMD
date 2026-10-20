@@ -32,6 +32,16 @@ he:
 
   # אזור הכותרת
   header:
+    copy_content: "העתקת תוכן"
+    pin_action: "הצמדת %{action} לסרגל הכלים"
+    unpin_action: "ביטול הצמדת %{action} מסרגל הכלים"
+    rename_document_hint: "לחצו Enter או לחצו מחוץ לשדה כדי לשנות את השם. Escape מבטל."
+    document_actions: "פעולות מסמך"
+    more_actions: "פעולות נוספות"
+    rename_document: "שינוי שם המסמך"
+    workspace_navigation: "ניווט בסביבת העבודה"
+    close_explorer: "סגירת סייר הקבצים"
+    open_explorer: "פתיחת סייר הקבצים"
     toggle_explorer: "הצג/הסתר סייר (Ctrl+E)"
     toggle_preview: "הצג/הסתר תצוגה מקדימה (Ctrl+Shift+P)"
     change_theme: "שנה ערכת נושא"
@@ -97,6 +107,7 @@ he:
 
   # סביבת ההגדרות
   settings:
+    about: "אודות"
     title: "הגדרות"
     categories: "קטגוריות הגדרות"
     general: "כללי"
@@ -121,6 +132,8 @@ he:
     line_numbers_off: "כבוי"
     line_numbers_absolute: "מוחלט"
     line_numbers_relative: "יחסי"
+    stats: "סטטיסטיקה"
+    stats_description: "הצגת נתוני המסמך בסייר הקבצים"
     indent: "הזחה"
     indent_description: "רווחים לכל רמת הזחה"
     indent_spaces: "%{count} רווחים"
@@ -647,6 +660,7 @@ he:
 
   # הודעות שגיאה
   errors:
+    failed_to_copy_content: "לא ניתן להעתיק את תוכן המסמך."
     title_required: "נדרשת כותרת"
     note_not_found: "ההערה לא נמצאה"
     note_changed_since_loaded: "הפתק השתנה מאז שנטען. יש לטעון אותו מחדש לפני המחיקה."

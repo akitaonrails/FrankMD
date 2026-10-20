@@ -8,7 +8,9 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # Disable parallelization for system tests to avoid race conditions
   parallelize(workers: 1)
 
-  driven_by :selenium, using: :headless_chrome, screen_size: [ 1400, 900 ]
+  driven_by :selenium, using: :headless_chrome, screen_size: [ 1400, 900 ] do |options|
+    options.add_argument("--no-sandbox") if ENV["CHROME_NO_SANDBOX"] == "1"
+  end
 
   # Increase default wait time for slower CI environments
   Capybara.default_max_wait_time = 5
@@ -25,6 +27,17 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   end
 
   private
+
+  def wait_for_tree_refresh(path)
+    Timeout.timeout(5) do
+      sleep 0.05 until page.evaluate_script(<<~JS)
+        performance.getEntriesByType("resource").some((entry) => {
+          const url = new URL(entry.name);
+          return url.pathname === "/notes/tree" && url.searchParams.get("selected") === #{path.to_json};
+        })
+      JS
+    end
+  end
 
   # Helper to get the CodeMirror editor content via Stimulus controller
   def editor_content

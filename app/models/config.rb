@@ -4,7 +4,7 @@
 # Provides defaults from ENV variables that can be overridden per-folder.
 class Config
   CONFIG_FILE = ".fed"
-  CONFIG_VERSION = 4  # Increment when adding new settings
+  CONFIG_VERSION = 5  # Increment when adding new settings
 
   # All configurable options with their defaults and types
   SCHEMA = {
@@ -22,6 +22,7 @@ class Config
     "scroll_sync" => { default: true, type: :boolean, env: nil },
     "editor_indent" => { default: 2, type: :integer, env: nil },
     "editor_line_numbers" => { default: 0, type: :integer, env: nil },
+    "show_stats" => { default: false, type: :boolean, env: nil },
     "editor_width" => { default: 72, type: :integer, env: nil },
 
     # Paths (ENV defaults)
@@ -103,6 +104,7 @@ class Config
     scroll_sync
     editor_indent
     editor_line_numbers
+    show_stats
     editor_width
     media_storage_provider
   ].freeze
@@ -153,6 +155,7 @@ class Config
         "# sidebar_visible = true",
         "# typewriter_mode = false",
         "# cursor_recenter_on_click = false",
+        "# show_stats = false",
         "",
         "# Vim mode: hjkl navigation, modal editing, and : ex-commands (default: false)",
         "# vim_mode = false",

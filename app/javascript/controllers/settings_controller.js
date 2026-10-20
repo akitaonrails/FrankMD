@@ -23,6 +23,7 @@ export default class extends Controller {
     "widthInput",
     "widthLabel",
     "lineNumbersSelect",
+    "statsToggle",
     "indentSelect",
     "cursorRecenterOnClickToggle",
     "zoomSelect",
@@ -36,6 +37,7 @@ export default class extends Controller {
     editorWidth: { type: Number, default: 72 },
     previewZoom: { type: Number, default: 100 },
     lineNumbers: { type: Number, default: 0 },
+    showStats: { type: Boolean, default: false },
     typewriterMode: { type: Boolean, default: false },
     cursorRecenterOnClick: { type: Boolean, default: false },
     vimMode: { type: Boolean, default: false },
@@ -117,6 +119,10 @@ export default class extends Controller {
 
   lineNumbersValueChanged() {
     if (this._codemirrorReady) this.applyLineNumbers()
+  }
+
+  showStatsValueChanged() {
+    this.syncStatsVisibility()
   }
 
   cursorRecenterOnClickValueChanged() {
@@ -268,6 +274,7 @@ export default class extends Controller {
       this.assignIfChanged("editorWidthValue", settings.editor_width, Number)
       this.assignIfChanged("previewZoomValue", settings.preview_zoom, Number)
       this.assignIfChanged("lineNumbersValue", settings.editor_line_numbers, Number)
+      this.assignIfChanged("showStatsValue", settings.show_stats, Boolean)
       this.assignIfChanged("indentValue", settings.editor_indent, Number)
       this.assignIfChanged("vimModeValue", settings.vim_mode)
       this.assignIfChanged("typewriterModeValue", settings.typewriter_mode)
@@ -299,6 +306,7 @@ export default class extends Controller {
     if (this.hasWidthInputTarget) this.widthInputTarget.value = this.editorWidthValue
     if (this.hasWidthLabelTarget) this.widthLabelTarget.textContent = `${this.editorWidthValue}ch`
     if (this.hasLineNumbersSelectTarget) this.lineNumbersSelectTarget.value = String(this.lineNumbersValue)
+    if (this.hasStatsToggleTarget) this.statsToggleTarget.setAttribute("aria-pressed", String(this.showStatsValue))
     if (this.hasIndentSelectTarget) this.indentSelectTarget.value = String(this.indentValue)
     if (this.hasCursorRecenterOnClickToggleTarget) {
       this.cursorRecenterOnClickToggleTarget.setAttribute("aria-pressed", String(this.cursorRecenterOnClickValue))
@@ -393,6 +401,18 @@ export default class extends Controller {
     this.saveSetting({ editor_line_numbers: this.lineNumbersValue })
   }
 
+  toggleStats() {
+    this.showStatsValue = !this.showStatsValue
+    this.saveSetting({ show_stats: this.showStatsValue })
+  }
+
+  syncStatsVisibility() {
+    if (this.hasStatsToggleTarget) this.statsToggleTarget.setAttribute("aria-pressed", String(this.showStatsValue))
+    const app = this.getAppController()
+    app?.showStatsPanel()
+    if (this.showStatsValue) app?.updateStats()
+  }
+
   onIndentChange() {
     this.indentValue = parseInt(this.indentSelectTarget.value, 10)
     this.saveSetting({ editor_indent: this.indentValue })
@@ -444,6 +464,7 @@ export default class extends Controller {
   get previewZoom() { return this.previewZoomValue }
   get lineNumberMode() { return normalizeLineNumberMode(this.lineNumbersValue, "off") }
   get typewriterModeEnabled() { return this.typewriterModeValue }
+  get showStatsEnabled() { return this.showStatsValue }
   get scrollSyncEnabled() { return this.scrollSyncValue }
   get editorIndent() { return this.indentValue }
   get viewMode() { return this.viewModeValue === "single" ? "single" : "split" }
