@@ -1,4 +1,13 @@
 es:
+  home:
+    title: "Inicio"
+    recent: "Abiertos recientemente"
+    clear: "Borrar historial compartido"
+    shared: "Compartido entre dispositivos que usan esta carpeta de notas."
+    empty: "Abre una nota para iniciar el historial reciente."
+    clear_confirmation: "¿Borrar el historial reciente de todos los dispositivos que usan esta carpeta?"
+    error: "No se pudo actualizar el historial compartido. Inténtalo de nuevo."
+
   # Application metadata
   app:
     name: "FrankMD"

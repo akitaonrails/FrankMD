@@ -6,6 +6,7 @@
      data-media-storage-s3-available-value="<%= @config_obj.feature_available?(:s3_upload) %>"
      data-app-initial-path-value="<%= @initial_path %>"
      data-app-initial-note-value="<%= (@initial_note || {}).to_json %>"
+     data-app-home-outlet='[data-controller~="home"]'
      data-app-codemirror-outlet='[data-controller~="codemirror"]'
      data-app-preview-outlet='[data-controller~="preview"]'
      data-app-typewriter-outlet='[data-controller~="typewriter"]'

@@ -65,40 +65,46 @@ class NotesService
   end
 
   def delete(path, expected_revision: nil)
-    with_filesystem_lock do
-      full_path = safe_path(path)
-      raise NotFoundError, "Note not found: #{path}" unless full_path.file?
+    with_recent_files_lock do
+      with_filesystem_lock do
+        full_path = safe_path(path)
+        raise NotFoundError, "Note not found: #{path}" unless full_path.file?
 
-      # Keep the revision check and removal in one lock scope so a cooperating
-      # FrankMD writer cannot change the note between the check and deletion.
-      if !expected_revision.nil? && Digest::SHA256.file(full_path.to_s).hexdigest != expected_revision
-        raise RevisionConflictError, "Note has changed: #{path}"
+        # Keep the revision check and removal in one lock scope so a cooperating
+        # FrankMD writer cannot change the note between the check and deletion.
+        if !expected_revision.nil? && Digest::SHA256.file(full_path.to_s).hexdigest != expected_revision
+          raise RevisionConflictError, "Note has changed: #{path}"
+        end
+
+        full_path.delete
       end
-
-      full_path.delete
+      update_recent_files { |history| history.remove(path) }
+      true
     end
-    true
   end
 
   def rename(old_path, new_path)
-    with_filesystem_lock do
-      old_full = safe_path(old_path)
-      new_full = safe_path(new_path, must_exist: false)
+    with_recent_files_lock do
+      with_filesystem_lock do
+        old_full = safe_path(old_path)
+        new_full = safe_path(new_path, must_exist: false)
 
-      raise NotFoundError, "Note not found: #{old_path}" unless old_full.exist?
-      raise AlreadyExistsError, "Destination already exists: #{new_path}" if path_exists?(new_full)
+        raise NotFoundError, "Note not found: #{old_path}" unless old_full.exist?
+        raise AlreadyExistsError, "Destination already exists: #{new_path}" if path_exists?(new_full)
 
-      FileUtils.mkdir_p(new_full.dirname)
-      begin
-        # The destination check and move run under a lock shared by every
-        # FrankMD instance using this NOTES_PATH. FileUtils.mv preserves the
-        # atomic same-filesystem rename and its copy/remove fallback for EXDEV.
-        FileUtils.mv(old_full, new_full)
-      rescue Errno::EEXIST, Errno::ENOTEMPTY, Errno::EISDIR
-        raise AlreadyExistsError, "Destination already exists: #{new_path}"
+        FileUtils.mkdir_p(new_full.dirname)
+        begin
+          # The destination check and move run under a lock shared by every
+          # FrankMD instance using this NOTES_PATH. FileUtils.mv preserves the
+          # atomic same-filesystem rename and its copy/remove fallback for EXDEV.
+          FileUtils.mv(old_full, new_full)
+        rescue Errno::EEXIST, Errno::ENOTEMPTY, Errno::EISDIR
+          raise AlreadyExistsError, "Destination already exists: #{new_path}"
+        end
       end
+      update_recent_files { |history| history.remap(old_path, new_path) }
+      true
     end
-    true
   end
 
   def create_folder(path)
@@ -117,17 +123,20 @@ class NotesService
   end
 
   def delete_folder(path)
-    with_filesystem_lock do
-      full_path = safe_path(path)
-      raise NotFoundError, "Folder not found: #{path}" unless full_path.directory?
+    with_recent_files_lock do
+      with_filesystem_lock do
+        full_path = safe_path(path)
+        raise NotFoundError, "Folder not found: #{path}" unless full_path.directory?
 
-      if full_path.children.any?
-        raise InvalidPathError, "Folder not empty: #{path}"
+        if full_path.children.any?
+          raise InvalidPathError, "Folder not empty: #{path}"
+        end
+
+        full_path.rmdir
       end
-
-      full_path.rmdir
+      update_recent_files { |history| history.remove(path) }
+      true
     end
-    true
   end
 
   def exists?(path)
@@ -387,8 +396,35 @@ class NotesService
     []
   end
 
+  def with_recent_files_lock
+    return yield unless @base_path.join(Config::CONFIG_FILE).file?
+
+    entered = false
+    Config.new(base_path: @base_path).synchronize do
+      entered = true
+      yield
+    end
+  rescue SystemCallError => e
+    raise if entered
+
+    Rails.logger.warn("Cannot lock recent history: #{e.message}")
+    yield
+  end
+
+  def update_recent_files
+    return unless @base_path.join(Config::CONFIG_FILE).file?
+
+    saved = yield RecentFilesService.new(config: Config.new(base_path: @base_path))
+    Rails.logger.warn("Unable to save recent files") unless saved
+  rescue SystemCallError, ArgumentError => e
+    Rails.logger.warn("Unable to update recent files: #{e.message}")
+  end
+
   def safe_path(path, must_exist: true)
     full_path = PathSafety.contain(@base_path, path)
+    if full_path == @base_path.join(Config::LOCK_FILE).cleanpath
+      raise InvalidPathError, "Reserved application path"
+    end
     raise InvalidPathError, "Invalid path: #{path}" if full_path.nil?
 
     if must_exist && !full_path.exist?
@@ -401,17 +437,19 @@ class NotesService
   def build_tree(dir, relative_base = @base_path)
     # Keep folders in stable alphabetical order so drag/drop updates inside a folder
     # do not reorder it in the Explorer due to mtime changes.
-    # Skip broken symlinks (exist? follows links and returns false when the target is missing)
-    # so a single dangling link does not take the whole tree down.
-    entries = dir.children.reject(&:symlink?).select(&:exist?).sort_by do |p|
-      if p.directory?
-        [ 0, p.basename.to_s.downcase ]
-      else
-        [ 1, -p.mtime.to_i ]
+    # History writes replace .fed atomically. Ignore hidden temporary files before
+    # reading metadata, and tolerate a visible file removed by an external writer.
+    entries = dir.children.filter_map do |entry|
+      next if entry.basename.to_s.start_with?(".")
+      begin
+        stat = entry.lstat
+        [ entry, stat ] unless stat.symlink?
+      rescue Errno::ENOENT, Errno::ENOTDIR
+        nil
       end
-    end
+    end.sort_by { |entry, stat| stat.directory? ? [ 0, entry.basename.to_s.downcase ] : [ 1, -stat.mtime.to_i ] }
 
-    entries.filter_map do |entry|
+    entries.filter_map do |entry, stat|
       basename = entry.basename.to_s
       relative_path = entry.relative_path_from(relative_base).to_s
 
@@ -420,15 +458,12 @@ class NotesService
       # below the root remain ordinary user folders. A root folder that still
       # contains Markdown anywhere beneath it is user content and stays
       # visible (pre-existing note folders named images/ or videos/).
-      if dir == @base_path && entry.directory? && %w[images videos].include?(basename) &&
+      if dir == @base_path && stat.directory? && %w[images videos].include?(basename) &&
          entry.glob("**/*.md").empty?
         next
       end
 
-      # Skip hidden files.
-      if basename.start_with?(".")
-        next
-      elsif entry.directory?
+      if stat.directory?
         {
           name: basename,
           path: relative_path,
@@ -441,9 +476,11 @@ class NotesService
           path: relative_path,
           type: "file",
           file_type: "markdown",
-          mtime: entry.mtime.to_i
+          mtime: stat.mtime.to_i
         }
       end
     end
+  rescue Errno::ENOENT, Errno::ENOTDIR
+    []
   end
 end

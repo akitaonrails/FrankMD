@@ -1,4 +1,13 @@
 en:
+  home:
+    title: "Home"
+    recent: "Recently opened"
+    clear: "Clear shared history"
+    shared: "Shared across devices using this notes folder."
+    empty: "Open a note to start your recent history."
+    clear_confirmation: "Clear recent-file history for every device using this notes folder?"
+    error: "Unable to update shared history. Try again."
+
   # Application metadata
   app:
     name: "FrankMD"

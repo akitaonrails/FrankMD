@@ -1,0 +1,15 @@
+<section class="home-panel" data-controller="home" data-home-app-outlet='[data-controller~="app"]' data-action="focus@window->home#refresh" data-clear-confirmation="<%= t('home.clear_confirmation') %>" data-error-message="<%= t('home.error') %>" aria-labelledby="home-title">
+  <h1 id="home-title" tabindex="-1"><%= t('home.title') %></h1>
+  <p class="home-description"><%= t('editor.select_note_description') %></p>
+  <div class="home-actions">
+    <button type="button" data-action="click->app#newNote"><%= t('dialogs.new_note.title') %></button>
+    <button type="button" data-action="click->app#openFileFinder"><%= t('sidebar.find_file') %></button>
+  </div>
+  <div class="home-recent-heading">
+    <h2><%= t('home.recent') %></h2>
+    <button type="button" data-action="click->home#clear"><%= t('home.clear') %></button>
+  </div>
+  <p class="home-description"><%= t('home.shared') %></p>
+  <div data-home-target="files"><%= render "notes/recent_files", recent_files: @recent_files || [] %></div>
+  <p class="home-error" role="status" data-home-target="status"></p>
+</section>

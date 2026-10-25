@@ -56,6 +56,29 @@ describe("AppController navigation", () => {
     vi.restoreAllMocks()
   })
 
+  it("Home cancels pending navigation and keeps an outgoing draft protected", async () => {
+    let resolveFile
+    global.fetch.mockImplementation(() => new Promise(resolve => { resolveFile = resolve }))
+    const autosave = { prepareForTransition: vi.fn(() => ({ ok: true })), clearFile: vi.fn() }
+    const app = makeApp({ autosave })
+    app.textareaTarget = { disabled: false }
+    const loading = app.loadFile("late.md")
+    await vi.waitFor(() => expect(resolveFile).toBeTypeOf("function"))
+    expect(app.showHome()).toBe(true)
+    resolveFile(response({ json: { content: "late response" } }))
+    await loading
+    expect(app.currentFile).toBeNull()
+    expect(app.showEditor).not.toHaveBeenCalled()
+    expect(app.updateUrl).toHaveBeenCalledWith(null)
+
+    app.currentFile = "dirty.md"
+    autosave.prepareForTransition.mockReturnValue({ ok: false })
+    app.updateUrl.mockClear()
+    expect(app.showHome()).toBe(false)
+    expect(app.currentFile).toBe("dirty.md")
+    expect(app.updateUrl).toHaveBeenCalledWith("dirty.md", { replace: true })
+  })
+
   it("applies only the latest file request when responses resolve out of order", async () => {
     const pending = []
     global.fetch.mockImplementation(() => new Promise((resolve, reject) => pending.push({ resolve, reject })))

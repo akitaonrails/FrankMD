@@ -5,6 +5,10 @@ Rails.application.routes.draw do
   post "login", to: "sessions#create"
   delete "logout", to: "sessions#destroy"
 
+  get "recent_files", to: "recent_files#index"
+  post "recent_files", to: "recent_files#create"
+  delete "recent_files", to: "recent_files#destroy"
+
   # Notes API
   get "notes/tree", to: "notes#tree"
   get "notes/search", to: "notes#search"

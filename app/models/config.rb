@@ -4,12 +4,14 @@
 # Provides defaults from ENV variables that can be overridden per-folder.
 class Config
   CONFIG_FILE = ".fed"
-  CONFIG_VERSION = 5  # Increment when adding new settings
+  LOCK_FILE = ".frankmd-config.lock"
+  CONFIG_VERSION = 6  # Increment when adding new settings
 
   # All configurable options with their defaults and types
   SCHEMA = {
     # UI Settings
     "theme" => { default: nil, type: :string, env: nil },
+    "recent_files" => { default: [], type: :json, env: nil },
     "locale" => { default: "en", type: :string, env: "FRANKMD_LOCALE" },
     "editor_font" => { default: "cascadia-code", type: :string, env: nil },
     "editor_font_size" => { default: 14, type: :integer, env: nil },
@@ -341,6 +343,22 @@ class Config
     false
   end
 
+  def synchronize(&block)
+    with_write_lock(&block)
+  end
+
+  # Read-modify-write a shared value without losing another client's update.
+  def modify(key)
+    with_write_lock do
+      ensure_config_file
+      parse_config(config_file_path.read)
+      set(key, yield(get(key)))
+    end
+  rescue SystemCallError, ArgumentError => e
+    Rails.logger.warn("Failed to modify .fed config: #{e.message}")
+    false
+  end
+
   # Get all UI settings (safe for frontend)
   def ui_settings
     UI_KEYS.each_with_object({}) do |key, hash|
@@ -456,12 +474,17 @@ class Config
 
   # Ensure config file exists and is up to date
   def ensure_config_file
-    if config_file_path.exist?
-      upgrade_config_file
-    else
-      Rails.logger.warn("[Config] .fed not found at #{config_file_path}, creating template...")
-      create_template_config
+    with_write_lock do
+      if config_file_path.exist?
+        upgrade_config_file
+      else
+        Rails.logger.warn("[Config] .fed not found at #{config_file_path}, creating template...")
+        create_template_config
+      end
     end
+  rescue SystemCallError => e
+    # Existing settings remain readable on a read-only notes mount.
+    Rails.logger.warn("Cannot prepare .fed config: #{e.message}")
   end
 
   def config_file_path
@@ -502,7 +525,11 @@ class Config
 
         # Only accept known keys
         if SCHEMA.key?(key)
-          @values[key] = cast_value(value, SCHEMA[key][:type])
+          begin
+            @values[key] = cast_value(value, SCHEMA[key][:type])
+          rescue JSON::ParserError
+            Rails.logger.warn("Ignoring invalid JSON setting #{key}")
+          end
         end
       end
     end
@@ -512,6 +539,8 @@ class Config
     return nil if value.nil? || value.to_s.strip.empty?
 
     case type
+    when :json
+      value.is_a?(String) ? JSON.parse(value) : JSON.parse(JSON.generate(value))
     when :integer
       value.to_i
     when :boolean
@@ -531,6 +560,13 @@ class Config
   # Save multiple keys to the config file (surgical update)
   # Only modifies the specified keys, preserves everything else exactly as-is
   def save_keys(changes)
+    with_write_lock { save_keys_without_lock(changes) }
+  rescue SystemCallError => e
+    Rails.logger.warn("Failed to save .fed config: #{e.message}")
+    false
+  end
+
+  def save_keys_without_lock(changes)
     return true if changes.empty?
 
     ensure_config_file
@@ -594,6 +630,8 @@ class Config
     end
 
     case SCHEMA[key][:type]
+    when :json
+      "#{key} = #{JSON.generate(value)}"
     when :string
       if value.to_s.match?(/["\r\n]/)
         raise ArgumentError, "String configuration values cannot contain quotes or line breaks"
@@ -672,6 +710,26 @@ class Config
 
   def generate_template_lines
     TEMPLATE_SECTIONS.flat_map { |section| section[:lines] }
+  end
+
+  def with_write_lock
+    FileUtils.mkdir_p(@base_path)
+    path = @base_path.realpath.join(LOCK_FILE).to_s
+    held = Thread.current[:frankmd_config_locks] ||= {}
+    return yield if held[path]
+
+    flags = File::RDWR | File::CREAT
+    flags |= File::NOFOLLOW if File.const_defined?(:NOFOLLOW)
+    File.open(path, flags, 0o600) do |lock|
+      lock.flock(File::LOCK_EX)
+      held[path] = true
+      begin
+        yield
+      ensure
+        held.delete(path)
+        lock.flock(File::LOCK_UN)
+      end
+    end
   end
 
   def write_config_atomically(lines)

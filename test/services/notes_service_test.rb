@@ -125,6 +125,20 @@ class NotesServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "tree tolerates deletion during metadata enumeration" do
+    vanished = @test_notes_dir.join("vanished.md")
+    @service.instance_variable_get(:@base_path).stubs(:children).returns([ vanished ])
+    vanished.stubs(:lstat).raises(Errno::ENOENT)
+    assert_empty @service.list_tree
+  end
+
+  test "tree does not stat hidden configuration temporary files" do
+    hidden = @test_notes_dir.join(".fed.transient.tmp")
+    @service.instance_variable_get(:@base_path).stubs(:children).returns([ hidden ])
+    hidden.expects(:lstat).never
+    assert_empty @service.list_tree
+  end
+
   test "list_tree ignores hidden files" do
     create_test_note(".hidden.md")
     create_test_note("visible.md")

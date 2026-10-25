@@ -1,4 +1,13 @@
 ko:
+  home:
+    title: "홈"
+    recent: "최근에 연 파일"
+    clear: "공유 기록 지우기"
+    shared: "이 노트 폴더를 사용하는 기기 간에 공유됩니다."
+    empty: "노트를 열면 최근 기록에 표시됩니다."
+    clear_confirmation: "이 폴더를 사용하는 모든 기기의 최근 기록을 지울까요?"
+    error: "공유 기록을 업데이트할 수 없습니다. 다시 시도하세요."
+
   # 애플리케이션 메타데이터
   app:
     name: "FrankMD"

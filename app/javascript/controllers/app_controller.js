@@ -126,7 +126,7 @@ export default class extends Controller {
     "autosave", "scroll-sync", "settings",
     "image-picker", "file-finder", "find-replace", "jump-to-line",
     "content-search", "ai-grammar", "video-dialog", "log-viewer",
-    "code-dialog", "drag-drop"
+    "code-dialog", "drag-drop", "home"
   ]
 
   static values = {
@@ -492,6 +492,12 @@ export default class extends Controller {
     }
     this.refreshTree(generation)
 
+    if (this._homePreviewWasVisible && fileType === "markdown" && this.viewMode !== "single") {
+      this.getPreviewController()?.show()
+      this.updatePreview()
+    }
+    this._homePreviewWasVisible = null
+    if (this.hasHomeOutlet && fileType === "markdown") this.homeOutlet.record(path)
     if (updateHistory && this.isCurrentNavigation(generation)) this.updateUrl(path)
     return true
   }
@@ -507,6 +513,7 @@ export default class extends Controller {
     this.updateWorkspaceChrome?.()
     this.getAutosaveController()?.clearFile?.()
     this.showFileNotFoundMessage(path, message, generation)
+    if (this.hasHomeOutlet) this.homeOutlet.refresh({ force: true })
     this.refreshTree(generation)
     if (updateHistory && this.isCurrentNavigation(generation)) {
       this.updateUrl(null, { replace: replaceHistory })
@@ -518,6 +525,9 @@ export default class extends Controller {
     if (!this.prepareEditorTransition(generation)) return false
     if (!this.isCurrentNavigation(generation)) return false
 
+    if (this.hasHomeOutlet && this.currentFile) {
+      this._homePreviewWasVisible = this.libraryVisible ? this._libraryPreviewWasVisible : this.getPreviewController()?.isVisible
+    }
     this.showEditorWorkspace()
     this.clearPendingSlashInsertion()
     this.currentFile = null
@@ -531,7 +541,26 @@ export default class extends Controller {
     this.editorToolbarTarget.classList.add("hidden")
     this.editorToolbarTarget.classList.remove("flex")
     this.hideStatsPanel()
+    if (this.hasHomeOutlet) {
+      this.getPreviewController()?.hide()
+      this.homeOutlet.refresh({ force: true })
+    }
     this.refreshTree(generation)
+    return true
+  }
+
+  homeOutletConnected(home) {
+    if (this.currentFile?.endsWith(".md")) home.record(this.currentFile)
+  }
+
+  showHome(event, { updateHistory = true, generation = null } = {}) {
+    if (event && (event.button > 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)) return
+    event?.preventDefault()
+    const currentGeneration = generation ?? this.beginNavigation()
+    if (!this.clearEditor(currentGeneration)) return false
+    if (updateHistory) this.updateUrl(null)
+    if (this.mobileWorkspace) this.closeMobileSidebar()
+    if (this.hasHomeOutlet) this.homeOutlet.element.querySelector("h1")?.focus()
     return true
   }
 
@@ -544,7 +573,7 @@ export default class extends Controller {
         await this.loadFile(path, { updateHistory: false, generation })
       } else {
         // No file - preserve the outgoing draft before showing the placeholder.
-        this.clearEditor(generation)
+        this.showHome(null, { updateHistory: false, generation })
       }
     }
     window.addEventListener("popstate", this.boundPopstateHandler)
