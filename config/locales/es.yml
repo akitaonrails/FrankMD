@@ -203,6 +203,12 @@ es:
 
   # Preview panel
   preview:
+    image_viewer:
+      title: "Vista previa de imagen"
+      open: "Ampliar %{name}"
+      image: "imagen"
+      loading: "Cargando imagen…"
+      error: "No se pudo cargar esta imagen."
     title: "Vista Previa"
     zoom_in: "Acercar"
     zoom_out: "Alejar"

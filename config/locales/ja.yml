@@ -203,6 +203,12 @@ ja:
 
   # Preview panel
   preview:
+    image_viewer:
+      title: "画像プレビュー"
+      open: "%{name}を拡大"
+      image: "画像"
+      loading: "画像を読み込み中…"
+      error: "この画像を読み込めません。"
     title: "プレビュー"
     zoom_in: "拡大"
     zoom_out: "縮小"

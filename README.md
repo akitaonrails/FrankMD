@@ -1057,7 +1057,14 @@ bold, and typing `=` twice gives highlighted text. Existing formatting shortcuts
 keep their toggle behavior. Multiple and backward selections are preserved;
 empty cursors keep normal typing behavior. Pasting and IME composition are not
 changed. Backticks inside the selection use a longer delimiter automatically.
->>>>>>> pr-251
+
+## Enlarge preview images
+
+Click an image in the Markdown preview, or focus it and press Enter/Space, to open
+an image overlay. Close it with the top-right button, Escape, or the backdrop.
+Linked images retain their link behavior and have a separate enlarge button.
+Images fit the viewport, and closing the overlay returns keyboard focus to the
+image control (or the preview if the image was replaced while it was open).
 
 ## Contributing
 

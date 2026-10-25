@@ -52,6 +52,46 @@ describe("PreviewController", () => {
     })
   })
 
+  describe("preview image activation", () => {
+    beforeEach(() => { window.t = vi.fn(key => key) })
+
+    it("creates keyboard buttons after sanitization and dispatches sanitized image data", () => {
+      controller.panelTarget.classList.remove("hidden")
+      controller.render('<img src="/safe.png" alt="Sample" onerror="evil()">')
+      const image = controller.contentTarget.querySelector("img")
+      const button = image.closest("button")
+      expect(button.type).toBe("button")
+      expect(image.hasAttribute("onerror")).toBe(false)
+      const listener = vi.fn()
+      element.addEventListener("preview:open-image", listener)
+      button.click()
+      expect(listener).toHaveBeenCalledOnce()
+      expect(listener.mock.calls[0][0].detail).toMatchObject({ alt: "Sample", src: image.src, trigger: button })
+    })
+
+    it("preserves linked image navigation and provides a separate enlarge button", () => {
+      controller.contentTarget.innerHTML = '<a href="/destination"><picture><source srcset="/large.png"><img src="/safe.png" alt="Sample"></picture></a>'
+      controller._addImageTriggers()
+      const link = controller.contentTarget.querySelector("a")
+      expect(link.querySelector("button")).toBeNull()
+      expect(link.nextElementSibling.matches("button.preview-image-enlarge")).toBe(true)
+      expect(link.querySelector("picture > img")).toBeTruthy()
+      const listener = vi.fn()
+      element.addEventListener("preview:open-image", listener)
+      controller.onContentClick({ target: link.querySelector("img"), preventDefault: vi.fn() })
+      expect(listener).not.toHaveBeenCalled()
+      link.nextElementSibling.click()
+      expect(listener).toHaveBeenCalledOnce()
+    })
+
+    it("keeps picture sources together inside an unlinked trigger", () => {
+      controller.contentTarget.innerHTML = '<picture><source srcset="/large.png"><img src="/safe.png"></picture>'
+      controller._addImageTriggers()
+      expect(controller.contentTarget.querySelector("button > picture > source")).toBeTruthy()
+      expect(controller.contentTarget.querySelector("button > picture > img")).toBeTruthy()
+    })
+  })
+
   describe("toggle()", () => {
     it("shows hidden panel", () => {
       expect(controller.panelTarget.classList.contains("hidden")).toBe(true)

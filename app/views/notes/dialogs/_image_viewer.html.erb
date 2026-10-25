@@ -1,0 +1,10 @@
+<dialog class="image-viewer" data-controller="image-viewer" data-action="preview:open-image@window->image-viewer#open click->image-viewer#closeOnBackdrop close->image-viewer#onClose" data-image-viewer-loading-value="<%= t('preview.image_viewer.loading') %>" data-image-viewer-error-value="<%= t('preview.image_viewer.error') %>" aria-labelledby="image-viewer-title">
+  <div class="image-viewer-frame">
+    <h2 id="image-viewer-title" class="sr-only"><%= t('preview.image_viewer.title') %></h2>
+    <button type="button" class="image-viewer-close" data-image-viewer-target="closeButton" data-action="click->image-viewer#close" aria-label="<%= t('common.close') %>" autofocus>
+      <%= render "shared/icon_close", size: "w-5 h-5" %>
+    </button>
+    <div class="image-viewer-stage" data-image-viewer-target="stage"></div>
+    <p class="image-viewer-status" role="status" data-image-viewer-target="status"></p>
+  </div>
+</dialog>

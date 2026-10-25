@@ -154,6 +154,18 @@ export default class extends Controller {
   // render pipeline — same as typing the edit by hand.
   onContentClick(event) {
     const target = event.target
+    const trigger = target?.closest?.("button")
+    const image = trigger && this._imageTriggers?.get(trigger)
+    if (image && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && !(event.button > 0)) {
+      event.preventDefault()
+      this.dispatch("open-image", { detail: {
+        src: image.currentSrc || image.src,
+        alt: image.alt,
+        trigger,
+        fallback: this.contentTarget
+      } })
+      return
+    }
     if (!target || target.tagName !== "INPUT" || target.type !== "checkbox") return
 
     const listItem = target.closest("li[data-source-line]")
@@ -241,6 +253,7 @@ export default class extends Controller {
 
     // Add copy buttons to code blocks
     this._addCodeCopyButtons()
+    this._addImageTriggers()
 
     // Store total lines for ratio fallback
     this.totalSourceLines = (markdownContent || "").split("\n").length
@@ -250,6 +263,29 @@ export default class extends Controller {
     this._contentUpdateTimeout = setTimeout(() => {
       this._isUpdatingContent = false
     }, 100)
+  }
+
+  _addImageTriggers() {
+    this._imageTriggers = new WeakMap()
+    for (const image of this.contentTarget.querySelectorAll("img")) {
+      if (!image.getAttribute("src") && !image.getAttribute("srcset")) continue
+      const trigger = document.createElement("button")
+      trigger.type = "button"
+      trigger.setAttribute("aria-label", window.t("preview.image_viewer.open", { name: image.alt || window.t("preview.image_viewer.image") }))
+      this._imageTriggers.set(trigger, image)
+
+      const link = image.closest("a")
+      if (link) {
+        trigger.className = "preview-image-enlarge"
+        trigger.textContent = "↗"
+        link.after(trigger)
+      } else {
+        trigger.className = "preview-image-trigger"
+        const picture = image.closest("picture") || image
+        picture.before(trigger)
+        trigger.appendChild(picture)
+      }
+    }
   }
 
   // Update preview with content and scroll sync
