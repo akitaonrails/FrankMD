@@ -1,4 +1,13 @@
 pt-BR:
+  home:
+    title: "Início"
+    recent: "Abertos recentemente"
+    clear: "Limpar histórico compartilhado"
+    shared: "Compartilhado entre dispositivos que usam esta pasta de notas."
+    empty: "Abra uma nota para iniciar seu histórico recente."
+    clear_confirmation: "Limpar o histórico recente de todos os dispositivos que usam esta pasta?"
+    error: "Não foi possível atualizar o histórico compartilhado. Tente novamente."
+
   # Metadados da aplicação
   app:
     name: "FrankMD"

@@ -49,10 +49,10 @@
 
   </div>
   <footer class="workspace-sidebar-footer">
-    <div class="workspace-brand">
+    <a href="/" class="workspace-brand" data-action="click->app#showHome" aria-label="<%= t('home.title') %>">
       <img src="/icon.svg" class="w-5 h-5 shrink-0" alt="<%= t('app.name') %>">
       <span aria-hidden="true"><%= t('app.name') %></span>
-    </div>
+    </a>
     <nav class="workspace-navigation" aria-label="<%= t('header.workspace_navigation') %>">
       <%= render "notes/library_button" %>
       <%= render "notes/settings_button" %>

@@ -1,0 +1,14 @@
+<% if recent_files.empty? %>
+  <p class="home-empty"><%= t('home.empty') %></p>
+<% else %>
+  <ul class="home-recent-list">
+    <% recent_files.each do |entry| %>
+      <li>
+        <a href="<%= note_path(path: entry.fetch('path')) %>" data-action="click->home#open" data-path="<%= entry.fetch('path') %>">
+          <span class="home-file-name"><%= File.basename(entry.fetch('path'), '.md') %></span>
+          <span class="home-file-path"><%= entry.fetch('path') %></span>
+        </a>
+      </li>
+    <% end %>
+  </ul>
+<% end %>

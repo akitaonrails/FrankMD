@@ -12,6 +12,7 @@ class NotesController < ApplicationController
     @config_obj = Config.new
     @media_storage_fallback = recover_media_storage(@config_obj, consume: true)
     @config = load_config
+    @recent_files = RecentFilesService.new(config: @config_obj).entries
     @expanded_folders = Set.new
     @selected_file = @initial_path || ""
   end
@@ -51,6 +52,7 @@ class NotesController < ApplicationController
     @config_obj = Config.new
     @media_storage_fallback = recover_media_storage(@config_obj, consume: true)
     @config = load_config
+    @recent_files = RecentFilesService.new(config: @config_obj).entries
     @expanded_folders = Set.new
     @selected_file = path
     render :index, formats: [ :html ]
@@ -168,7 +170,7 @@ class NotesController < ApplicationController
       return
     end
 
-    if full_path == notes_path.join(NotesService::FILESYSTEM_LOCK_FILENAME).cleanpath
+    if [ NotesService::FILESYSTEM_LOCK_FILENAME, Config::LOCK_FILE ].any? { |name| full_path == notes_path.join(name).cleanpath }
       head :not_found
       return
     end
