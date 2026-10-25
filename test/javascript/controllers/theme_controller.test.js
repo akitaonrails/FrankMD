@@ -56,6 +56,48 @@ describe("ThemeController", () => {
     vi.restoreAllMocks()
   })
 
+  describe("custom themes", () => {
+    const palette = { version: 1, name: '<img src=x onerror="evil()">', base: "nord", colors: { accent: "#112233" } }
+
+    it("escapes the name, uses base mode, and removes overrides on cancellation", () => {
+      const snapshot = controller.captureTheme()
+      controller.previewCustom(palette)
+      expect(document.documentElement.dataset.theme).toBe("nord")
+      expect(document.documentElement.style.getPropertyValue("--theme-accent")).toBe("#112233")
+      expect(controller.menuTarget.querySelector("img")).toBeNull()
+      expect(controller.currentThemeTarget.textContent).toBe(palette.name)
+      controller.restoreTheme(snapshot)
+      expect(document.documentElement.dataset.theme).toBe("dark")
+      expect(document.documentElement.style.getPropertyValue("--theme-accent")).toBe("")
+    })
+
+    it("applies updated palette data even when the saved theme id is unchanged", () => {
+      controller.customValue = palette
+      controller.currentThemeId = "custom"
+      controller.applyTheme()
+      window.dispatchEvent(new CustomEvent("frankmd:config-changed", { detail: {
+        theme: "custom", customTheme: { ...palette, colors: { accent: "#abcdef" } }
+      } }))
+      expect(document.documentElement.style.getPropertyValue("--theme-accent")).toBe("#abcdef")
+      controller.currentThemeId = "light"
+      controller.applyTheme()
+      expect(document.documentElement.style.getPropertyValue("--theme-accent")).toBe("")
+      expect(document.documentElement.classList.contains("dark")).toBe(false)
+    })
+
+    it("ignores a delayed Omarchy response after a custom preview starts", async () => {
+      let resolve
+      global.fetch.mockImplementationOnce(() => new Promise(done => { resolve = done }))
+      controller.currentThemeId = "omarchy"
+      controller.applyTheme()
+      controller.previewCustom(palette)
+      resolve({ ok: true, json: async () => ({ variables: {}, is_dark: false, theme_name: "old" }) })
+      await new Promise(done => setTimeout(done, 0))
+      expect(document.documentElement.dataset.theme).toBe("nord")
+      expect(document.documentElement.style.getPropertyValue("--theme-accent")).toBe("#112233")
+    })
+  })
+
   describe("static themes", () => {
     it("has Light and Dark as first two themes", () => {
       expect(ThemeController.themes[0].id).toBe("light")

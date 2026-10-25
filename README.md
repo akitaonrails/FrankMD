@@ -1066,6 +1066,21 @@ Linked images retain their link behavior and have a separate enlarge button.
 Images fit the viewport, and closing the overlay returns keyboard focus to the
 image control (or the preview if the image was replaced while it was open).
 
+## Create a custom theme
+
+In Settings → General, choose **Customize theme**. Start from a built-in theme,
+name your palette, and change the accent, background, and text colors. Advanced
+colors include surfaces, borders, selection, headings, status colors, and code
+syntax roles. The application and sample note preview changes immediately;
+Cancel or Escape restores the previous appearance. Save writes the custom theme
+and its selection to `.fed`, so browsers using the same notes workspace can use
+it. One custom theme is saved per workspace; Customize opens it for further edits.
+
+Unchanged colors inherit from the base theme. **Reset colors** clears overrides,
+and low-contrast combinations display a warning. Built-in themes remain available
+in the theme selector. Fonts and sizes retain their existing Editor settings.
+Custom themes accept color values only, without arbitrary CSS or external assets.
+
 ## Contributing
 
 ### Getting Started

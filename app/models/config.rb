@@ -12,6 +12,7 @@ class Config
     # UI Settings
     "theme" => { default: nil, type: :string, env: nil },
     "recent_files" => { default: [], type: :json, env: nil },
+    "custom_theme" => { default: nil, type: :custom_theme, env: nil },
     "locale" => { default: "en", type: :string, env: "FRANKMD_LOCALE" },
     "editor_font" => { default: "cascadia-code", type: :string, env: nil },
     "editor_font_size" => { default: 14, type: :integer, env: nil },
@@ -94,6 +95,7 @@ class Config
   # Keys that are UI settings (saved from frontend)
   UI_KEYS = %w[
     theme
+    custom_theme
     locale
     editor_font
     editor_font_size
@@ -527,8 +529,8 @@ class Config
         if SCHEMA.key?(key)
           begin
             @values[key] = cast_value(value, SCHEMA[key][:type])
-          rescue JSON::ParserError
-            Rails.logger.warn("Ignoring invalid JSON setting #{key}")
+          rescue ArgumentError, JSON::ParserError
+            Rails.logger.warn("Ignoring invalid setting #{key}")
           end
         end
       end
@@ -541,6 +543,8 @@ class Config
     case type
     when :json
       value.is_a?(String) ? JSON.parse(value) : JSON.parse(JSON.generate(value))
+    when :custom_theme
+      CustomTheme.parse(value)
     when :integer
       value.to_i
     when :boolean
@@ -631,6 +635,8 @@ class Config
 
     case SCHEMA[key][:type]
     when :json
+      "#{key} = #{JSON.generate(value)}"
+    when :custom_theme
       "#{key} = #{JSON.generate(value)}"
     when :string
       if value.to_s.match?(/["\r\n]/)

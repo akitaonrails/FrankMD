@@ -1,10 +1,13 @@
 import { Controller } from "@hotwired/stimulus"
 import { get, patch } from "@rails/request.js"
 import { toggleMenu } from "lib/menu_bounds"
+import { escapeHtml } from "lib/text_utils"
+import { applyCustomColors, clearCustomColors } from "lib/custom_theme"
 
 export default class extends Controller {
   static targets = ["menu", "currentTheme"]
-  static values = { initial: String }
+  static values = { initial: String, custom: Object, customLabel: { type: String, default: "Custom theme" } }
+  static outlets = ["custom-theme-editor"]
 
   // Built-in themes - Light and Dark first, then alphabetical
   static themes = [
@@ -40,9 +43,11 @@ export default class extends Controller {
 
     // Build runtime themes list (copy of static)
     this.runtimeThemes = [...this.constructor.themes]
+    this.syncCustomTheme()
 
     // Check omarchy availability, then apply theme and render
     this.checkOmarchyAvailability().then(() => {
+      if (!this.element.isConnected) return
       this.applyTheme()
       this.renderMenu()
     })
@@ -62,13 +67,17 @@ export default class extends Controller {
       clearTimeout(this.configSaveTimeout)
     }
     this.stopOmarchyPolling()
+    clearCustomColors()
   }
 
   // Listen for config changes (when .fed file is edited)
   setupConfigListener() {
     this.boundConfigListener = (event) => {
-      const { theme } = event.detail
-      if (theme && theme !== this.currentThemeId) {
+      if (this._customPreview) return
+      const { theme, customTheme } = event.detail
+      const paletteChanged = customTheme !== undefined
+      if (paletteChanged) this.customValue = customTheme || {}
+      if (theme && (theme !== this.currentThemeId || paletteChanged)) {
         this.currentThemeId = theme
         this.applyTheme()
         this.renderMenu()
@@ -98,10 +107,11 @@ export default class extends Controller {
 
     this.configSaveTimeout = setTimeout(async () => {
       try {
-        const response = await patch("/config", {
+        this.themeSavePromise = patch("/config", {
           body: { theme: themeId },
           responseKind: "json"
         })
+        const response = await this.themeSavePromise
 
         if (!response.ok) {
           console.warn("Failed to save theme config:", await response.text)
@@ -116,11 +126,13 @@ export default class extends Controller {
   }
 
   applyTheme() {
+    const generation = this._themeGeneration = (this._themeGeneration || 0) + 1
+    clearCustomColors()
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
     const themeId = this.currentThemeId || (prefersDark ? "dark" : "light")
 
     if (themeId === "omarchy") {
-      this.applyOmarchyTheme()
+      this.applyOmarchyTheme(generation)
       return
     }
 
@@ -128,20 +140,85 @@ export default class extends Controller {
     this.stopOmarchyPolling()
     this.removeOmarchyStyles()
 
-    // Set data-theme attribute on html element
-    document.documentElement.setAttribute("data-theme", themeId)
+    const palette = this._customPreview || this.customValue
+    const custom = themeId === "custom" && this.constructor.themes.some(theme => theme.id === palette?.base)
+    const baseId = custom ? palette.base : (themeId === "custom" ? (prefersDark ? "dark" : "light") : themeId)
+    document.documentElement.setAttribute("data-theme", baseId)
+    if (custom) applyCustomColors(palette.colors)
 
-    // Also set dark class for Tailwind dark: variants
-    const isDarkTheme = !this.constructor.lightThemes.includes(themeId)
+    // Keep Tailwind variants consistent with the custom palette's base mode.
+    const isDarkTheme = !this.constructor.lightThemes.includes(baseId)
     document.documentElement.classList.toggle("dark", isDarkTheme)
 
-    this.updateCurrentThemeDisplay(themeId)
-    this.updateMenuCheckmarks(themeId)
+    const displayId = themeId === "custom" && !custom ? baseId : themeId
+    this.updateCurrentThemeDisplay(displayId)
+    this.updateMenuCheckmarks(displayId)
   }
 
-  async applyOmarchyTheme() {
+  customValueChanged() {
+    if (!this.runtimeThemes) return
+    this.syncCustomTheme()
+    this.applyTheme()
+    this.renderMenu()
+  }
+
+  syncCustomTheme() {
+    this.runtimeThemes = this.runtimeThemes.filter(theme => theme.id !== "custom")
+    const palette = this._customPreview || this.customValue
+    if (this.constructor.themes.some(theme => theme.id === palette?.base)) {
+      this.runtimeThemes.push({ id: "custom", name: palette.name?.trim() || this.customLabelValue, icon: "palette" })
+    }
+  }
+
+  openCustomEditor(event) {
+    if (this.hasCustomThemeEditorOutlet) this.customThemeEditorOutlet.open(event?.currentTarget)
+  }
+
+  captureTheme() {
+    return { id: this.currentThemeId, custom: JSON.parse(JSON.stringify(this.customValue || {})) }
+  }
+
+  previewCustom(palette) {
+    this._customPreview = palette
+    this.currentThemeId = "custom"
+    this.syncCustomTheme()
+    this.applyTheme()
+    this.renderMenu()
+  }
+
+  restoreTheme(snapshot) {
+    this._customPreview = null
+    this.currentThemeId = snapshot.id
+    this.customValue = snapshot.custom
+    this.syncCustomTheme()
+    this.applyTheme()
+    this.renderMenu()
+  }
+
+  async saveCustomTheme(palette) {
+    clearTimeout(this.configSaveTimeout)
+    await this.themeSavePromise?.catch(() => {})
+    const response = await patch("/config", {
+      body: { theme: "custom", custom_theme: JSON.stringify(palette) },
+      responseKind: "json"
+    })
+    if (!response.ok) return false
+    const data = await response.json
+    if (!data.settings?.custom_theme) return false
+    this._customPreview = null
+    this.customValue = data.settings.custom_theme
+    this.currentThemeId = data.settings.theme
+    this.syncCustomTheme()
+    this.applyTheme()
+    this.renderMenu()
+    window.dispatchEvent(new CustomEvent("frankmd:config-file-modified"))
+    return true
+  }
+
+  async applyOmarchyTheme(generation = this._themeGeneration) {
     try {
       const response = await get("/config/omarchy_theme", { responseKind: "json" })
+      if (generation !== this._themeGeneration || !this.element.isConnected) return
 
       if (!response.ok) {
         // Omarchy no longer available - fall back to dark
@@ -153,6 +230,7 @@ export default class extends Controller {
       }
 
       const data = await response.json
+      if (generation !== this._themeGeneration || !this.element.isConnected) return
       this.omarchyThemeName = data.theme_name
       this.injectOmarchyStyles(data.variables)
 
@@ -168,6 +246,7 @@ export default class extends Controller {
       // Start polling for theme changes
       this.startOmarchyPolling()
     } catch (error) {
+      if (generation !== this._themeGeneration || !this.element.isConnected) return
       console.warn("Failed to apply Omarchy theme:", error)
       this.currentThemeId = "dark"
       this.saveThemeConfig("dark")
@@ -204,6 +283,7 @@ export default class extends Controller {
     this.omarchyPollingInterval = setInterval(async () => {
       try {
         const response = await get("/config/omarchy_theme", { responseKind: "json" })
+        if (this.currentThemeId !== "omarchy" || !this.element.isConnected) return
 
         if (!response.ok) {
           // Omarchy was removed - fall back
@@ -216,6 +296,7 @@ export default class extends Controller {
         }
 
         const data = await response.json
+        if (this.currentThemeId !== "omarchy" || !this.element.isConnected) return
         if (data.theme_name !== this.omarchyThemeName) {
           this.omarchyThemeName = data.theme_name
           this.injectOmarchyStyles(data.variables)
@@ -280,7 +361,7 @@ export default class extends Controller {
       >
         <span class="flex items-center gap-2">
           ${this.getIcon(theme.icon)}
-          ${theme.name}
+          ${escapeHtml(theme.name)}
         </span>
         <svg class="w-4 h-4 checkmark ${theme.id !== currentTheme ? 'opacity-0' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
