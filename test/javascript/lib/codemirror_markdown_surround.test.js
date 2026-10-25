@@ -75,6 +75,14 @@ describe("typed Markdown surround", () => {
     expect(selected()).toEqual(["first\nsecond"])
   })
 
+  it("handles many backtick runs without exceeding JavaScript argument limits", () => {
+    const content = "a` ".repeat(130000)
+    editor(content)
+    expect(type("`")).toBe(true)
+    expect(view.state.doc.toString()).toBe(`\`\`${content}\`\``)
+    expect(selected()).toEqual([content])
+  })
+
   it("leaves empty-cursor typing and unrelated punctuation to CodeMirror", () => {
     editor("sample", [EditorSelection.cursor(3)])
     expect(type("*")).toBe(false)

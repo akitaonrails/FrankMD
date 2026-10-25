@@ -7,7 +7,7 @@ const markers = new Set(["*", "_", "`", "~", "^", "="])
 function delimiters(marker, content) {
   if (marker !== "`") return [marker, marker]
   const runs = content.match(/`+/g) || []
-  const delimiter = "`".repeat(Math.max(0, ...runs.map(run => run.length)) + 1)
+  const delimiter = "`".repeat(runs.reduce((longest, run) => Math.max(longest, run.length), 0) + 1)
   const padding = content.startsWith("`") || content.endsWith("`") ||
     (content.startsWith(" ") && content.endsWith(" ") && content.trim()) ? " " : ""
   return [delimiter + padding, padding + delimiter]
