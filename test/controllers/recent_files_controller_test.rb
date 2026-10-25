@@ -19,6 +19,16 @@ class RecentFilesControllerTest < ActionDispatch::IntegrationTest
     assert_empty RecentFilesService.new.entries
   end
 
+  test "index answers the HTML panel regardless of accept header" do
+    create_test_note("plain.md")
+    post recent_files_url, params: { path: "plain.md" }, as: :json
+
+    get recent_files_url, as: :json
+    assert_response :success
+    assert_includes response.content_type, "text/html"
+    assert_select 'a[data-path="plain.md"]'
+  end
+
   test "missing notes cannot be recorded and config state is not user-writable" do
     post recent_files_url, params: { path: "missing.md" }, as: :json
     assert_response :not_found

@@ -2,7 +2,10 @@
 
 class RecentFilesController < ApplicationController
   def index
-    render partial: "notes/recent_files", locals: { recent_files: history.entries }
+    # The Home panel fetches this without a JSON Accept header; an explicit
+    # formats render keeps stray JSON accept-headers from hunting for a
+    # nonexistent :json partial (500) instead of answering the HTML panel.
+    render partial: "notes/recent_files", locals: { recent_files: history.entries }, formats: :html
   end
 
   def create
