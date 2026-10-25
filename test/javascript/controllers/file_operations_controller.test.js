@@ -6,7 +6,7 @@ vi.mock("lib/app_prompt", () => ({
   appAlert: vi.fn().mockResolvedValue(undefined),
   appConfirm: vi.fn().mockResolvedValue(true)
 }))
-import { Application } from "@hotwired/stimulus"
+import { Application, Controller } from "@hotwired/stimulus"
 import FileOperationsController from "../../../app/javascript/controllers/file_operations_controller.js"
 import { appAlert, appConfirm } from "lib/app_prompt"
 
@@ -222,6 +222,62 @@ describe("FileOperationsController", () => {
       controller.newNote()
 
       expect(controller.newNoteDialogTarget.showModal).toHaveBeenCalled()
+    })
+
+    it("uses the current selected folder for notes and folders", async () => {
+      const selection = [{ path: "docs/nested", type: "folder" }]
+      application.register("app", class extends Controller {
+        getSelectedExplorerItems() { return selection }
+      })
+      const appElement = document.createElement("div")
+      appElement.dataset.controller = "app"
+      document.body.appendChild(appElement)
+      element.dataset.fileOperationsAppOutlet = '[data-controller~="app"]'
+      await vi.waitFor(() => expect(controller.hasAppOutlet).toBe(true))
+      controller.newNote()
+      controller.newNoteInputTarget.value = "sample"
+      controller.onNewNoteInput()
+      expect(controller.newNotePathTarget.textContent).toBe("docs/nested/sample.md")
+      await controller.submitNewNote()
+      expect(global.fetch).toHaveBeenCalledWith("/notes/docs/nested/sample.md", expect.anything())
+      controller.newFolder()
+      expect(controller.newItemParent).toBe("docs/nested")
+      expect(controller.newItemLocationTarget.textContent).toContain("docs/nested")
+      controller.newItemInputTarget.value = "child"
+      await controller.submitNewItem()
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining("/folders/docs/nested/child?"), expect.anything())
+      selection.push({ path: "other", type: "folder" })
+      expect(controller.selectedCreationFolder()).toBe("")
+      selection.splice(0, 2, { path: "docs/note.md", type: "file" })
+      expect(controller.selectedCreationFolder()).toBe("")
+      selection.length = 0
+      expect(controller.selectedCreationFolder()).toBe("")
+    })
+
+    it("ignores the automatically selected folder only for Hugo", async () => {
+      controller.selectedCreationFolder = () => "docs/nested"
+      controller.newNote()
+      controller.newNoteInputTarget.value = "sample"
+      controller.setNewNoteTemplate("hugo")
+      controller.updateNewNotePreview()
+      expect(controller.newNotePathTarget.textContent).not.toContain("docs/nested")
+      controller.setNewNoteTemplate("empty")
+      controller.updateNewNotePreview()
+      expect(controller.newNotePathTarget.textContent).toBe("docs/nested/sample.md")
+      controller.setNewNoteTemplate("hugo")
+      await controller.submitNewNote()
+      expect(JSON.parse(global.fetch.mock.calls[0][1].body).parent).toBe("")
+    })
+
+    it("keeps explicit Hugo workspace destinations", async () => {
+      controller.openNewNoteDialog("content/posts")
+      controller.setNewNoteTemplate("hugo")
+      controller.newNoteInputTarget.value = "sample"
+      controller.hugoPathStyleValue = "flat"
+      controller.updateNewNotePreview()
+      expect(controller.newNotePathTarget.textContent).toBe("content/posts/sample.md")
+      await controller.submitNewNote()
+      expect(JSON.parse(global.fetch.mock.calls[0][1].body).parent).toBe("content/posts")
     })
 
     it("clears a stale parent from a prior folder-scoped new note", () => {

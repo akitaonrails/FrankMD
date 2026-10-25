@@ -41,6 +41,10 @@ describe("new_note_utils", () => {
     })
   })
 
+  it("previews flat Hugo posts within their explicit parent", () => {
+    expect(previewNotePath({ name: "My Post", parent: "blog", template: "hugo", pathStyle: "flat" }).path).toBe("blog/my-post.md")
+  })
+
   describe("hugoDatePath", () => {
     it("formats YYYY/MM/DD with zero-padding", () => {
       expect(hugoDatePath(new Date(2026, 7, 18))).toBe("2026/08/18")
