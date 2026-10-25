@@ -12,6 +12,7 @@ import { LINE_NUMBER_MODES } from "lib/line_numbers"
 import { createWikilinkAutocomplete } from "lib/codemirror_wikilink"
 import { createSlashCommandCompletionSource, renderSlashCommandIcon } from "lib/codemirror_slash_commands"
 import { imageFileFromClipboard } from "lib/clipboard_image"
+import { markdownSurround } from "lib/codemirror_markdown_surround"
 import { vim } from "@replit/codemirror-vim"
 
 // Re-export for convenience
@@ -286,6 +287,7 @@ export function createExtensions(options = {}) {
 
     // Markdown language support
     markdown({ base: markdownLanguage }),
+    markdownSurround,
 
     // Visual features
     // Native selection follows the text on multiline and wrapped lines.

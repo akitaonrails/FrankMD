@@ -1028,6 +1028,15 @@ docker run -p 7591:80 -v $(pwd)/notes:/rails/notes frankmd
 
 MIT License - see [LICENSE](LICENSE) for details.
 
+## Surround selected text
+
+Select text and type `*`, `_`, a backtick, `~`, `^`, or `=` to surround it with
+matching Markdown markers. The inner text stays selected: typing `*` twice gives
+bold, and typing `=` twice gives highlighted text. Existing formatting shortcuts
+keep their toggle behavior. Multiple and backward selections are preserved;
+empty cursors keep normal typing behavior. Pasting and IME composition are not
+changed. Backticks inside the selection use a longer delimiter automatically.
+
 ## Contributing
 
 ### Getting Started
