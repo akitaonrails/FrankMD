@@ -194,6 +194,12 @@ pt-PT:
 
   # Painel de pré-visualização
   preview:
+    image_viewer:
+      title: "Pré-visualização da imagem"
+      open: "Ampliar %{name}"
+      image: "imagem"
+      loading: "A carregar imagem…"
+      error: "Não foi possível carregar esta imagem."
     title: "Pré-visualização"
     zoom_in: "Aumentar Zoom"
     zoom_out: "Diminuir Zoom"

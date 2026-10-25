@@ -195,6 +195,12 @@ en:
 
   # Preview panel
   preview:
+    image_viewer:
+      title: "Image preview"
+      open: "Enlarge %{name}"
+      image: "image"
+      loading: "Loading image…"
+      error: "Unable to load this image."
     title: "Preview"
     zoom_in: "Zoom In"
     zoom_out: "Zoom Out"

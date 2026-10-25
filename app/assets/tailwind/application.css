@@ -77,6 +77,7 @@
 @import "./components/dialog.css";
 @import "./components/menu.css";
 @import "./components/image-picker.css";
+@import "./components/image-viewer.css";
 @import "./components/table-editor.css";
 @import "./components/ai-diff.css";
 @import "./components/math.css";

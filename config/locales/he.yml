@@ -194,6 +194,12 @@ he:
 
   # לוח תצוגה מקדימה
   preview:
+    image_viewer:
+      title: "תצוגה מקדימה של תמונה"
+      open: "הגדלת %{name}"
+      image: "תמונה"
+      loading: "טעינת תמונה…"
+      error: "לא ניתן לטעון את התמונה."
     title: "תצוגה מקדימה"
     zoom_in: "הגדל"
     zoom_out: "הקטן"

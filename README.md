@@ -1028,6 +1028,14 @@ docker run -p 7591:80 -v $(pwd)/notes:/rails/notes frankmd
 
 MIT License - see [LICENSE](LICENSE) for details.
 
+## Enlarge preview images
+
+Click an image in the Markdown preview, or focus it and press Enter/Space, to open
+an image overlay. Close it with the top-right button, Escape, or the backdrop.
+Linked images retain their link behavior and have a separate enlarge button.
+Images fit the viewport, and closing the overlay returns keyboard focus to the
+image control (or the preview if the image was replaced while it was open).
+
 ## Contributing
 
 ### Getting Started
