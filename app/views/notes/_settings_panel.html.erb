@@ -17,6 +17,7 @@
   data-settings-vim-mode-value="<%= @config_obj.get('vim_mode') || false %>"
   data-settings-scroll-sync-value="<%= @config_obj.get('scroll_sync') %>"
   data-settings-indent-value="<%= @config_obj.get('editor_indent') || 2 %>"
+  data-settings-custom-theme-value="<%= (@config_obj.get('custom_theme') || {}).to_json %>"
   data-settings-theme-value="<%= @config_obj.get('theme') || '' %>"
   data-settings-view-mode-value="<%= @config_obj.get('view_mode') || 'split' %>"
   aria-labelledby="settings-title"
@@ -131,7 +132,7 @@
               <p class="text-sm font-medium"><%= t('settings.theme') %></p>
               <p class="mt-0.5 text-xs text-[var(--theme-text-muted)]"><%= t('settings.theme_description') %></p>
             </div>
-            <div class="relative shrink-0" data-controller="theme" data-theme-initial-value="<%= @config&.dig(:settings, 'theme') %>">
+            <div class="relative shrink-0" data-controller="theme" data-theme-initial-value="<%= @config&.dig(:settings, 'theme') %>" data-theme-custom-value="<%= (@config_obj.get('custom_theme') || {}).to_json %>" data-theme-custom-label-value="<%= t('settings.custom_theme.default_name') %>" data-theme-custom-theme-editor-outlet='[data-controller~="custom-theme-editor"]' >
               <button
                 type="button"
                 data-action="click->theme#toggle"
@@ -149,6 +150,7 @@
               >
                 <!-- Menu items rendered by JavaScript -->
               </div>
+              <button type="button" class="mt-2 w-40 text-xs text-[var(--theme-accent)] underline" data-action="click->theme#openCustomEditor"><%= t('settings.custom_theme.customize') %></button>
             </div>
           </div>
 

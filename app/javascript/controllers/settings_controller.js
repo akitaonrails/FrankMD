@@ -44,6 +44,7 @@ export default class extends Controller {
     scrollSync: { type: Boolean, default: true },
     indent: { type: Number, default: 2 },
     theme: { type: String, default: "" },
+    customTheme: Object,
     viewMode: { type: String, default: "split" }
   }
 
@@ -148,6 +149,10 @@ export default class extends Controller {
     if (this.element.isConnected) this.applyTheme()
   }
 
+  customThemeValueChanged() {
+    if (this.element.isConnected) this.applyTheme()
+  }
+
   // === Apply Methods ===
 
   applyFont() {
@@ -199,7 +204,7 @@ export default class extends Controller {
   applyTheme() {
     if (this.themeValue) {
       window.dispatchEvent(new CustomEvent("frankmd:config-changed", {
-        detail: { theme: this.themeValue }
+        detail: { theme: this.themeValue, customTheme: this.customThemeValue }
       }))
     }
   }
@@ -283,6 +288,7 @@ export default class extends Controller {
       if (Object.prototype.hasOwnProperty.call(settings, "scroll_sync")) {
         this.assignIfChanged("scrollSyncValue", settings.scroll_sync !== false)
       }
+      if (Object.prototype.hasOwnProperty.call(settings, "custom_theme")) this.customThemeValue = settings.custom_theme || {}
       this.assignIfChanged("themeValue", settings.theme)
       this.assignIfChanged("viewModeValue", settings.view_mode === "single" ? "single" : "split")
       this.syncControls()

@@ -4,12 +4,13 @@
 # Provides defaults from ENV variables that can be overridden per-folder.
 class Config
   CONFIG_FILE = ".fed"
-  CONFIG_VERSION = 5  # Increment when adding new settings
+  CONFIG_VERSION = 6  # Increment when adding new settings
 
   # All configurable options with their defaults and types
   SCHEMA = {
     # UI Settings
     "theme" => { default: nil, type: :string, env: nil },
+    "custom_theme" => { default: nil, type: :custom_theme, env: nil },
     "locale" => { default: "en", type: :string, env: "FRANKMD_LOCALE" },
     "editor_font" => { default: "cascadia-code", type: :string, env: nil },
     "editor_font_size" => { default: 14, type: :integer, env: nil },
@@ -92,6 +93,7 @@ class Config
   # Keys that are UI settings (saved from frontend)
   UI_KEYS = %w[
     theme
+    custom_theme
     locale
     editor_font
     editor_font_size
@@ -502,7 +504,11 @@ class Config
 
         # Only accept known keys
         if SCHEMA.key?(key)
-          @values[key] = cast_value(value, SCHEMA[key][:type])
+          begin
+            @values[key] = cast_value(value, SCHEMA[key][:type])
+          rescue ArgumentError, JSON::ParserError
+            Rails.logger.warn("Ignoring invalid setting #{key}")
+          end
         end
       end
     end
@@ -512,6 +518,8 @@ class Config
     return nil if value.nil? || value.to_s.strip.empty?
 
     case type
+    when :custom_theme
+      CustomTheme.parse(value)
     when :integer
       value.to_i
     when :boolean
@@ -594,6 +602,8 @@ class Config
     end
 
     case SCHEMA[key][:type]
+    when :custom_theme
+      "#{key} = #{JSON.generate(value)}"
     when :string
       if value.to_s.match?(/["\r\n]/)
         raise ArgumentError, "String configuration values cannot contain quotes or line breaks"

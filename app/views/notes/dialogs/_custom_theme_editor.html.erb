@@ -1,0 +1,41 @@
+<dialog class="custom-theme-editor" data-controller="custom-theme-editor" data-custom-theme-editor-theme-outlet='[data-controller~="theme"]' data-custom-theme-editor-default-name-value="<%= t('settings.custom_theme.default_name') %>" data-custom-theme-editor-invalid-value="<%= t('settings.custom_theme.invalid_color') %>" data-custom-theme-editor-error-value="<%= t('settings.custom_theme.save_failed') %>" data-custom-theme-editor-warning-value="<%= t('settings.custom_theme.contrast_warning', ratio: '%{ratio}') %>" data-action="cancel->custom-theme-editor#onCancel close->custom-theme-editor#onClose click->custom-theme-editor#closeOnBackdrop" aria-labelledby="custom-theme-title">
+  <form class="custom-theme-form" data-action="submit->custom-theme-editor#save">
+    <header class="custom-theme-header">
+      <div><h2 id="custom-theme-title"><%= t('settings.custom_theme.title') %></h2><p><%= t('settings.custom_theme.description') %></p></div>
+      <button type="button" class="custom-theme-close" data-action="click->custom-theme-editor#close" aria-label="<%= t('common.close') %>"><%= render 'shared/icon_close', size: 'w-5 h-5' %></button>
+    </header>
+    <div class="custom-theme-body">
+      <fieldset data-custom-theme-editor-target="form">
+        <div class="custom-theme-card">
+          <div class="custom-theme-row"><label for="custom-theme-name"><%= t('settings.custom_theme.name') %></label><input id="custom-theme-name" type="text" maxlength="60" required data-custom-theme-editor-target="name" data-action="input->custom-theme-editor#onName"></div>
+          <div class="custom-theme-row"><label for="custom-theme-base"><%= t('settings.custom_theme.base') %></label><select id="custom-theme-base" data-custom-theme-editor-target="base" data-action="change->custom-theme-editor#onBase"></select></div>
+          <% CustomTheme::BASIC_COLORS.each do |key| %>
+            <%= render 'notes/dialogs/custom_theme_color', key: key %>
+          <% end %>
+        </div>
+        <p class="custom-theme-hint"><%= t('settings.custom_theme.font_hint') %></p>
+        <div class="custom-theme-preview" aria-label="<%= t('settings.custom_theme.preview') %>">
+          <h3><%= t('settings.custom_theme.sample_title') %></h3>
+          <p><%= t('settings.custom_theme.sample_text') %> <span class="custom-theme-link"><%= t('settings.custom_theme.sample_link') %></span></p>
+          <pre><code><span class="custom-theme-keyword">const</span> <span class="custom-theme-identifier">message</span> = <span class="custom-theme-string">"Hello, world!"</span>;</code></pre>
+        </div>
+        <details class="custom-theme-advanced">
+          <summary><%= t('settings.custom_theme.advanced') %></summary>
+          <div class="custom-theme-card">
+            <% (CustomTheme::COLOR_KEYS - CustomTheme::BASIC_COLORS).each do |key| %>
+              <%= render 'notes/dialogs/custom_theme_color', key: key %>
+            <% end %>
+          </div>
+        </details>
+      </fieldset>
+    </div>
+    <div class="custom-theme-feedback">
+      <p class="custom-theme-warning" role="status" data-custom-theme-editor-target="contrast"></p>
+      <p class="custom-theme-error" role="status" data-custom-theme-editor-target="status"></p>
+    </div>
+    <footer class="custom-theme-footer">
+      <button type="button" class="custom-theme-reset" data-action="click->custom-theme-editor#reset"><%= t('settings.custom_theme.reset') %></button>
+      <div><button type="button" data-action="click->custom-theme-editor#close"><%= t('common.cancel') %></button><button type="submit" class="custom-theme-save" data-custom-theme-editor-target="save"><%= t('common.save') %></button></div>
+    </footer>
+  </form>
+</dialog>

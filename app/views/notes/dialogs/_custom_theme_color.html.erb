@@ -1,0 +1,7 @@
+<div class="custom-theme-row">
+  <label for="custom-theme-<%= key %>"><%= t("settings.custom_theme.colors.#{key.tr('-', '_')}") %></label>
+  <div class="custom-theme-color-control">
+    <input type="color" aria-label="<%= t('settings.custom_theme.color_picker', name: t("settings.custom_theme.colors.#{key.tr('-', '_')}")) %>" data-custom-theme-editor-target="color" data-key="<%= key %>" data-action="input->custom-theme-editor#onColor">
+    <input id="custom-theme-<%= key %>" type="text" class="custom-theme-hex" maxlength="7" pattern="#[0-9a-fA-F]{6}" spellcheck="false" autocomplete="off" data-custom-theme-editor-target="hex" data-key="<%= key %>" data-action="input->custom-theme-editor#onColor">
+  </div>
+</div>
