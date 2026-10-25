@@ -1,5 +1,7 @@
 <!-- File Operations - Context Menu and Dialogs -->
 <div data-controller="file-operations"
+     data-file-operations-app-outlet='[data-controller~="app"]'
+     data-file-operations-hugo-path-style-value="<%= @config_obj.get('hugo_path_style') %>"
      data-action="file-operations:file-created->app#onFileCreated file-operations:folder-created->app#onFolderCreated file-operations:file-renamed->app#onFileRenamed file-operations:file-deleted->app#onFileDeleted">
 
   <!-- Context Menu -->

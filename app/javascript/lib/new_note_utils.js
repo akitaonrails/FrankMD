@@ -79,7 +79,7 @@ export function canCreateNote(name, template = "empty") {
 //   valid - false when the current name cannot be used to create a note
 //   empty - true when the name is blank (preview shows the muted slot)
 //   path  - the full path string to display
-export function previewNotePath({ name, parent = "", template = "empty", date = new Date(), namePlaceholder = "name", rootSegment = "root" }) {
+export function previewNotePath({ name, parent = "", template = "empty", pathStyle = "dated", date = new Date(), namePlaceholder = "name", rootSegment = "root" }) {
   const trimmed = (name || "").trim()
   const empty = !trimmed
   const where = parent || rootSegment
@@ -90,7 +90,7 @@ export function previewNotePath({ name, parent = "", template = "empty", date = 
     return {
       valid: canCreateNote(trimmed, "hugo"),
       empty,
-      path: `${where}/${hugoDatePath(date)}/${slot}/index.md`
+      path: pathStyle === "flat" ? `${where}/${slot}.md` : `${where}/${hugoDatePath(date)}/${slot}/index.md`
     }
   }
 

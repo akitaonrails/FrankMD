@@ -11,6 +11,9 @@ import { clearInlineError, showInlineError } from "lib/inline_messages"
 // Dispatches events: file-created, file-renamed, file-deleted, folder-created
 
 export default class extends Controller {
+  static outlets = ["app"]
+  static values = { hugoPathStyle: { type: String, default: "dated" } }
+
   static targets = [
     "contextMenu",
     "renameDialog",
@@ -168,11 +171,13 @@ export default class extends Controller {
     }
   }
 
-  // New Note (root). Clear any parent left over from a prior folder-scoped
-  // "New Note in Folder" that was cancelled, so a root note is created at the
-  // root — and the path preview reflects that.
+  selectedCreationFolder() {
+    const items = this.hasAppOutlet ? this.appOutlet.getSelectedExplorerItems() : []
+    return items.length === 1 && items[0].type === "folder" ? items[0].path : ""
+  }
+
   newNote() {
-    this.openNewNoteDialog("")
+    this.openNewNoteDialog(this.selectedCreationFolder(), { fromSelection: true })
   }
 
   // New Note in Folder (from context menu)
@@ -183,9 +188,10 @@ export default class extends Controller {
   }
 
   // Single-step New Note dialog: name input + type cards + live path preview.
-  openNewNoteDialog(parent = "") {
+  openNewNoteDialog(parent = "", { fromSelection = false } = {}) {
     this.newItemType = "note"
     this.newItemParent = parent || ""
+    this.newNoteParentFromSelection = fromSelection
     this.setNewNoteTemplate("empty")
     clearInlineError(this.hasNewNoteErrorTarget ? this.newNoteErrorTarget : null)
 
@@ -208,6 +214,7 @@ export default class extends Controller {
     this.newItemType = null
     this.newItemParent = ""
     this.newNoteTemplate = "empty"
+    this.newNoteParentFromSelection = false
   }
 
   focusNewNoteInput() {
@@ -243,13 +250,18 @@ export default class extends Controller {
     this.updateNewNotePreview()
   }
 
+  newNoteParent() {
+    return this.newNoteTemplate === "hugo" && this.newNoteParentFromSelection ? "" : this.newItemParent
+  }
+
   updateNewNotePreview() {
     if (!this.hasNewNotePathTarget) return
 
     const result = previewNotePath({
       name: this.hasNewNoteInputTarget ? this.newNoteInputTarget.value : "",
-      parent: this.newItemParent,
+      parent: this.newNoteParent(),
       template: this.newNoteTemplate,
+      pathStyle: this.hugoPathStyleValue,
       namePlaceholder: window.t("dialogs.new_note.name_slot"),
       rootSegment: window.t("dialogs.new_note.root")
     })
@@ -276,7 +288,7 @@ export default class extends Controller {
     // fire — gate the keyboard path with the same rule.
     if (!canCreateNote(name, template)) return
 
-    const parent = this.newItemParent
+    const parent = this.newNoteParent()
     clearInlineError(this.hasNewNoteErrorTarget ? this.newNoteErrorTarget : null)
 
     try {
@@ -299,7 +311,7 @@ export default class extends Controller {
 
   // New Folder
   newFolder() {
-    this.openNewItemDialog("folder", "")
+    this.openNewItemDialog("folder", this.selectedCreationFolder())
   }
 
   // New Folder in Folder (from context menu)

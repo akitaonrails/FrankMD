@@ -1028,6 +1028,15 @@ docker run -p 7591:80 -v $(pwd)/notes:/rails/notes frankmd
 
 MIT License - see [LICENSE](LICENSE) for details.
 
+## Creation destination
+
+New Note (including Ctrl+N) and New Folder use the single selected Explorer folder.
+With no folder selected, a file selected, or multiple items selected, they use the
+notes root. Clear the Explorer selection to create at the root. The dialog shows
+the destination before creation. Hugo templates ignore this automatic folder
+selection and retain their normal destination; explicitly chosen context-menu or
+Hugo workspace destinations are preserved.
+
 ## Contributing
 
 ### Getting Started
