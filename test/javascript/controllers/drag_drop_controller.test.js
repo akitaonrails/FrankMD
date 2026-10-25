@@ -497,6 +497,27 @@ describe("DragDropController", () => {
       })
     })
 
+    it("opens the destination folder and its ancestors before posting", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        statusCode: 200,
+        headers: new Headers({ "content-type": "text/vnd.turbo-stream.html" }),
+        text: Promise.resolve("")
+      })
+      const expandedFolders = new Set(["unrelated"])
+      controller.getAppController = () => ({ expandedFolders, getAutosaveController: () => null })
+
+      await controller.moveItem("file1.md", "folder2/sub/deep/file1.md", "file")
+
+      expect(Array.from(expandedFolders).sort()).toEqual([
+        "folder2",
+        "folder2/sub",
+        "folder2/sub/deep",
+        "unrelated"
+      ])
+      expect(global.fetch).toHaveBeenCalled()
+    })
+
     it("shows an app alert on error", async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error("Network error"))
 

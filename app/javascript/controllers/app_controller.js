@@ -619,6 +619,20 @@ export default class extends Controller {
     }, 5000)
   }
 
+  // Reveal a folder's children in place. The explorer always renders every
+  // folder's children; a collapsed folder merely carries the `hidden` class.
+  expandFolderInTree(path) {
+    if (!this.hasFileTreeTarget) return
+
+    const folderEl = Array.from(this.fileTreeTarget.querySelectorAll(".tree-folder"))
+      .find((element) => element.dataset.path === path)
+    if (!folderEl) return
+
+    folderEl.querySelector(".tree-children")?.classList.remove("hidden")
+    folderEl.querySelector(".tree-chevron")?.classList.add("expanded")
+    this.expandedFolders.add(path)
+  }
+
   toggleFolder(event) {
     this.selectExplorerItem(event.currentTarget, event)
     const path = event.currentTarget.dataset.path
@@ -659,10 +673,15 @@ export default class extends Controller {
       )
     }
 
-    // Expand the target folder
+    // Expand the target folder and its ancestors. The tree was rendered by the
+    // rename response before this state existed, so reveal the children in
+    // place; otherwise a moved note disappears into a collapsed folder.
     const targetFolder = newPath.split("/").slice(0, -1).join("/")
     if (targetFolder) {
-      this.expandedFolders.add(targetFolder)
+      const segments = targetFolder.split("/")
+      segments.forEach((_, index) => {
+        this.expandFolderInTree(segments.slice(0, index + 1).join("/"))
+      })
     }
 
     // Update current file reference if it was moved
