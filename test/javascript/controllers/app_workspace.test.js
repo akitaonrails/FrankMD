@@ -23,8 +23,8 @@ describe("workspace chrome", () => {
         <div class="workspace-global-actions"><button>New note</button></div></header>
         <div data-app-target="explorerPanel"><button tabindex="0">New note</button></div><footer><div>FrankMD</div><nav><button data-app-target="libraryToggle">Library</button><button data-app-target="settingsToggle">Settings</button></nav></footer>
       </aside>
-      <div data-workspace-main><header>
-      <div class="workspace-document"><button data-app-target="sidebarOpen" data-action="click->app#toggleSidebar" hidden></button><button data-app-target="documentTitle" data-action="click->app#renameCurrentNote"></button>
+      <div data-workspace-main><button data-app-target="sidebarOpen" data-action="click->app#toggleSidebar" hidden></button><header class="workspace-header">
+      <div class="workspace-document"><button data-app-target="documentTitle" data-action="click->app#renameCurrentNote"></button>
       <input data-app-target="titleInput" class="hidden" data-action="keydown->app#onTitleRenameKeydown input->app#onTitleRenameInput blur->app#onTitleRenameBlur">
       <span data-app-target="titleSizer"></span>
       <p data-app-target="titleRenameError" class="hidden" role="alert"></p></div>
@@ -60,6 +60,32 @@ describe("workspace chrome", () => {
   })
 
   afterEach(() => { application.stop(); vi.restoreAllMocks(); document.body.innerHTML = "" })
+
+  it("hides the header only while Home is visible and restores it for other workspaces", () => {
+    const home = document.createElement("section")
+    target("editorPanel").append(home)
+    Object.defineProperties(app, {
+      hasHomeOutlet: { value: true },
+      homeOutlet: { value: { element: home } }
+    })
+    const header = root.querySelector(".workspace-header")
+    app.currentFile = null
+    app.updateWorkspaceChrome()
+    expect(header.hidden).toBe(true)
+
+    app.showLibraryWorkspace()
+    expect(header.hidden).toBe(false)
+    app.showEditorWorkspace()
+    expect(header.hidden).toBe(true)
+
+    home.classList.add("hidden")
+    app.updateWorkspaceChrome()
+    expect(header.hidden).toBe(false)
+    home.classList.remove("hidden")
+    app.currentFile = "note.md"
+    app.updateWorkspaceChrome()
+    expect(header.hidden).toBe(false)
+  })
 
   it("opens the title field with the caret at the end without selecting text", () => {
     target("documentTitle").click()

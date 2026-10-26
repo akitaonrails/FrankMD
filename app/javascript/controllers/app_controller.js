@@ -532,7 +532,6 @@ export default class extends Controller {
     this.clearPendingSlashInsertion()
     this.currentFile = null
     this.currentFileType = null
-    this.updateWorkspaceChrome?.()
     this.getAutosaveController()?.clearFile?.()
     this.updatePathDisplay(null)
     this.textareaTarget.disabled = false
@@ -540,6 +539,7 @@ export default class extends Controller {
     this.editorTarget.classList.add("hidden")
     this.editorToolbarTarget.classList.add("hidden")
     this.editorToolbarTarget.classList.remove("flex")
+    this.updateWorkspaceChrome?.()
     this.hideStatsPanel()
     if (this.hasHomeOutlet) {
       this.getPreviewController()?.hide()
@@ -615,6 +615,7 @@ export default class extends Controller {
       this.updatePathDisplay(null)
       this.editorPlaceholderTarget.classList.remove("hidden")
       this.editorTarget.classList.add("hidden")
+      this.updateWorkspaceChrome?.()
       this.hideStatsPanel()
     }, 5000)
   }
@@ -1688,6 +1689,9 @@ export default class extends Controller {
     const root = this.context?.element
     if (!root) return
     if (this._titleRename && this.currentFile !== this._titleRename.path) this.finishTitleRename()
+    const homeVisible = Boolean(this.hasHomeOutlet && !this.currentFile && !this.libraryVisible && !this.homeOutlet.element.closest(".hidden"))
+    root.querySelector(".workspace-header")?.toggleAttribute("hidden", homeVisible)
+    if (homeVisible) this.closeWorkspaceMenu(null, { restoreFocus: false })
     const markdown = Boolean(this.currentFile && this.isMarkdownFile())
     const editorVisible = !this.libraryVisible && !root.querySelector('[data-app-target~="editorPanel"]')?.classList.contains("hidden")
     const editing = markdown && editorVisible

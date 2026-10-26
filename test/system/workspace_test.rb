@@ -182,15 +182,16 @@ class WorkspaceTest < ApplicationSystemTestCase
     wait_for_tree_refresh("clean-reload.md")
   end
 
-  test "empty and missing documents cannot be renamed while Help remains accessible" do
+  test "Home hides the header and missing documents cannot be renamed" do
     visit root_url
-    assert_selector "[data-app-target='documentTitle'][disabled]"
-    find("[data-app-target='overflowToggle']").click
-    assert_selector "#workspace-menu [role='menuitem']", count: 1
+    assert_no_selector ".workspace-header"
     visit note_url(path: "missing.md")
     assert_selector "[data-app-target='currentPath']", text: "missing.md"
     assert_selector "[data-app-target='documentTitle'][disabled]"
-    assert_selector "[data-app-target='currentPath']", text: I18n.t("editor.select_note"), wait: 6
+    find("[data-app-target='overflowToggle']").click
+    assert_selector "#workspace-menu [role='menuitem']", count: 1
+    assert_selector "#home-title", wait: 6
+    assert_no_selector ".workspace-header"
   end
 
   test "Explorer header separates toggle and actions while footer owns the brand" do
@@ -242,7 +243,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     find("[data-app-target='sidebarToggle']").click
     assert_selector ".workspace-sidebar.is-hidden", visible: :all
     assert_no_selector ".workspace-sidebar", visible: true
-    assert_selector ".workspace-main > header [data-app-target='sidebarOpen']:focus", visible: true
+    assert_selector ".workspace-main > [data-app-target='sidebarOpen']:focus", visible: true
     assert page.evaluate_script(<<~JS)
       (() => {
         const opener = document.querySelector('[data-app-target="sidebarOpen"]').getBoundingClientRect();

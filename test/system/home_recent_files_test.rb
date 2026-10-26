@@ -12,6 +12,7 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
 
     visit root_url
     assert_selector "#home-title", text: "FrankMD"
+    assert_no_selector ".workspace-header"
     assert_selector ".home-recent-list a", count: 5
     assert_selector ".home-file-time[datetime]", count: 5
     assert_button "Show more"
@@ -30,6 +31,7 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
 
     find('.home-recent-list a[data-path="note-0.md"]').click
     assert_selector ".cm-content", text: "Note 0"
+    assert_selector ".workspace-header"
   end
 
   test "Home shares successful opens across visits and filters external deletions" do
@@ -38,7 +40,7 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
     visit note_url(path: "docs/first.md")
     assert_selector ".cm-content", text: "First"
     wait_for_tree_refresh("docs/first.md")
-    find('.workspace-brand[href="/"]').click
+    find('.workspace-navigation button[aria-label="Home"]').click
     assert_selector "#home-title", text: "FrankMD"
     assert_selector '.home-recent-list a[data-path="docs/first.md"]'
     assert_no_selector '[data-preview-target="panel"]:not(.hidden)'
@@ -46,7 +48,7 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
     visit note_url(path: "second.md")
     assert_selector ".cm-content", text: "Second"
     wait_for_tree_refresh("second.md")
-    find('.workspace-brand[href="/"]').click
+    find('.workspace-navigation button[aria-label="Home"]').click
     assert_selector '.home-recent-list a[data-path="second.md"]'
     assert_selector '.home-recent-list a[data-path="docs/first.md"]'
     assert_equal "second.md", find(".home-recent-list a", match: :first)["data-path"]
@@ -60,7 +62,7 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
     @test_notes_dir.join("second.md").delete
     find('.home-recent-list a[data-path="second.md"]').click
     assert_text "Note not found"
-    find('header a[aria-label="Home"]').click
+    find('.workspace-navigation button[aria-label="Home"]').click
     assert_selector "#home-title"
     assert_no_selector ".home-recent-list a"
     refute @test_notes_dir.join("second.md").exist?
@@ -72,8 +74,17 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
     visit note_url(path: "mobile.md")
     assert_selector ".cm-content", text: "Mobile"
     wait_for_tree_refresh("mobile.md")
-    find('header a[aria-label="Home"]').click
+    find('[data-app-target="sidebarOpen"]').click
+    find('.workspace-navigation button[aria-label="Home"]').click
     assert_selector "#home-title", text: "FrankMD"
+    assert_no_selector ".workspace-header"
+    assert_selector '[data-app-target="sidebarOpen"]'
+    find('[data-app-target="sidebarOpen"]').click
+    assert_selector ".workspace-sidebar.is-overlay"
+    find('[data-app-target="libraryToggle"]').click
+    assert_selector ".workspace-header"
+    find('[data-app-target="sidebarOpen"]').click
+    find('.workspace-navigation button[aria-label="Home"]').click
     assert_selector '.home-recent-list a[data-path="mobile.md"]'
     assert_operator page.evaluate_script("document.documentElement.scrollWidth"), :<=, 390
   ensure

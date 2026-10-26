@@ -23,6 +23,8 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     get root_url
     assert_response :success
     assert_select "#home-title", text: "FrankMD"
+    assert_select "#home-title .home-logo[src='/icon.svg'][alt='']"
+    assert_select ".workspace-header[hidden]"
     assert_select ".home-intro .home-description", text: "A simple, self-hosted Markdown editor for writing and organizing your notes."
     assert_select ".home-actions button:first-child[data-action='click->app#openFileFinder']", text: "Find file" do
       assert_select "svg[aria-hidden='true']"
@@ -54,7 +56,9 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[data-app-target='settingsToggle']", count: 1
     assert_select ".workspace-navigation button[data-app-target='libraryToggle'][aria-label]"
     assert_select ".workspace-navigation button[data-app-target='settingsToggle'][aria-label]"
-    assert_select ".workspace-navigation button svg[width='20'][height='20']", count: 2
+    assert_select ".workspace-navigation button svg[width='16'][height='16']", count: 3
+    assert_select ".workspace-navigation button:first-child[data-action='click->app#showHome'][aria-label='Home']"
+    assert_select ".workspace-header [data-action='click->app#showHome']", count: 0
     assert_select ".workspace-navigation button span", count: 0
     assert_select "button[data-app-target='settingsToggle'][aria-pressed]", count: 0
     assert_select ".workspace-main > header button[data-app-target='documentTitle'][disabled][data-action='click->app#renameCurrentNote']"
@@ -80,15 +84,16 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     %w[newNote newFolder openFileFinder openContentSearch].each do |action|
       assert_select ".workspace-sidebar > header .workspace-global-actions button[data-action='click->app##{action}']", count: 1
     end
-    assert_select ".workspace-sidebar > footer .workspace-brand" do
+    assert_select ".workspace-sidebar > footer div.workspace-brand" do
       assert_select "img[src='/icon.svg']"
       assert_select "span", text: "FrankMD"
     end
     assert_select ".workspace-sidebar > header .workspace-brand", count: 0
-    assert_select ".workspace-sidebar > footer .workspace-navigation button", count: 2
+    assert_select ".workspace-sidebar > footer .workspace-navigation button", count: 3
+    assert_select ".workspace-brand[href], .workspace-brand[data-action], .workspace-brand[tabindex]", count: 0
     assert_select ".workspace-sidebar > header > button[data-app-target='sidebarToggle'][aria-controls='workspace-sidebar'][aria-label='#{I18n.t('header.close_explorer')}']", count: 1
     assert_select ".workspace-sidebar > header [data-app-target='sidebarToggle'] svg path[d='m10 15-3-3 3-3']", count: 1
-    assert_select ".workspace-main > header .workspace-document > button[data-app-target='sidebarOpen'][hidden][aria-controls='workspace-sidebar'][aria-label='#{I18n.t('header.open_explorer')}']", count: 1
+    assert_select ".workspace-main > button[data-app-target='sidebarOpen'][hidden][aria-controls='workspace-sidebar'][aria-label='#{I18n.t('header.open_explorer')}']", count: 1
     assert_select ".workspace-main > header .workspace-explorer-actions", count: 0
     assert_select "#settings-dialog [data-settings-target='statsToggle'][aria-pressed='false'][aria-label]"
   end
