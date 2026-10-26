@@ -1,11 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 import { get, patch } from "@rails/request.js"
-import { toggleMenu } from "lib/menu_bounds"
+import FloatingDropdown from "lib/floating_dropdown"
 import { escapeHtml } from "lib/text_utils"
 import { applyCustomColors, clearCustomColors } from "lib/custom_theme"
 
 export default class extends Controller {
-  static targets = ["menu", "currentTheme"]
+  static targets = ["button", "menu", "currentTheme"]
   static values = { initial: String, custom: Object, customLabel: { type: String, default: "Custom theme" } }
   static outlets = ["custom-theme-editor"]
 
@@ -52,7 +52,7 @@ export default class extends Controller {
       this.renderMenu()
     })
 
-    this.setupClickOutside()
+    this.dropdown = new FloatingDropdown(this.menuTarget, this.buttonTarget)
     this.setupConfigListener()
   }
 
@@ -60,9 +60,7 @@ export default class extends Controller {
     if (this.boundConfigListener) {
       window.removeEventListener("frankmd:config-changed", this.boundConfigListener)
     }
-    if (this.boundClickOutside) {
-      document.removeEventListener("click", this.boundClickOutside)
-    }
+    this.dropdown?.disconnect()
     if (this.configSaveTimeout) {
       clearTimeout(this.configSaveTimeout)
     }
@@ -88,7 +86,7 @@ export default class extends Controller {
 
   toggle(event) {
     event.stopPropagation()
-    toggleMenu(this.menuTarget)
+    this.dropdown.toggle()
   }
 
   selectTheme(event) {
@@ -96,7 +94,7 @@ export default class extends Controller {
     this.currentThemeId = themeId
     this.saveThemeConfig(themeId)
     this.applyTheme()
-    this.menuTarget.classList.add("hidden")
+    this.dropdown.close(true)
   }
 
   // Save theme to server config (debounced)
@@ -338,6 +336,7 @@ export default class extends Controller {
   updateMenuCheckmarks(themeId) {
     if (this.hasMenuTarget) {
       this.menuTarget.querySelectorAll("[data-theme]").forEach(el => {
+        el.setAttribute("aria-checked", String(el.dataset.theme === themeId))
         const checkmark = el.querySelector(".checkmark")
         if (checkmark) {
           checkmark.classList.toggle("opacity-0", el.dataset.theme !== themeId)
@@ -348,6 +347,7 @@ export default class extends Controller {
 
   renderMenu() {
     if (!this.hasMenuTarget) return
+    this.dropdown?.close()
 
     const currentTheme = this.currentThemeId ||
       (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
@@ -356,6 +356,8 @@ export default class extends Controller {
       <button
         type="button"
         class="w-full px-3 py-2 text-left text-sm hover:bg-[var(--theme-bg-hover)] flex items-center justify-between gap-2"
+        role="menuitemradio"
+        aria-checked="${theme.id === currentTheme}"
         data-theme="${theme.id}"
         data-action="click->theme#selectTheme"
       >
@@ -386,14 +388,5 @@ export default class extends Controller {
       </svg>`
     }
     return icons[iconType] || icons.palette
-  }
-
-  setupClickOutside() {
-    this.boundClickOutside = (event) => {
-      if (this.hasMenuTarget && !this.element.contains(event.target)) {
-        this.menuTarget.classList.add("hidden")
-      }
-    }
-    document.addEventListener("click", this.boundClickOutside)
   }
 }

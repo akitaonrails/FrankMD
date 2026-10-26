@@ -1,9 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
 import { get, patch } from "@rails/request.js"
-import { toggleMenu } from "lib/menu_bounds"
+import FloatingDropdown from "lib/floating_dropdown"
 
 export default class extends Controller {
-  static targets = ["menu", "currentLocale"]
+  static targets = ["button", "menu", "currentLocale"]
   static values = { initial: String }
 
   // Available locales
@@ -23,7 +23,7 @@ export default class extends Controller {
     this.translations = null
     this.loadTranslations()
     this.renderMenu()
-    this.setupClickOutside()
+    this.dropdown = new FloatingDropdown(this.menuTarget, this.buttonTarget)
     this.setupConfigListener()
   }
 
@@ -31,9 +31,7 @@ export default class extends Controller {
     if (this.boundConfigListener) {
       window.removeEventListener("frankmd:config-changed", this.boundConfigListener)
     }
-    if (this.boundClickOutside) {
-      document.removeEventListener("click", this.boundClickOutside)
-    }
+    this.dropdown?.disconnect()
     if (this.configSaveTimeout) {
       clearTimeout(this.configSaveTimeout)
     }
@@ -76,19 +74,19 @@ export default class extends Controller {
 
   toggle(event) {
     event.stopPropagation()
-    toggleMenu(this.menuTarget)
+    this.dropdown.toggle()
   }
 
   selectLocale(event) {
     const localeId = event.currentTarget.dataset.locale
     if (localeId === this.currentLocaleId) {
-      this.menuTarget.classList.add("hidden")
+      this.dropdown.close(true)
       return
     }
+    this.dropdown.close(true)
     this.currentLocaleId = localeId
     this.updateDisplay()
     this.renderMenu()
-    this.menuTarget.classList.add("hidden")
     this.saveLocaleConfig(localeId)
   }
 
@@ -124,6 +122,7 @@ export default class extends Controller {
     // Update menu checkmarks
     if (this.hasMenuTarget) {
       this.menuTarget.querySelectorAll("[data-locale]").forEach(el => {
+        el.setAttribute("aria-checked", String(el.dataset.locale === this.currentLocaleId))
         const checkmark = el.querySelector(".checkmark")
         if (checkmark) {
           checkmark.classList.toggle("opacity-0", el.dataset.locale !== this.currentLocaleId)
@@ -134,11 +133,14 @@ export default class extends Controller {
 
   renderMenu() {
     if (!this.hasMenuTarget) return
+    this.dropdown?.close()
 
     this.menuTarget.innerHTML = this.constructor.locales.map(locale => `
       <button
         type="button"
         class="w-full px-3 py-2 text-left text-sm hover:bg-[var(--theme-bg-hover)] flex items-center justify-between gap-2"
+        role="menuitemradio"
+        aria-checked="${locale.id === this.currentLocaleId}"
         data-locale="${locale.id}"
         data-action="click->locale#selectLocale"
       >
@@ -165,15 +167,6 @@ export default class extends Controller {
       kr: `<span class="text-base">\ud83c\uddf0\ud83c\uddf7</span>`
     }
     return flags[flagCode] || ""
-  }
-
-  setupClickOutside() {
-    this.boundClickOutside = (event) => {
-      if (this.hasMenuTarget && !this.element.contains(event.target)) {
-        this.menuTarget.classList.add("hidden")
-      }
-    }
-    document.addEventListener("click", this.boundClickOutside)
   }
 }
 

@@ -15,7 +15,7 @@ describe("visual theme editor", () => {
       :root { --theme-bg-primary:#111111; --theme-text-primary:#ffffff; --theme-accent:#112233; --theme-accent-text:#ffffff; }
       [data-theme="light"] { --theme-bg-primary:#ffffff; --theme-text-primary:#111111; }
     </style>`
-    document.body.innerHTML = `<div data-controller="theme" data-theme-initial-value="dark"><button id="customize">Customize</button><span data-theme-target="currentTheme"></span><div data-theme-target="menu"></div></div>
+    document.body.innerHTML = `<div data-controller="theme" data-theme-initial-value="dark"><button data-theme-target="button"></button><button id="customize">Customize</button><span data-theme-target="currentTheme"></span><div data-theme-target="menu"></div></div>
       <dialog data-controller="custom-theme-editor" data-custom-theme-editor-theme-outlet='[data-controller="theme"]' data-custom-theme-editor-default-name-value="My theme" data-custom-theme-editor-invalid-value="Invalid color" data-custom-theme-editor-error-value="Save failed" data-custom-theme-editor-warning-value="Low contrast %{ratio}" data-action="close->custom-theme-editor#onClose">
         <fieldset data-custom-theme-editor-target="form"><input data-custom-theme-editor-target="name"><select data-custom-theme-editor-target="base"></select>
         ${["accent", "bg-primary", "text-primary"].map(key => `<input data-custom-theme-editor-target="hex" data-key="${key}"><input type="color" data-custom-theme-editor-target="color" data-key="${key}">`).join("")}</fieldset>

@@ -12,7 +12,7 @@ describe("Settings media storage menu", () => {
     document.body.innerHTML = `<div data-controller="media-storage" data-media-storage-s3-available-value="true">
       <select data-media-storage-target="select"><option value="local">Local</option><option value="s3">S3</option></select>
       <div data-controller="media-storage-menu" data-media-storage-menu-unavailable-message-value="This provider is not configured." data-media-storage-menu-media-storage-outlet='[data-controller~="media-storage"]'
-           data-action="media-storage:changed@window->media-storage-menu#sync click@document->media-storage-menu#closeOutside keydown.esc->media-storage-menu#close keydown->media-storage-menu#navigate">
+           data-action="media-storage:changed@window->media-storage-menu#sync">
         <button data-media-storage-menu-target="button" data-action="click->media-storage-menu#toggle" aria-expanded="false"><span data-media-storage-menu-target="current"></span></button>
         <div class="hidden" data-media-storage-menu-target="menu">
           ${["local", "s3"].map(provider => `<button value="${provider}" data-media-storage-menu-target="option" data-action="click->media-storage-menu#select"><span>${provider === "local" ? "Local" : "S3"}</span><svg class="checkmark"></svg></button>`).join("")}
@@ -28,6 +28,7 @@ describe("Settings media storage menu", () => {
     storage = application.getControllerForElementAndIdentifier(document.querySelector('[data-controller="media-storage"]'), "media-storage")
     menu = application.getControllerForElementAndIdentifier(document.querySelector('[data-controller="media-storage-menu"]'), "media-storage-menu")
     trigger = menu.buttonTarget
+    trigger.getBoundingClientRect = () => ({ top: 100, bottom: 140, left: 100, right: 260 })
     options = menu.optionTargets
   })
 
@@ -49,7 +50,7 @@ describe("Settings media storage menu", () => {
     await save
     expect(trigger.disabled).toBe(false)
     expect(menu.currentTarget.textContent).toBe("S3")
-    expect(options[1].getAttribute("aria-pressed")).toBe("true")
+    expect(options[1].getAttribute("aria-checked")).toBe("true")
     expect(document.querySelector("select").value).toBe("s3")
   })
 
