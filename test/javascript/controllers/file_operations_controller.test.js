@@ -254,19 +254,30 @@ describe("FileOperationsController", () => {
       expect(controller.selectedCreationFolder()).toBe("")
     })
 
-    it("ignores the automatically selected folder only for Hugo", async () => {
-      controller.selectedCreationFolder = () => "docs/nested"
+    it.each(["", "blog", "docs/nested"])("creates toolbar Hugo posts in blog with selection %j", async (selectedFolder) => {
+      controller.selectedCreationFolder = () => selectedFolder
       controller.newNote()
       controller.newNoteInputTarget.value = "sample"
       controller.setNewNoteTemplate("hugo")
       controller.updateNewNotePreview()
-      expect(controller.newNotePathTarget.textContent).not.toContain("docs/nested")
+      expect(controller.newNotePathTarget.textContent).toMatch(/^blog\/\d{4}\/\d{2}\/\d{2}\/sample\/index\.md$/)
       controller.setNewNoteTemplate("empty")
       controller.updateNewNotePreview()
-      expect(controller.newNotePathTarget.textContent).toBe("docs/nested/sample.md")
+      expect(controller.newNotePathTarget.textContent).toBe(`${selectedFolder || "dialogs.new_note.root"}/sample.md`)
       controller.setNewNoteTemplate("hugo")
       await controller.submitNewNote()
-      expect(JSON.parse(global.fetch.mock.calls[0][1].body).parent).toBe("")
+      expect(JSON.parse(global.fetch.mock.calls[0][1].body).parent).toBe("blog")
+    })
+
+    it("creates flat toolbar Hugo posts in blog", async () => {
+      controller.hugoPathStyleValue = "flat"
+      controller.newNote()
+      controller.newNoteInputTarget.value = "My Post"
+      controller.selectNewNoteTemplate({ currentTarget: controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo") })
+
+      expect(controller.newNotePathTarget.textContent).toBe("blog/my-post.md")
+      await controller.submitNewNote()
+      expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toMatchObject({ parent: "blog", title: "My Post" })
     })
 
     it("keeps explicit Hugo workspace destinations", async () => {
@@ -374,8 +385,7 @@ describe("FileOperationsController", () => {
 
       controller.selectNewNoteTemplate({ currentTarget: controller.newNoteTemplateCardTargets.find(c => c.dataset.template === "hugo") })
 
-      // window.t is mocked to return the key, so the root segment is the key
-      expect(controller.newNotePathTarget.textContent).toMatch(/\/\d{4}\/\d{2}\/\d{2}\/my-post\/index\.md$/)
+      expect(controller.newNotePathTarget.textContent).toMatch(/^blog\/\d{4}\/\d{2}\/\d{2}\/my-post\/index\.md$/)
     })
 
     it("switches back to the empty document preview", () => {
@@ -502,7 +512,7 @@ describe("FileOperationsController", () => {
       }))
       const body = JSON.parse(global.fetch.mock.calls[0][1].body)
       expect(body.title).toBe("My Post")
-      expect(body.parent).toBe("")
+      expect(body.parent).toBe("blog")
     })
 
     it("passes the parent folder for folder-scoped notes", async () => {

@@ -91,11 +91,12 @@ class NotesTest < ApplicationSystemTestCase
 
     assert_no_selector "dialog[open]", wait: 2
 
-    # Hugo posts create dated page bundles: YYYY/MM/DD/slug/index.md
+    # Toolbar Hugo posts create dated page bundles inside blog.
     date_path = Time.current.strftime("%Y/%m/%d")
-    expected = @test_notes_dir.join(date_path, "hello-world", "index.md")
+    expected = @test_notes_dir.join("blog", date_path, "hello-world", "index.md")
     assert expected.exist?, "expected #{expected} to exist"
-    assert_selector "[data-path='#{date_path}/hello-world/index.md']", wait: 3
+    assert_selector "[data-path='blog/#{date_path}/hello-world/index.md']", wait: 3
+    assert_not @test_notes_dir.join(date_path, "hello-world", "index.md").exist?
   end
 
   test "new note dialog template card titles do not clip in longer locales" do
