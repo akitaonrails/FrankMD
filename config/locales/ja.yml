@@ -1,12 +1,30 @@
 ja:
   home:
     title: "ホーム"
+    description: "ノートの執筆と整理のための、シンプルなセルフホスト型Markdownエディタ。"
+    find_file: "ファイルを検索"
     recent: "最近開いたファイル"
-    clear: "共有履歴を消去"
-    shared: "このノートフォルダーを使用する端末間で共有されます。"
+    show_more: "もっと見る"
+    clear: "履歴を消去"
     empty: "ノートを開くと最近の履歴に表示されます。"
     clear_confirmation: "このフォルダーを使用するすべての端末の履歴を消去しますか？"
     error: "共有履歴を更新できません。もう一度お試しください。"
+    opened_ago:
+      seconds:
+        one: "1秒前"
+        other: "%{count}秒前"
+      minutes:
+        one: "1分前"
+        other: "%{count}分前"
+      hours:
+        one: "1時間前"
+        other: "%{count}時間前"
+      days:
+        one: "1日前"
+        other: "%{count}日前"
+      just_now: "たった今"
+      over_a_week: "1週間以上前"
+      unknown: "時刻不明"
 
   # Application metadata
   app:

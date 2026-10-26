@@ -1,15 +1,22 @@
 <section class="home-panel" data-controller="home" data-home-app-outlet='[data-controller~="app"]' data-action="focus@window->home#refresh" data-clear-confirmation="<%= t('home.clear_confirmation') %>" data-error-message="<%= t('home.error') %>" aria-labelledby="home-title">
-  <h1 id="home-title" tabindex="-1"><%= t('home.title') %></h1>
-  <p class="home-description"><%= t('editor.select_note_description') %></p>
-  <div class="home-actions">
-    <button type="button" data-action="click->app#newNote"><%= t('dialogs.new_note.title') %></button>
-    <button type="button" data-action="click->app#openFileFinder"><%= t('sidebar.find_file') %></button>
+  <div class="home-intro">
+    <h1 id="home-title" tabindex="-1"><%= t('app.name') %></h1>
+    <p class="home-description"><%= t('home.description') %></p>
+    <div class="home-actions">
+      <button type="button" data-action="click->app#openFileFinder">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <%= t('home.find_file') %>
+      </button>
+      <button type="button" data-action="click->app#newNote">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+        <%= t('dialogs.new_note.title') %>
+      </button>
+    </div>
   </div>
   <div class="home-recent-heading">
     <h2><%= t('home.recent') %></h2>
-    <button type="button" data-action="click->home#clear"><%= t('home.clear') %></button>
+    <button type="button" class="home-text-button" data-action="click->home#clear"><%= t('home.clear') %></button>
   </div>
-  <p class="home-description"><%= t('home.shared') %></p>
   <div data-home-target="files"><%= render "notes/recent_files", recent_files: @recent_files || [] %></div>
   <p class="home-error" role="status" data-home-target="status"></p>
 </section>

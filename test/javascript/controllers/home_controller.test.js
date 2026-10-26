@@ -11,6 +11,14 @@ function response({ ok = true, status = 200, html = "<p>Recent files</p>" } = {}
   return { ok, status, text: async () => html }
 }
 
+function recentFiles() {
+  return `<ul id="home-recent-files">${Array.from({ length: 7 }, (_, index) => `
+    <li ${index >= 5 ? 'hidden data-home-target="extraFile"' : ""}>
+      <a href="/notes/note-${index}.md">Note ${index}</a>
+    </li>`).join("")}</ul>
+    <button data-home-target="showMore" data-action="home#showMore" aria-controls="home-recent-files" aria-expanded="false">Show more</button>`
+}
+
 describe("shared Home", () => {
   let application, home, app
 
@@ -84,5 +92,24 @@ describe("shared Home", () => {
     await home.clear()
     expect(global.fetch.mock.calls[0][1].method).toBe("DELETE")
     expect(global.fetch.mock.calls[1][1].method).toBe("GET")
+  })
+
+  it("reveals the remaining notes and moves focus to the first revealed link", async () => {
+    global.fetch.mockResolvedValue(response({ html: recentFiles() }))
+    await home.refresh({ force: true })
+    expect(home.filesTarget.querySelectorAll("li:not([hidden])")).toHaveLength(5)
+
+    const button = home.filesTarget.querySelector("button")
+    button.focus()
+    button.click()
+
+    expect(home.filesTarget.querySelectorAll("li:not([hidden])")).toHaveLength(7)
+    expect(button.hidden).toBe(true)
+    expect(button.getAttribute("aria-expanded")).toBe("true")
+    expect(document.activeElement.textContent).toBe("Note 5")
+
+    await home.refresh({ force: true })
+    expect(home.filesTarget.querySelectorAll("li:not([hidden])")).toHaveLength(7)
+    expect(home.filesTarget.querySelector("button").hidden).toBe(true)
   })
 })

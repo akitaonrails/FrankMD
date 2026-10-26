@@ -29,6 +29,42 @@ class RecentFilesControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[data-path="plain.md"]'
   end
 
+  test "recent files initially show five notes with a button only when more are available" do
+    get recent_files_url
+    assert_select '[data-home-target="showMore"]', count: 0
+
+    10.times do |index|
+      create_test_note("note-#{index}.md")
+      RecentFilesService.new.record("note-#{index}.md")
+      next unless [ 4, 5, 9 ].include?(index)
+
+      get recent_files_url
+      assert_response :success
+      assert_select ".home-recent-list li:not([hidden])", count: 5
+      assert_select ".home-recent-list li[hidden]", count: index - 4
+      assert_select '[data-home-target="showMore"][aria-controls="home-recent-files"][aria-expanded="false"]', count: index > 4 ? 1 : 0
+      assert_select ".home-recent-list a", count: index + 1
+    end
+  end
+
+  test "opening age and machine-readable timestamp render with a fallback for malformed dates" do
+    create_test_note("timed.md")
+    freeze_time do
+      timestamp = 10.minutes.ago.iso8601
+      Config.new.set("recent_files", [ { "path" => "timed.md", "opened_at" => timestamp } ])
+      get recent_files_url
+      assert_response :success
+      assert_select ".home-file-details .home-file-name", text: "timed"
+      assert_select "time.home-file-time[datetime='#{timestamp}']", text: "10 minutes ago"
+
+      Config.new.set("recent_files", [ { "path" => "timed.md", "opened_at" => "broken" } ])
+      get recent_files_url
+      assert_response :success
+      assert_select "time", count: 0
+      assert_select ".home-file-time", text: "Unknown time"
+    end
+  end
+
   test "missing notes cannot be recorded and config state is not user-writable" do
     post recent_files_url, params: { path: "missing.md" }, as: :json
     assert_response :not_found

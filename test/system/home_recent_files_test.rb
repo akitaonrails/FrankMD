@@ -3,6 +3,28 @@
 require "application_system_test_case"
 
 class HomeRecentFilesTest < ApplicationSystemTestCase
+  test "Home shows five recent notes and reveals the rest with Show more" do
+    7.times do |index|
+      path = "note-#{index}.md"
+      create_test_note(path, "# Note #{index}")
+      RecentFilesService.new.record(path)
+    end
+
+    visit root_url
+    assert_selector "#home-title", text: "FrankMD"
+    assert_selector ".home-recent-list a", count: 5
+    assert_selector ".home-file-time[datetime]", count: 5
+    assert_button "Show more"
+
+    click_button "Show more"
+    assert_selector ".home-recent-list a", count: 7
+    assert_no_button "Show more"
+    assert_equal "note-1.md", page.evaluate_script("document.activeElement.dataset.path")
+
+    find('.home-recent-list a[data-path="note-0.md"]').click
+    assert_selector ".cm-content", text: "Note 0"
+  end
+
   test "Home shares successful opens across visits and filters external deletions" do
     create_test_note("docs/first.md", "# First")
     create_test_note("second.md", "# Second")
@@ -10,7 +32,7 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
     assert_selector ".cm-content", text: "First"
     wait_for_tree_refresh("docs/first.md")
     find('.workspace-brand[href="/"]').click
-    assert_selector "#home-title", text: "Home"
+    assert_selector "#home-title", text: "FrankMD"
     assert_selector '.home-recent-list a[data-path="docs/first.md"]'
     assert_no_selector '[data-preview-target="panel"]:not(.hidden)'
 
@@ -44,7 +66,7 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
     assert_selector ".cm-content", text: "Mobile"
     wait_for_tree_refresh("mobile.md")
     find('header a[aria-label="Home"]').click
-    assert_selector "#home-title", text: "Home"
+    assert_selector "#home-title", text: "FrankMD"
     assert_selector '.home-recent-list a[data-path="mobile.md"]'
     assert_operator page.evaluate_script("document.documentElement.scrollWidth"), :<=, 390
   ensure

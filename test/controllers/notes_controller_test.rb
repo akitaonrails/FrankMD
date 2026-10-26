@@ -19,6 +19,22 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select "div[data-controller~='app']"
   end
 
+  test "Home introduces FrankMD with find before create and concise history actions" do
+    get root_url
+    assert_response :success
+    assert_select "#home-title", text: "FrankMD"
+    assert_select ".home-intro .home-description", text: "A simple, self-hosted Markdown editor for writing and organizing your notes."
+    assert_select ".home-actions button:first-child[data-action='click->app#openFileFinder']", text: "Find file" do
+      assert_select "svg[aria-hidden='true']"
+    end
+    assert_select ".home-actions button:last-child[data-action='click->app#newNote']" do
+      assert_select "svg[aria-hidden='true']"
+    end
+    assert_select ".home-recent-heading .home-text-button", text: "Clear history"
+    assert_select ".home-actions", text: /Ctrl/, count: 0
+    refute_includes response.body, "Shared across devices using this notes folder."
+  end
+
   test "index renders the Library action and image and video workspace tabs" do
     get root_url
     assert_response :success
