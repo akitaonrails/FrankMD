@@ -1039,9 +1039,11 @@ Hugo workspace destinations are preserved.
 
 ## Home and shared recent files
 
-Click the FrankMD logo or Home action to return to Home. It shows the ten most
-recently opened Markdown files, shared by browsers connected to the same notes
-workspace. Only paths and opening timestamps are stored in `.fed`; note contents
+Use the Home action in the sidebar footer to return to Home. It shows five recent
+Markdown files with their relative opening times. Show more reveals the remaining
+history (up to ten files) and scrolls down; Show less returns to five. The recent
+section is omitted when history is empty. History is shared by browsers connected
+to the same notes workspace. Only paths and opening timestamps are stored in `.fed`; note contents
 are not copied. FrankMD updates history after renames and moves, removes deleted
 entries, and filters files deleted outside the app when Home loads. Temporary
 connection and permission failures do not erase history. Clearing shared history

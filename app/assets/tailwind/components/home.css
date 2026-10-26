@@ -8,10 +8,10 @@
   padding: clamp(1.25rem, 5vw, 4rem) 1.5rem;
   color: var(--theme-text-primary);
 }
-.home-panel h1 { display: flex; align-items: center; justify-content: center; gap: 0.625rem; font-size: 1.75rem; line-height: 1; font-weight: 600; outline: none; }
+.home-panel h1 { display: flex; align-items: center; justify-content: center; gap: 0.625rem; font-size: 2rem; line-height: 1; font-weight: 600; outline: none; }
 .home-logo { width: 1em; height: 1em; flex: none; }
 .home-intro { text-align: center; }
-.home-description { max-width: 320px; margin: 0.5rem auto 0; font-size: 0.875rem; color: var(--theme-text-muted); }
+.home-description { max-width: 360px; margin: 0.5rem auto 0; font-size: 0.9375rem; color: var(--theme-text-muted); }
 .home-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin: 1.5rem 0 0; }
 .home-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border: 1px solid var(--theme-border); border-radius: 0.5rem; font-size: 0.875rem; }
 .home-actions svg { width: 1rem; height: 1rem; flex: none; }
