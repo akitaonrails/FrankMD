@@ -1,27 +1,31 @@
-<% if recent_files.empty? %>
-  <p class="home-empty"><%= t('home.empty') %></p>
-<% else %>
-  <ul class="home-recent-list" id="home-recent-files">
-    <% recent_files.each_with_index do |entry, index| %>
-      <li<% if index >= 5 %> hidden data-home-target="extraFile"<% end %>>
-        <a href="<%= note_path(path: entry.fetch('path')) %>" data-action="click->home#open" data-path="<%= entry.fetch('path') %>">
-          <span class="home-file-details">
-            <span class="home-file-name"><%= File.basename(entry.fetch('path'), '.md') %></span>
-            <span class="home-file-path"><%= entry.fetch('path') %></span>
-          </span>
-          <% if (opened_at = recent_file_opened_at(entry.fetch('opened_at'))) %>
-            <time class="home-file-time" datetime="<%= opened_at.iso8601 %>" title="<%= opened_at.iso8601 %>"><%= recent_file_opened_ago(opened_at) %></time>
-          <% else %>
-            <span class="home-file-time"><%= t('home.opened_ago.unknown') %></span>
-          <% end %>
-        </a>
-      </li>
-    <% end %>
-  </ul>
-  <% if recent_files.size > 5 %>
-    <div class="home-recent-footer">
-      <button type="button" class="home-text-button" data-home-target="showMore" data-action="home#showMore" aria-controls="home-recent-files" aria-expanded="false"><%= t('home.show_more') %></button>
-      <button type="button" class="home-text-button" data-home-target="showLess" data-action="home#showLess" aria-controls="home-recent-files" aria-expanded="true" hidden><%= t('home.show_less') %></button>
+<% if recent_files.any? %>
+  <section class="home-recent" aria-labelledby="home-recent-title">
+    <div class="home-recent-heading">
+      <h2 id="home-recent-title"><%= t('home.recent') %></h2>
+      <button type="button" class="home-text-button" data-action="click->home#clear"><%= t('home.clear') %></button>
     </div>
-  <% end %>
+    <ul class="home-recent-list" id="home-recent-files">
+      <% recent_files.each_with_index do |entry, index| %>
+        <li<% if index >= 5 %> hidden data-home-target="extraFile"<% end %>>
+          <a href="<%= note_path(path: entry.fetch('path')) %>" data-action="click->home#open" data-path="<%= entry.fetch('path') %>">
+            <span class="home-file-details">
+              <span class="home-file-name"><%= File.basename(entry.fetch('path'), '.md') %></span>
+              <span class="home-file-path"><%= entry.fetch('path') %></span>
+            </span>
+            <% if (opened_at = recent_file_opened_at(entry.fetch('opened_at'))) %>
+              <time class="home-file-time" datetime="<%= opened_at.iso8601 %>" title="<%= opened_at.iso8601 %>"><%= recent_file_opened_ago(opened_at) %></time>
+            <% else %>
+              <span class="home-file-time"><%= t('home.opened_ago.unknown') %></span>
+            <% end %>
+          </a>
+        </li>
+      <% end %>
+    </ul>
+    <% if recent_files.size > 5 %>
+      <div class="home-recent-footer">
+        <button type="button" class="home-text-button" data-home-target="showMore" data-action="home#showMore" aria-controls="home-recent-files" aria-expanded="false"><%= t('home.show_more') %></button>
+        <button type="button" class="home-text-button" data-home-target="showLess" data-action="home#showLess" aria-controls="home-recent-files" aria-expanded="true" hidden><%= t('home.show_less') %></button>
+      </div>
+    <% end %>
+  </section>
 <% end %>

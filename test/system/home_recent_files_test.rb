@@ -3,6 +3,31 @@
 require "application_system_test_case"
 
 class HomeRecentFilesTest < ApplicationSystemTestCase
+  test "the recent section appears after opening a note and disappears after clearing history" do
+    create_test_note("first.md", "# First")
+    visit root_url
+    assert_selector "#home-title"
+    assert_no_selector ".home-recent, .home-recent-heading, .home-empty"
+    assert_no_button "Clear history"
+
+    visit note_url(path: "first.md")
+    assert_selector ".cm-content", text: "First"
+    wait_for_tree_refresh("first.md")
+    find('.workspace-navigation button[aria-label="Home"]').click
+    assert_selector ".home-recent-heading", text: "Recently opened"
+    assert_selector '.home-recent-list a[data-path="first.md"]'
+
+    click_button "Clear history"
+    within 'dialog[role="alertdialog"]' do
+      click_button I18n.t("common.confirm")
+    end
+    assert_no_selector ".home-recent, .home-recent-heading, .home-empty"
+    assert_no_button "Clear history"
+    page.refresh
+    assert_selector "#home-title"
+    assert_no_selector ".home-recent"
+  end
+
   test "Home shows five recent notes and reveals the rest with Show more" do
     7.times do |index|
       path = "note-#{index}.md"
