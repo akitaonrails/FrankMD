@@ -3,7 +3,7 @@ import { get, post, destroy } from "@rails/request.js"
 import { appConfirm } from "lib/app_prompt"
 
 export default class extends Controller {
-  static targets = ["files", "status", "extraFile", "showMore"]
+  static targets = ["files", "status", "extraFile", "showMore", "showLess"]
   static outlets = ["app"]
 
   connect() {
@@ -53,7 +53,17 @@ export default class extends Controller {
   showMore() {
     this.expanded = true
     this.updateRecentFiles()
-    this.extraFileTargets[0]?.querySelector("a")?.focus()
+    this.extraFileTargets[0]?.querySelector("a")?.focus({ preventScroll: true })
+    this.showLessTarget.scrollIntoView({
+      behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      block: "end"
+    })
+  }
+
+  showLess() {
+    this.expanded = false
+    this.updateRecentFiles()
+    this.showMoreTarget.focus()
   }
 
   updateRecentFiles() {
@@ -62,6 +72,7 @@ export default class extends Controller {
       this.showMoreTarget.hidden = this.expanded
       this.showMoreTarget.setAttribute("aria-expanded", String(this.expanded))
     }
+    if (this.hasShowLessTarget) this.showLessTarget.hidden = !this.expanded
   }
 
   async clear() {

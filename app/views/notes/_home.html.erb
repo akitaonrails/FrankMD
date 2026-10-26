@@ -1,6 +1,6 @@
 <section class="home-panel" data-controller="home" data-home-app-outlet='[data-controller~="app"]' data-action="focus@window->home#refresh" data-clear-confirmation="<%= t('home.clear_confirmation') %>" data-error-message="<%= t('home.error') %>" aria-labelledby="home-title">
   <div class="home-intro">
-    <h1 id="home-title" tabindex="-1"><%= t('app.name') %></h1>
+    <h1 id="home-title" tabindex="-1"><img src="/icon.svg" class="home-logo" alt="" aria-hidden="true"><%= t('app.name') %></h1>
     <p class="home-description"><%= t('home.description') %></p>
     <div class="home-actions">
       <button type="button" data-action="click->app#openFileFinder">

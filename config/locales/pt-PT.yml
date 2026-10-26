@@ -5,6 +5,7 @@ pt-PT:
     find_file: "Procurar ficheiro"
     recent: "Abertos recentemente"
     show_more: "Mostrar mais"
+    show_less: "Mostrar menos"
     clear: "Limpar histórico"
     empty: "Abra uma nota para iniciar o histórico recente."
     clear_confirmation: "Limpar o histórico recente de todos os dispositivos que utilizam esta pasta?"

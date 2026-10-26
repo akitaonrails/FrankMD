@@ -5,6 +5,7 @@ ko:
     find_file: "파일 찾기"
     recent: "최근에 연 파일"
     show_more: "더 보기"
+    show_less: "접기"
     clear: "기록 지우기"
     empty: "노트를 열면 최근 기록에 표시됩니다."
     clear_confirmation: "이 폴더를 사용하는 모든 기기의 최근 기록을 지울까요?"

@@ -32,6 +32,7 @@ class RecentFilesControllerTest < ActionDispatch::IntegrationTest
   test "recent files initially show five notes with a button only when more are available" do
     get recent_files_url
     assert_select '[data-home-target="showMore"]', count: 0
+    assert_select '[data-home-target="showLess"]', count: 0
 
     10.times do |index|
       create_test_note("note-#{index}.md")
@@ -43,6 +44,7 @@ class RecentFilesControllerTest < ActionDispatch::IntegrationTest
       assert_select ".home-recent-list li:not([hidden])", count: 5
       assert_select ".home-recent-list li[hidden]", count: index - 4
       assert_select '[data-home-target="showMore"][aria-controls="home-recent-files"][aria-expanded="false"]', count: index > 4 ? 1 : 0
+      assert_select '[data-home-target="showLess"][aria-controls="home-recent-files"][aria-expanded="true"][hidden]', count: index > 4 ? 1 : 0
       assert_select ".home-recent-list a", count: index + 1
     end
   end

@@ -5,6 +5,7 @@ es:
     find_file: "Buscar archivo"
     recent: "Abiertos recientemente"
     show_more: "Mostrar más"
+    show_less: "Mostrar menos"
     clear: "Borrar historial"
     empty: "Abre una nota para iniciar el historial reciente."
     clear_confirmation: "¿Borrar el historial reciente de todos los dispositivos que usan esta carpeta?"

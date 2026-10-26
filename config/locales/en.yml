@@ -5,6 +5,7 @@ en:
     find_file: "Find file"
     recent: "Recently opened"
     show_more: "Show more"
+    show_less: "Show less"
     clear: "Clear history"
     empty: "Open a note to start your recent history."
     clear_confirmation: "Clear recent-file history for every device using this notes folder?"

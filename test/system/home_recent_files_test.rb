@@ -19,7 +19,14 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
     click_button "Show more"
     assert_selector ".home-recent-list a", count: 7
     assert_no_button "Show more"
+    assert_button "Show less"
     assert_equal "note-1.md", page.evaluate_script("document.activeElement.dataset.path")
+
+    click_button "Show less"
+    assert_selector ".home-recent-list a", count: 5
+    assert_no_button "Show less"
+    assert_equal "Show more", page.evaluate_script("document.activeElement.textContent")
+    click_button "Show more"
 
     find('.home-recent-list a[data-path="note-0.md"]').click
     assert_selector ".cm-content", text: "Note 0"

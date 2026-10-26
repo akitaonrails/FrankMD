@@ -21,6 +21,7 @@
   <% if recent_files.size > 5 %>
     <div class="home-recent-footer">
       <button type="button" class="home-text-button" data-home-target="showMore" data-action="home#showMore" aria-controls="home-recent-files" aria-expanded="false"><%= t('home.show_more') %></button>
+      <button type="button" class="home-text-button" data-home-target="showLess" data-action="home#showLess" aria-controls="home-recent-files" aria-expanded="true" hidden><%= t('home.show_less') %></button>
     </div>
   <% end %>
 <% end %>

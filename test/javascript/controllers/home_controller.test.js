@@ -16,7 +16,8 @@ function recentFiles() {
     <li ${index >= 5 ? 'hidden data-home-target="extraFile"' : ""}>
       <a href="/notes/note-${index}.md">Note ${index}</a>
     </li>`).join("")}</ul>
-    <button data-home-target="showMore" data-action="home#showMore" aria-controls="home-recent-files" aria-expanded="false">Show more</button>`
+    <button data-home-target="showMore" data-action="home#showMore" aria-controls="home-recent-files" aria-expanded="false">Show more</button>
+    <button data-home-target="showLess" data-action="home#showLess" aria-controls="home-recent-files" aria-expanded="true" hidden>Show less</button>`
 }
 
 describe("shared Home", () => {
@@ -99,7 +100,9 @@ describe("shared Home", () => {
     await home.refresh({ force: true })
     expect(home.filesTarget.querySelectorAll("li:not([hidden])")).toHaveLength(5)
 
-    const button = home.filesTarget.querySelector("button")
+    const button = home.showMoreTarget
+    const less = home.showLessTarget
+    less.scrollIntoView = vi.fn()
     button.focus()
     button.click()
 
@@ -107,9 +110,33 @@ describe("shared Home", () => {
     expect(button.hidden).toBe(true)
     expect(button.getAttribute("aria-expanded")).toBe("true")
     expect(document.activeElement.textContent).toBe("Note 5")
+    expect(less.hidden).toBe(false)
+    expect(less.scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "end" })
 
     await home.refresh({ force: true })
     expect(home.filesTarget.querySelectorAll("li:not([hidden])")).toHaveLength(7)
-    expect(home.filesTarget.querySelector("button").hidden).toBe(true)
+    expect(home.showMoreTarget.hidden).toBe(true)
+    expect(home.showLessTarget.hidden).toBe(false)
+
+    home.showLessTarget.click()
+    expect(home.filesTarget.querySelectorAll("li:not([hidden])")).toHaveLength(5)
+    expect(home.showLessTarget.hidden).toBe(true)
+    expect(document.activeElement).toBe(home.showMoreTarget)
+    await home.refresh({ force: true })
+    expect(home.filesTarget.querySelectorAll("li:not([hidden])")).toHaveLength(5)
+    expect(home.showMoreTarget.hidden).toBe(false)
+  })
+
+  it("respects reduced motion when scrolling to the expanded list", async () => {
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true })))
+    try {
+      global.fetch.mockResolvedValue(response({ html: recentFiles() }))
+      await home.refresh({ force: true })
+      home.showLessTarget.scrollIntoView = vi.fn()
+      home.showMoreTarget.click()
+      expect(home.showLessTarget.scrollIntoView).toHaveBeenCalledWith({ behavior: "instant", block: "end" })
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

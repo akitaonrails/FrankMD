@@ -4,7 +4,8 @@
   padding: clamp(1.25rem, 5vw, 4rem) 1.5rem;
   color: var(--theme-text-primary);
 }
-.home-panel h1 { font-size: 1.75rem; font-weight: 600; outline: none; }
+.home-panel h1 { display: flex; align-items: center; justify-content: center; gap: 0.625rem; font-size: 1.75rem; line-height: 1; font-weight: 600; outline: none; }
+.home-logo { width: 1em; height: 1em; flex: none; }
 .home-intro { text-align: center; }
 .home-description, .home-empty { margin-top: 0.5rem; font-size: 0.875rem; color: var(--theme-text-muted); }
 .home-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin: 1.5rem 0 2.5rem; }
