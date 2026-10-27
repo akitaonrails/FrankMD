@@ -251,7 +251,7 @@ export default class extends Controller {
   }
 
   newNoteParent() {
-    return this.newNoteTemplate === "hugo" && this.newNoteParentFromSelection ? "" : this.newItemParent
+    return this.newNoteTemplate === "hugo" && this.newNoteParentFromSelection ? "blog" : this.newItemParent
   }
 
   updateNewNotePreview() {
