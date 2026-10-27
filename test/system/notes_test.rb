@@ -6,14 +6,18 @@ class NotesTest < ApplicationSystemTestCase
   test "visiting the home page shows the app" do
     visit root_url
 
-    assert_selector "header [data-app-target='documentTitle'][disabled]"
+    # Home intentionally hides the document header (issue #255); the explorer
+    # and the Home introduction are what the landing page must show.
+    assert_selector "header[hidden] [data-app-target='documentTitle'][disabled]", visible: :all
+    assert_selector "#home-title", text: "FrankMD"
     assert_selector "[data-app-target='fileTree']"
   end
 
-  test "empty state shows placeholder message" do
+  test "home hides the editor placeholder and shows its own introduction" do
     visit root_url
 
-    assert_selector "[data-app-target='editorPlaceholder']", text: "Select a note to edit"
+    assert_no_text "Select a note to edit"
+    assert_selector ".home-intro .home-description"
   end
 
   test "existing notes appear in the file tree" do
