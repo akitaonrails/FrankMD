@@ -1,12 +1,31 @@
 en:
   home:
     title: "Home"
+    description: "A simple, self-hosted Markdown editor for writing and organizing your notes."
+    find_file: "Find file"
     recent: "Recently opened"
-    clear: "Clear shared history"
-    shared: "Shared across devices using this notes folder."
+    show_more: "Show more"
+    show_less: "Show less"
+    clear: "Clear history"
     empty: "Open a note to start your recent history."
     clear_confirmation: "Clear recent-file history for every device using this notes folder?"
     error: "Unable to update shared history. Try again."
+    opened_ago:
+      seconds:
+        one: "1 second ago"
+        other: "%{count} seconds ago"
+      minutes:
+        one: "1 minute ago"
+        other: "%{count} minutes ago"
+      hours:
+        one: "1 hour ago"
+        other: "%{count} hours ago"
+      days:
+        one: "1 day ago"
+        other: "%{count} days ago"
+      just_now: "Just now"
+      over_a_week: "Over a week ago"
+      unknown: "Unknown time"
 
   # Application metadata
   app:

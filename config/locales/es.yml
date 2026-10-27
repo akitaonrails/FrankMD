@@ -1,12 +1,31 @@
 es:
   home:
     title: "Inicio"
+    description: "Un editor Markdown sencillo y autoalojado para escribir y organizar tus notas."
+    find_file: "Buscar archivo"
     recent: "Abiertos recientemente"
-    clear: "Borrar historial compartido"
-    shared: "Compartido entre dispositivos que usan esta carpeta de notas."
+    show_more: "Mostrar más"
+    show_less: "Mostrar menos"
+    clear: "Borrar historial"
     empty: "Abre una nota para iniciar el historial reciente."
     clear_confirmation: "¿Borrar el historial reciente de todos los dispositivos que usan esta carpeta?"
     error: "No se pudo actualizar el historial compartido. Inténtalo de nuevo."
+    opened_ago:
+      seconds:
+        one: "hace 1 segundo"
+        other: "hace %{count} segundos"
+      minutes:
+        one: "hace 1 minuto"
+        other: "hace %{count} minutos"
+      hours:
+        one: "hace 1 hora"
+        other: "hace %{count} horas"
+      days:
+        one: "hace 1 día"
+        other: "hace %{count} días"
+      just_now: "Ahora mismo"
+      over_a_week: "Hace más de una semana"
+      unknown: "Hora desconocida"
 
   # Application metadata
   app:

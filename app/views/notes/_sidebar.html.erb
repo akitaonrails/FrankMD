@@ -49,11 +49,14 @@
 
   </div>
   <footer class="workspace-sidebar-footer">
-    <a href="/" class="workspace-brand" data-action="click->app#showHome" aria-label="<%= t('home.title') %>">
-      <img src="/icon.svg" class="w-5 h-5 shrink-0" alt="<%= t('app.name') %>">
-      <span aria-hidden="true"><%= t('app.name') %></span>
-    </a>
+    <div class="workspace-brand">
+      <img src="/icon.svg" class="w-5 h-5 shrink-0" alt="">
+      <span><%= t('app.name') %></span>
+    </div>
     <nav class="workspace-navigation" aria-label="<%= t('header.workspace_navigation') %>">
+      <button type="button" class="workspace-icon" data-action="click->app#showHome" aria-label="<%= t('home.title') %>" title="<%= t('home.title') %>">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg>
+      </button>
       <%= render "notes/library_button" %>
       <%= render "notes/settings_button" %>
     </nav>

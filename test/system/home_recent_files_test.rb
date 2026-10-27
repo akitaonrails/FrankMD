@@ -3,21 +3,77 @@
 require "application_system_test_case"
 
 class HomeRecentFilesTest < ApplicationSystemTestCase
+  test "the recent section appears after opening a note and disappears after clearing history" do
+    create_test_note("first.md", "# First")
+    visit root_url
+    assert_selector "#home-title"
+    assert_no_selector ".home-recent, .home-recent-heading, .home-empty"
+    assert_no_button "Clear history"
+
+    visit note_url(path: "first.md")
+    assert_selector ".cm-content", text: "First"
+    wait_for_tree_refresh("first.md")
+    find('.workspace-navigation button[aria-label="Home"]').click
+    assert_selector ".home-recent-heading", text: "Recently opened"
+    assert_selector '.home-recent-list a[data-path="first.md"]'
+
+    click_button "Clear history"
+    within 'dialog[role="alertdialog"]' do
+      click_button I18n.t("common.confirm")
+    end
+    assert_no_selector ".home-recent, .home-recent-heading, .home-empty"
+    assert_no_button "Clear history"
+    page.refresh
+    assert_selector "#home-title"
+    assert_no_selector ".home-recent"
+  end
+
+  test "Home shows five recent notes and reveals the rest with Show more" do
+    7.times do |index|
+      path = "note-#{index}.md"
+      create_test_note(path, "# Note #{index}")
+      RecentFilesService.new.record(path)
+    end
+
+    visit root_url
+    assert_selector "#home-title", text: "FrankMD"
+    assert_no_selector ".workspace-header"
+    assert_selector ".home-recent-list a", count: 5
+    assert_selector ".home-file-time[datetime]", count: 5
+    assert_button "Show more"
+
+    click_button "Show more"
+    assert_selector ".home-recent-list a", count: 7
+    assert_no_button "Show more"
+    assert_button "Show less"
+    assert_equal "note-1.md", page.evaluate_script("document.activeElement.dataset.path")
+
+    click_button "Show less"
+    assert_selector ".home-recent-list a", count: 5
+    assert_no_button "Show less"
+    assert_equal "Show more", page.evaluate_script("document.activeElement.textContent")
+    click_button "Show more"
+
+    find('.home-recent-list a[data-path="note-0.md"]').click
+    assert_selector ".cm-content", text: "Note 0"
+    assert_selector ".workspace-header"
+  end
+
   test "Home shares successful opens across visits and filters external deletions" do
     create_test_note("docs/first.md", "# First")
     create_test_note("second.md", "# Second")
     visit note_url(path: "docs/first.md")
     assert_selector ".cm-content", text: "First"
     wait_for_tree_refresh("docs/first.md")
-    find('.workspace-brand[href="/"]').click
-    assert_selector "#home-title", text: "Home"
+    find('.workspace-navigation button[aria-label="Home"]').click
+    assert_selector "#home-title", text: "FrankMD"
     assert_selector '.home-recent-list a[data-path="docs/first.md"]'
     assert_no_selector '[data-preview-target="panel"]:not(.hidden)'
 
     visit note_url(path: "second.md")
     assert_selector ".cm-content", text: "Second"
     wait_for_tree_refresh("second.md")
-    find('.workspace-brand[href="/"]').click
+    find('.workspace-navigation button[aria-label="Home"]').click
     assert_selector '.home-recent-list a[data-path="second.md"]'
     assert_selector '.home-recent-list a[data-path="docs/first.md"]'
     assert_equal "second.md", find(".home-recent-list a", match: :first)["data-path"]
@@ -31,7 +87,7 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
     @test_notes_dir.join("second.md").delete
     find('.home-recent-list a[data-path="second.md"]').click
     assert_text "Note not found"
-    find('header a[aria-label="Home"]').click
+    find('.workspace-navigation button[aria-label="Home"]').click
     assert_selector "#home-title"
     assert_no_selector ".home-recent-list a"
     refute @test_notes_dir.join("second.md").exist?
@@ -43,8 +99,17 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
     visit note_url(path: "mobile.md")
     assert_selector ".cm-content", text: "Mobile"
     wait_for_tree_refresh("mobile.md")
-    find('header a[aria-label="Home"]').click
-    assert_selector "#home-title", text: "Home"
+    find('[data-app-target="sidebarOpen"]').click
+    find('.workspace-navigation button[aria-label="Home"]').click
+    assert_selector "#home-title", text: "FrankMD"
+    assert_no_selector ".workspace-header"
+    assert_selector '[data-app-target="sidebarOpen"]'
+    find('[data-app-target="sidebarOpen"]').click
+    assert_selector ".workspace-sidebar.is-overlay"
+    find('[data-app-target="libraryToggle"]').click
+    assert_selector ".workspace-header"
+    find('[data-app-target="sidebarOpen"]').click
+    find('.workspace-navigation button[aria-label="Home"]').click
     assert_selector '.home-recent-list a[data-path="mobile.md"]'
     assert_operator page.evaluate_script("document.documentElement.scrollWidth"), :<=, 390
   ensure
