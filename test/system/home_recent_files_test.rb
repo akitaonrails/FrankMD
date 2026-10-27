@@ -7,7 +7,7 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
     create_test_note("first.md", "# First")
     visit root_url
     assert_selector "#home-title"
-    assert_no_selector ".home-recent, .home-recent-heading, .home-empty"
+    assert_no_selector ".home-recent, .home-recent-heading"
     assert_no_button "Clear history"
 
     visit note_url(path: "first.md")
@@ -21,7 +21,7 @@ class HomeRecentFilesTest < ApplicationSystemTestCase
     within 'dialog[role="alertdialog"]' do
       click_button I18n.t("common.confirm")
     end
-    assert_no_selector ".home-recent, .home-recent-heading, .home-empty"
+    assert_no_selector ".home-recent, .home-recent-heading"
     assert_no_button "Clear history"
     page.refresh
     assert_selector "#home-title"

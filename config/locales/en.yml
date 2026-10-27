@@ -7,7 +7,6 @@ en:
     show_more: "Show more"
     show_less: "Show less"
     clear: "Clear history"
-    empty: "Open a note to start your recent history."
     clear_confirmation: "Clear recent-file history for every device using this notes folder?"
     error: "Unable to update shared history. Try again."
     opened_ago:
@@ -237,7 +236,6 @@ en:
   # Editor section
   editor:
     select_note: "Select or create a note"
-    select_note_description: "Select a note to edit"
     select_note_hint: "or press Ctrl+N to create a new one"
     start_writing: "Start writing..."
     cursor_in_table: "Cursor in table - click to edit"

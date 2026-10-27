@@ -7,7 +7,6 @@ he:
     show_more: "הצג עוד"
     show_less: "הצג פחות"
     clear: "ניקוי היסטוריה"
-    empty: "פתחו הערה כדי להתחיל היסטוריה אחרונה."
     clear_confirmation: "לנקות את ההיסטוריה האחרונה בכל המכשירים שמשתמשים בתיקייה הזו?"
     error: "לא ניתן לעדכן את ההיסטוריה המשותפת. נסו שוב."
     opened_ago:
@@ -236,7 +235,6 @@ he:
   # אזור העורך
   editor:
     select_note: "בחר או צור הערה"
-    select_note_description: "בחר הערה לעריכה"
     select_note_hint: "או לחץ Ctrl+N ליצירת הערה חדשה"
     start_writing: "התחל לכתוב..."
     cursor_in_table: "סמן בטבלה - לחץ לעריכה"

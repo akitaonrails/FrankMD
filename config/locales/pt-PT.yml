@@ -7,7 +7,6 @@ pt-PT:
     show_more: "Mostrar mais"
     show_less: "Mostrar menos"
     clear: "Limpar histórico"
-    empty: "Abra uma nota para iniciar o histórico recente."
     clear_confirmation: "Limpar o histórico recente de todos os dispositivos que utilizam esta pasta?"
     error: "Não foi possível atualizar o histórico partilhado. Tente novamente."
     opened_ago:
@@ -236,7 +235,6 @@ pt-PT:
   # Secção do editor
   editor:
     select_note: "Selecione ou crie uma nota"
-    select_note_description: "Selecione uma nota para editar"
     select_note_hint: "ou prima Ctrl+N para criar uma nova"
     start_writing: "Comece a escrever..."
     cursor_in_table: "Cursor na tabela - clique para editar"

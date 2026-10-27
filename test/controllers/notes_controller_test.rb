@@ -17,7 +17,7 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     get root_url
     assert_response :success
     assert_select "div[data-controller~='app']"
-    assert_select ".home-recent, .home-recent-heading, .home-empty", count: 0
+    assert_select ".home-recent, .home-recent-heading", count: 0
   end
 
   test "Home introduces FrankMD with find before create and concise history actions" do

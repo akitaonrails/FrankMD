@@ -7,7 +7,6 @@ ja:
     show_more: "もっと見る"
     show_less: "表示を減らす"
     clear: "履歴を消去"
-    empty: "ノートを開くと最近の履歴に表示されます。"
     clear_confirmation: "このフォルダーを使用するすべての端末の履歴を消去しますか？"
     error: "共有履歴を更新できません。もう一度お試しください。"
     opened_ago:
@@ -236,7 +235,6 @@ ja:
   # Editor section
   editor:
     select_note: "ノートを選択または作成"
-    select_note_description: "編集するノートを選択"
     select_note_hint: "または Ctrl+N で新規作成"
     start_writing: "ここに入力..."
     cursor_in_table: "テーブル内 - クリックで編集"

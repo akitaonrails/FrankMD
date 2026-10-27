@@ -11,7 +11,7 @@ export default class extends Controller {
   }
 
   disconnect() {
-    this.dropdown.disconnect()
+    this.dropdown?.disconnect()
   }
 
   mediaStorageOutletConnected() {

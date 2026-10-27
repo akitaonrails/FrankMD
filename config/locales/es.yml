@@ -7,7 +7,6 @@ es:
     show_more: "Mostrar más"
     show_less: "Mostrar menos"
     clear: "Borrar historial"
-    empty: "Abre una nota para iniciar el historial reciente."
     clear_confirmation: "¿Borrar el historial reciente de todos los dispositivos que usan esta carpeta?"
     error: "No se pudo actualizar el historial compartido. Inténtalo de nuevo."
     opened_ago:
@@ -236,7 +235,6 @@ es:
   # Editor section
   editor:
     select_note: "Selecciona o crea una nota"
-    select_note_description: "Selecciona una nota para editar"
     select_note_hint: "o presiona Ctrl+N para crear una nueva"
     start_writing: "Comienza a escribir..."
     cursor_in_table: "Cursor en tabla - haz clic para editar"

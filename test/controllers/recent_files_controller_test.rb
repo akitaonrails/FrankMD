@@ -19,7 +19,7 @@ class RecentFilesControllerTest < ActionDispatch::IntegrationTest
     assert_empty RecentFilesService.new.entries
     get recent_files_url
     assert_response :success
-    assert_select ".home-recent, .home-recent-heading, .home-empty", count: 0
+    assert_select ".home-recent, .home-recent-heading", count: 0
   end
 
   test "index answers the HTML panel regardless of accept header" do
@@ -34,7 +34,7 @@ class RecentFilesControllerTest < ActionDispatch::IntegrationTest
 
   test "recent files initially show five notes with a button only when more are available" do
     get recent_files_url
-    assert_select ".home-recent, .home-recent-heading, .home-empty", count: 0
+    assert_select ".home-recent, .home-recent-heading", count: 0
     assert_select '[data-home-target="showMore"]', count: 0
     assert_select '[data-home-target="showLess"]', count: 0
 
