@@ -34,7 +34,7 @@ describe("ThemeController", () => {
 
     document.body.innerHTML = `
       <div data-controller="theme" data-theme-initial-value="dark">
-        <span data-theme-target="currentTheme"></span>
+        <button data-theme-target="button"></button><span data-theme-target="currentTheme"></span>
         <div data-theme-target="menu" class="hidden"></div>
       </div>
     `
@@ -46,6 +46,7 @@ describe("ThemeController", () => {
     return new Promise((resolve) => {
       setTimeout(() => {
         controller = application.getControllerForElementAndIdentifier(element, "theme")
+        controller.buttonTarget.getBoundingClientRect = () => ({ top: 100, bottom: 140, left: 100, right: 260 })
         resolve()
       }, 0)
     })
@@ -381,12 +382,12 @@ describe("ThemeController", () => {
   describe("disconnect()", () => {
     it("removes event listeners", () => {
       const removeEventListenerSpy = vi.spyOn(window, "removeEventListener")
-      const docRemoveEventListenerSpy = vi.spyOn(document, "removeEventListener")
+      const disconnectDropdownSpy = vi.spyOn(controller.dropdown, "disconnect")
 
       controller.disconnect()
 
       expect(removeEventListenerSpy).toHaveBeenCalledWith("frankmd:config-changed", controller.boundConfigListener)
-      expect(docRemoveEventListenerSpy).toHaveBeenCalledWith("click", controller.boundClickOutside)
+      expect(disconnectDropdownSpy).toHaveBeenCalled()
     })
 
     it("clears pending timeout", () => {
@@ -431,7 +432,7 @@ describe("ThemeController with system dark preference", () => {
 
     document.body.innerHTML = `
       <div data-controller="theme">
-        <span data-theme-target="currentTheme"></span>
+        <button data-theme-target="button"></button><span data-theme-target="currentTheme"></span>
         <div data-theme-target="menu" class="hidden"></div>
       </div>
     `
@@ -443,6 +444,7 @@ describe("ThemeController with system dark preference", () => {
     return new Promise((resolve) => {
       setTimeout(() => {
         controller = application.getControllerForElementAndIdentifier(element, "theme")
+        controller.buttonTarget.getBoundingClientRect = () => ({ top: 100, bottom: 140, left: 100, right: 260 })
         resolve()
       }, 0)
     })
@@ -501,7 +503,7 @@ describe("ThemeController with Omarchy available", () => {
 
     document.body.innerHTML = `
       <div data-controller="theme" data-theme-initial-value="dark">
-        <span data-theme-target="currentTheme"></span>
+        <button data-theme-target="button"></button><span data-theme-target="currentTheme"></span>
         <div data-theme-target="menu" class="hidden"></div>
       </div>
     `
@@ -513,6 +515,7 @@ describe("ThemeController with Omarchy available", () => {
     return new Promise((resolve) => {
       setTimeout(() => {
         controller = application.getControllerForElementAndIdentifier(element, "theme")
+        controller.buttonTarget.getBoundingClientRect = () => ({ top: 100, bottom: 140, left: 100, right: 260 })
         resolve()
       }, 0)
     })

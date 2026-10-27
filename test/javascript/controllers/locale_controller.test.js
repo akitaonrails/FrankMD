@@ -29,7 +29,7 @@ describe("LocaleController", () => {
 
     document.body.innerHTML = `
       <div data-controller="locale" data-locale-initial-value="en">
-        <span data-locale-target="currentLocale"></span>
+        <button data-locale-target="button"></button><span data-locale-target="currentLocale"></span>
         <div data-locale-target="menu" class="hidden"></div>
       </div>
     `
@@ -41,6 +41,7 @@ describe("LocaleController", () => {
     return new Promise((resolve) => {
       setTimeout(() => {
         controller = application.getControllerForElementAndIdentifier(element, "locale")
+        controller.buttonTarget.getBoundingClientRect = () => ({ top: 100, bottom: 140, left: 100, right: 260 })
         resolve()
       }, 0)
     })
@@ -322,12 +323,12 @@ describe("LocaleController", () => {
   describe("disconnect()", () => {
     it("removes event listeners", () => {
       const removeEventListenerSpy = vi.spyOn(window, "removeEventListener")
-      const docRemoveEventListenerSpy = vi.spyOn(document, "removeEventListener")
+      const disconnectDropdownSpy = vi.spyOn(controller.dropdown, "disconnect")
 
       controller.disconnect()
 
       expect(removeEventListenerSpy).toHaveBeenCalledWith("frankmd:config-changed", controller.boundConfigListener)
-      expect(docRemoveEventListenerSpy).toHaveBeenCalledWith("click", controller.boundClickOutside)
+      expect(disconnectDropdownSpy).toHaveBeenCalled()
     })
   })
 })

@@ -135,6 +135,8 @@
             <div class="relative shrink-0" data-controller="theme" data-theme-initial-value="<%= @config&.dig(:settings, 'theme') %>" data-theme-custom-value="<%= (@config_obj.get('custom_theme') || {}).to_json %>" data-theme-custom-label-value="<%= t('settings.custom_theme.default_name') %>" data-theme-custom-theme-editor-outlet='[data-controller~="custom-theme-editor"]' >
               <button
                 type="button"
+                data-theme-target="button"
+                aria-expanded="false" aria-haspopup="menu" aria-controls="settings-theme-menu"
                 data-action="click->theme#toggle"
                 class="flex w-40 items-center justify-between gap-2 rounded-md border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-2 text-sm text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-hover)]"
                 title="<%= t('header.change_theme') %>"
@@ -145,7 +147,8 @@
                 </svg>
               </button>
               <div
-                class="hidden frankmd-menu absolute right-0 mt-1 w-48 rounded-lg shadow-lg bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] py-1 z-50"
+                id="settings-theme-menu" popover="auto" role="menu" aria-label="<%= t('settings.theme') %>"
+                class="hidden frankmd-menu floating-dropdown w-48 rounded-lg shadow-lg bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] py-1"
                 data-theme-target="menu"
               >
                 <!-- Menu items rendered by JavaScript -->
@@ -162,6 +165,8 @@
             <div class="relative shrink-0" data-controller="locale" data-locale-initial-value="<%= @config&.dig(:settings, 'locale') || I18n.locale %>">
               <button
                 type="button"
+                data-locale-target="button"
+                aria-expanded="false" aria-haspopup="menu" aria-controls="settings-locale-menu"
                 data-action="click->locale#toggle"
                 class="flex w-40 items-center justify-between gap-2 rounded-md border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-2 text-sm text-[var(--theme-text-primary)] hover:bg-[var(--theme-bg-hover)]"
                 title="<%= t('header.change_language') %>"
@@ -172,7 +177,8 @@
                 </svg>
               </button>
               <div
-                class="hidden frankmd-menu absolute right-0 mt-1 w-48 rounded-lg shadow-lg bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] py-1 z-50"
+                id="settings-locale-menu" popover="auto" role="menu" aria-label="<%= t('settings.language') %>"
+                class="hidden frankmd-menu floating-dropdown w-48 rounded-lg shadow-lg bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] py-1"
                 data-locale-target="menu"
               >
                 <!-- Menu items rendered by JavaScript -->

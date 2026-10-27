@@ -17,3 +17,19 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+/* Popovers escape dialog clipping without leaving their controller's DOM. */
+.floating-dropdown {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  box-sizing: border-box;
+  max-height: 20rem;
+  color: var(--theme-text-primary);
+  z-index: 50;
+}
+
+.floating-dropdown [role="menuitemradio"]:focus-visible {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: -2px;
+}
