@@ -290,6 +290,8 @@ he:
   # תפריט הקשר
   context_menu:
     new_note: "הערה חדשה"
+    select_all: "בחר הכול"
+    explorer_menu: "תפריט סייר הקבצים"
     new_folder: "תיקייה חדשה"
     rename: "שנה שם"
     delete: "מחק"

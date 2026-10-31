@@ -290,6 +290,8 @@ pt-BR:
   # Menu de contexto
   context_menu:
     new_note: "Nova Nota"
+    select_all: "Selecionar tudo"
+    explorer_menu: "Menu do explorador"
     new_folder: "Nova Pasta"
     rename: "Renomear"
     delete: "Excluir"

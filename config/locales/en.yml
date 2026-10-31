@@ -291,6 +291,8 @@ en:
   # Context menu
   context_menu:
     new_note: "New Note"
+    select_all: "Select All"
+    explorer_menu: "Explorer menu"
     new_folder: "New Folder"
     rename: "Rename"
     delete: "Delete"

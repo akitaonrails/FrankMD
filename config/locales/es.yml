@@ -290,6 +290,8 @@ es:
   # Context menu
   context_menu:
     new_note: "Nueva Nota"
+    select_all: "Seleccionar todo"
+    explorer_menu: "Menú del explorador"
     new_folder: "Nueva Carpeta"
     rename: "Renombrar"
     delete: "Eliminar"

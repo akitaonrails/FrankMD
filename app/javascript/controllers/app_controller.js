@@ -100,6 +100,7 @@ export default class extends Controller {
     "textarea",
     "currentPath",
     "contextMenu",
+    "explorerMenu",
     "editorToolbar",
     "helpDialog",
     "undoCreatedNoteDialog",
@@ -159,6 +160,18 @@ export default class extends Controller {
     this.boundExplorerPointerUp = () => { this._explorerPointerDownItem = null }
     document.addEventListener("pointerup", this.boundExplorerPointerUp, true)
     document.addEventListener("pointercancel", this.boundExplorerPointerUp, true)
+
+    // Close the explorer background menu on any click outside it. Clicks
+    // inside the tree are managed by the item actions and the background
+    // handler itself, so they are skipped here.
+    this.boundExplorerMenuClose = (event) => {
+      if (!this.hasExplorerMenuTarget) return
+      if (this.explorerMenuTarget.classList.contains("hidden")) return
+      if (this.explorerMenuTarget.contains(event.target)) return
+      if (event.target instanceof Element && event.target.closest("#file-tree-content")) return
+      this.hideExplorerMenu()
+    }
+    document.addEventListener("click", this.boundExplorerMenuClose)
 
     // Start desktop Explorer expanded and mobile Explorer closed.
     // Visibility remains session-only.
@@ -342,6 +355,9 @@ export default class extends Controller {
     if (this.boundExplorerPointerUp) {
       document.removeEventListener("pointerup", this.boundExplorerPointerUp, true)
       document.removeEventListener("pointercancel", this.boundExplorerPointerUp, true)
+    }
+    if (this.boundExplorerMenuClose) {
+      document.removeEventListener("click", this.boundExplorerMenuClose)
     }
 
     // Clean up object URLs to prevent memory leaks
@@ -792,6 +808,7 @@ export default class extends Controller {
   selectExplorerItem(item, event = {}, { focus = true } = {}) {
     if (!item || !this.fileTreeTarget?.contains(item)) return
     if (!this.explorerSelection) this.explorerSelection = new Map()
+    this.hideExplorerMenu()
 
     const target = { path: item.dataset.path, type: item.dataset.type }
     const targetKey = this.explorerItemKey(target)
@@ -836,6 +853,60 @@ export default class extends Controller {
   onExplorerItemFocus(event) {
     if (this._settingExplorerFocus || this._explorerPointerDownItem === event.currentTarget) return
     this.selectExplorerItem(event.currentTarget, {}, { focus: false })
+  }
+
+  // === Explorer background interaction (#261, #267) ===
+  // A left click on the explorer's empty surface clears the selection (so
+  // toolbar creation targets the root again) and offers the explorer menu.
+  onExplorerBackgroundClick(event) {
+    if (event.target.closest(".tree-item")) return
+    this.clearExplorerSelection()
+    this.showExplorerMenu(event)
+  }
+
+  clearExplorerSelection() {
+    this.explorerSelection = new Map()
+    this.explorerSelectionAnchor = null
+    this.explorerActiveKey = null
+    this.syncExplorerSelection()
+  }
+
+  selectAllExplorerItems() {
+    const visible = this.visibleExplorerItems()
+    const selection = new Map()
+    visible.forEach((item) => {
+      const value = { path: item.dataset.path, type: item.dataset.type }
+      const key = this.explorerItemKey(value)
+      if (key) selection.set(key, value)
+    })
+    this.explorerSelection = selection
+    this.explorerSelectionAnchor = this.explorerItemKey(visible[0] || {}) || null
+    this.explorerActiveKey = Array.from(selection.keys()).pop() || null
+    this.syncExplorerSelection()
+    this.hideExplorerMenu()
+  }
+
+  showExplorerMenu(event) {
+    if (!this.hasExplorerMenuTarget) return
+    const menu = this.explorerMenuTarget
+
+    menu.style.left = `${event.clientX}px`
+    menu.style.top = `${event.clientY}px`
+    menu.classList.remove("hidden")
+
+    const rect = menu.getBoundingClientRect()
+    if (rect.right > window.innerWidth) {
+      menu.style.left = `${window.innerWidth - rect.width - 10}px`
+    }
+    if (rect.bottom > window.innerHeight) {
+      menu.style.top = `${window.innerHeight - rect.height - 10}px`
+    }
+    clampMenuToViewport(menu)
+    menu.querySelector("button:not([hidden])")?.focus()
+  }
+
+  hideExplorerMenu() {
+    if (this.hasExplorerMenuTarget) this.explorerMenuTarget.classList.add("hidden")
   }
 
   onExplorerItemPointerDown(event) {
@@ -1831,6 +1902,8 @@ export default class extends Controller {
         this.cancelTitleRename()
       } else if (this.hasOverflowMenuTarget && !this.overflowMenuTarget.classList.contains("hidden")) {
         this.closeWorkspaceMenu()
+      } else if (this.hasExplorerMenuTarget && !this.explorerMenuTarget.classList.contains("hidden")) {
+        this.hideExplorerMenu()
       } else if (this.mobileWorkspace && this.sidebarVisible) {
         this.closeMobileSidebar()
       } else return false
@@ -3201,6 +3274,9 @@ export default class extends Controller {
     if (this.hasContextMenuTarget) {
       this.contextMenuTarget.classList.add("hidden")
     }
+
+    // Close explorer background menu
+    this.hideExplorerMenu()
 
     // Close help dialog
     if (this.hasHelpDialogTarget && this.helpDialogTarget.open) {

@@ -290,6 +290,8 @@ ko:
   # 컨텍스트 메뉴
   context_menu:
     new_note: "새 노트"
+    select_all: "모두 선택"
+    explorer_menu: "탐색기 메뉴"
     new_folder: "새 폴더"
     rename: "이름 변경"
     delete: "삭제"

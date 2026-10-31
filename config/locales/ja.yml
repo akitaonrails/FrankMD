@@ -290,6 +290,8 @@ ja:
   # Context menu
   context_menu:
     new_note: "新規ノート"
+    select_all: "すべて選択"
+    explorer_menu: "エクスプローラメニュー"
     new_folder: "新規フォルダ"
     rename: "名前変更"
     delete: "削除"

@@ -13,7 +13,7 @@
     data-app-target="fileTree"
     data-controller="drag-drop"
     data-drag-drop-target="tree"
-    data-action="dragover->drag-drop#onDragOverRoot dragenter->drag-drop#onDragEnterRoot dragleave->drag-drop#onDragLeaveRoot drop->drag-drop#onDropToRoot drag-drop:item-moved->app#onItemMoved"
+    data-action="click->app#onExplorerBackgroundClick dragover->drag-drop#onDragOverRoot dragenter->drag-drop#onDragEnterRoot dragleave->drag-drop#onDragLeaveRoot drop->drag-drop#onDropToRoot drag-drop:item-moved->app#onItemMoved"
   >
     <%= render "notes/file_tree" %>
   </div>
