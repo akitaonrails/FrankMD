@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 vi.mock("lib/app_prompt", () => ({ appAlert: vi.fn().mockResolvedValue(undefined) }))
 import { Application } from "@hotwired/stimulus"
 import DragDropController from "../../../app/javascript/controllers/drag_drop_controller.js"
+import AppController from "../../../app/javascript/controllers/app_controller.js"
 import { appAlert } from "lib/app_prompt"
 
 // Mock window.t translation function
@@ -505,7 +506,10 @@ describe("DragDropController", () => {
         text: Promise.resolve("")
       })
       const expandedFolders = new Set(["unrelated"])
-      controller.getAppController = () => ({ expandedFolders, getAutosaveController: () => null })
+      const app = Object.create(AppController.prototype)
+      app.expandedFolders = expandedFolders
+      app.hasFileTreeTarget = false
+      controller.getAppController = () => app
 
       await controller.moveItem("file1.md", "folder2/sub/deep/file1.md", "file")
 

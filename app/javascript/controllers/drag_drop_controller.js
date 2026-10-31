@@ -251,13 +251,7 @@ export default class extends Controller {
     // the tree re-rendered by the rename response shows the moved item instead
     // of leaving it hidden inside a collapsed folder.
     const destinationFolder = newPath.split("/").slice(0, -1).join("/")
-    if (destinationFolder) {
-      const app = this.getAppController()
-      const segments = destinationFolder.split("/")
-      segments.forEach((_, index) => {
-        app?.expandedFolders?.add(segments.slice(0, index + 1).join("/"))
-      })
-    }
+    if (destinationFolder) this.getAppController()?.expandFolderPath?.(destinationFolder)
 
     try {
       const endpoint = type === "file" ? "notes" : "folders"

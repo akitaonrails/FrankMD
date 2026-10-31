@@ -377,6 +377,9 @@ export default class extends Controller {
 
   async createNote(name, parent, template) {
     let response
+    // Reveal the destination folder before the request so the re-rendered
+    // tree shows the new note even when the folder was collapsed (#268).
+    if (parent) this.getAppController()?.expandFolderPath?.(parent)
     const expanded = this.expandedFolders
 
     if (template === "hugo") {
@@ -426,6 +429,8 @@ export default class extends Controller {
 
   async createFolder(name, parent) {
     const path = parent ? `${parent}/${name}` : name
+    // Same reveal-on-create contract as notes (#268).
+    if (parent) this.getAppController()?.expandFolderPath?.(parent)
     const expanded = this.expandedFolders
 
     const response = await post(`/folders/${encodePath(path)}?expanded=${encodeURIComponent(expanded)}`, {

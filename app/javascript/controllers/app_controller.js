@@ -622,7 +622,10 @@ export default class extends Controller {
 
   // Reveal a folder's children in place. The explorer always renders every
   // folder's children; a collapsed folder merely carries the `hidden` class.
+  // The expansion is recorded even when the folder is not rendered yet, so
+  // server-side tree renders (which receive the state as a payload) open it.
   expandFolderInTree(path) {
+    this.expandedFolders.add(path)
     if (!this.hasFileTreeTarget) return
 
     const folderEl = Array.from(this.fileTreeTarget.querySelectorAll(".tree-folder"))
@@ -631,7 +634,16 @@ export default class extends Controller {
 
     folderEl.querySelector(".tree-children")?.classList.remove("hidden")
     folderEl.querySelector(".tree-chevron")?.classList.add("expanded")
-    this.expandedFolders.add(path)
+  }
+
+  // Open a folder and every ancestor in the shared expansion state, so trees
+  // re-rendered by the server reveal items created or moved inside it (#268).
+  expandFolderPath(path) {
+    if (!path) return
+    const segments = path.split("/")
+    segments.forEach((_, index) => {
+      this.expandFolderInTree(segments.slice(0, index + 1).join("/"))
+    })
   }
 
   toggleFolder(event) {

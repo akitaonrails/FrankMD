@@ -8,6 +8,7 @@ vi.mock("lib/app_prompt", () => ({
 }))
 import { Application, Controller } from "@hotwired/stimulus"
 import FileOperationsController from "../../../app/javascript/controllers/file_operations_controller.js"
+import AppController from "../../../app/javascript/controllers/app_controller.js"
 import { appAlert, appConfirm } from "lib/app_prompt"
 
 describe("FileOperationsController", () => {
@@ -546,6 +547,36 @@ describe("FileOperationsController", () => {
       await controller.submitNewNote()
 
       expect(controller.newNoteDialogTarget.close).toHaveBeenCalled()
+    })
+
+    it("expands the destination folder before posting so the tree reveals the new note (#268)", async () => {
+      const app = Object.create(AppController.prototype)
+      app.expandedFolders = new Set(["unrelated"])
+      app.hasFileTreeTarget = false
+      controller.getAppController = () => app
+      Object.defineProperty(controller, "expandedFolders", {
+        get() { return [...app.expandedFolders].join(",") }
+      })
+
+      await controller.createNote("test", "docs/nested", "empty")
+
+      const body = JSON.parse(global.fetch.mock.calls[0][1].body)
+      expect(body.expanded.split(",").sort()).toEqual(["docs", "docs/nested", "unrelated"])
+    })
+
+    it("expands the destination folder when creating a nested folder (#268)", async () => {
+      const app = Object.create(AppController.prototype)
+      app.expandedFolders = new Set()
+      app.hasFileTreeTarget = false
+      controller.getAppController = () => app
+      Object.defineProperty(controller, "expandedFolders", {
+        get() { return [...app.expandedFolders].join(",") }
+      })
+
+      await controller.createFolder("sub", "docs/deep")
+
+      const url = global.fetch.mock.calls[0][0]
+      expect(decodeURIComponent(url.split("expanded=")[1])).toBe("docs,docs/deep")
     })
 
     it("keeps the dialog open and shows failures inline", async () => {
