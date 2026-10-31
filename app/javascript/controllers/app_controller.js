@@ -808,7 +808,7 @@ export default class extends Controller {
   selectExplorerItem(item, event = {}, { focus = true } = {}) {
     if (!item || !this.fileTreeTarget?.contains(item)) return
     if (!this.explorerSelection) this.explorerSelection = new Map()
-    this.hideExplorerMenu()
+    this.hideExplorerMenu?.()
 
     const target = { path: item.dataset.path, type: item.dataset.type }
     const targetKey = this.explorerItemKey(target)

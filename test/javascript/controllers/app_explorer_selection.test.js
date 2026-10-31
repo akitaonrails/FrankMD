@@ -25,6 +25,7 @@ function createAppFixture(markup = "") {
       "visibleExplorerItems",
       "focusExplorerItem",
       "selectExplorerItem",
+      "hideExplorerMenu",
       "remapExplorerSelection",
       "removeExplorerSelection"
     ].map((name) => [name, AppController.prototype[name]]))
