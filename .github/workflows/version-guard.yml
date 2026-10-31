@@ -9,7 +9,7 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
     permissions:
       contents: read
     steps:

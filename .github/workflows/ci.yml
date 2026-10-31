@@ -7,7 +7,7 @@ on:
 
 jobs:
   scan_ruby:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
     permissions:
       contents: read
 
@@ -30,7 +30,7 @@ jobs:
         run: bin/bundler-audit
       
   scan_js:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
     permissions:
       contents: read
 
@@ -51,7 +51,7 @@ jobs:
 
   test_js:
     needs: scan_js
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
     permissions:
       contents: read
 
@@ -67,7 +67,7 @@ jobs:
 
   test_ruby:
     needs: scan_ruby
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
     permissions:
       contents: read
 
@@ -89,7 +89,7 @@ jobs:
         run: bin/rails test test/controllers test/models test/services test/helpers
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
     permissions:
       contents: read
     env:
