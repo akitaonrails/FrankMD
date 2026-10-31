@@ -45,11 +45,13 @@ export default class extends Controller {
 
   connect() {
     this.draggedItem = null
+    this.draggedItems = null
     this.activeDropTargetId = null
   }
 
   disconnect() {
     this.draggedItem = null
+    this.draggedItems = null
     this.activeDropTargetId = null
   }
 
@@ -60,6 +62,15 @@ export default class extends Controller {
       path: target.dataset.path,
       type: target.dataset.type
     }
+
+    // Dragging an item that belongs to the current selection drags the whole
+    // selection, files and folders together (#266).
+    const selected = this.getAppController()?.getSelectedExplorerItems?.() || []
+    const grabbed = selected.some((item) => item.path === this.draggedItem.path && item.type === this.draggedItem.type)
+    this.draggedItems = grabbed && selected.length > 1
+      ? selected.map((item) => ({ path: item.path, type: item.type }))
+      : [this.draggedItem]
+
     event.dataTransfer.effectAllowed = "move"
     event.dataTransfer.setData("text/plain", target.dataset.path)
     target.classList.add("dragging")
@@ -75,6 +86,7 @@ export default class extends Controller {
   onDragEnd(event) {
     event.currentTarget.classList.remove("dragging", "drag-ghost")
     this.draggedItem = null
+    this.draggedItems = null
     this.clearActiveDropTarget()
 
     if (this.hasTreeTarget) {
@@ -142,15 +154,18 @@ export default class extends Controller {
     if (target.dataset.type !== "folder") return false
     if (!target.dataset.path) return false
 
-    const draggedPath = this.draggedItem.path
+    const items = this.draggedItems?.length ? this.draggedItems : [this.draggedItem]
+    const targetPath = target.dataset.path
 
-    // Don't allow dropping on itself or descendants.
-    if (draggedPath === target.dataset.path) return false
-    if (target.dataset.path.startsWith(draggedPath + "/")) return false
+    // Don't allow dropping on a dragged item or inside a dragged folder.
+    for (const item of items) {
+      if (item.path === targetPath) return false
+      if (targetPath.startsWith(item.path + "/")) return false
+    }
 
-    // Don't highlight the current parent (moving to same location is a no-op).
-    const currentParent = draggedPath.split("/").slice(0, -1).join("/")
-    if (currentParent === target.dataset.path) return false
+    // Don't highlight when every dragged item already lives in the target
+    // folder (moving there would be a no-op).
+    if (items.every((item) => item.path.split("/").slice(0, -1).join("/") === targetPath)) return false
 
     return true
   }
@@ -166,13 +181,18 @@ export default class extends Controller {
     if (!this.draggedItem) return
     if (!this.isValidDropTarget(target)) return
 
-    const sourcePath = this.draggedItem.path
     const targetFolder = target.dataset.path
+    await this.moveDraggedItems((item) => `${targetFolder}/${item.path.split("/").pop()}`)
+  }
 
-    const itemName = sourcePath.split("/").pop()
-    const newPath = `${targetFolder}/${itemName}`
-
-    await this.moveItem(sourcePath, newPath, this.draggedItem.type)
+  // Move every dragged item; items already at the destination are skipped.
+  async moveDraggedItems(destinationFor) {
+    const items = this.draggedItems?.length ? this.draggedItems : (this.draggedItem ? [this.draggedItem] : [])
+    for (const item of items) {
+      const newPath = destinationFor(item)
+      if (newPath === item.path) continue
+      await this.moveItem(item.path, newPath, item.type)
+    }
   }
 
   // Root tree drag over
@@ -191,8 +211,9 @@ export default class extends Controller {
     if (!this.draggedItem) return
     if (!this.hasTreeTarget) return
 
-    // Only highlight if the item is not already at root
-    if (this.draggedItem.path.includes("/")) {
+    const items = this.draggedItems?.length ? this.draggedItems : [this.draggedItem]
+    // Only highlight if any dragged item is not already at root
+    if (items.some((item) => item.path.includes("/"))) {
       this.treeTarget.classList.add("drop-highlight-root")
     }
   }
@@ -228,15 +249,7 @@ export default class extends Controller {
 
     if (!this.draggedItem) return
 
-    const sourcePath = this.draggedItem.path
-
-    // If already at root, do nothing
-    if (!sourcePath.includes("/")) return
-
-    const itemName = sourcePath.split("/").pop()
-    const newPath = itemName
-
-    await this.moveItem(sourcePath, newPath, this.draggedItem.type)
+    await this.moveDraggedItems((item) => item.path.split("/").pop())
   }
 
   // Move item to new location

@@ -91,6 +91,38 @@ describe("DragDropController", () => {
       })
     })
 
+    it("drags the whole selection when the grabbed item is selected (#266)", () => {
+      const selection = [
+        { path: "folder1/file1.md", type: "file" },
+        { path: "notes.md", type: "file" },
+        { path: "folder1", type: "folder" }
+      ]
+      controller.getAppController = () => ({ getSelectedExplorerItems: () => selection })
+      const item = element.querySelector('[data-path="folder1/file1.md"]')
+
+      controller.onDragStart({ currentTarget: item, dataTransfer: { effectAllowed: null, setData: vi.fn() } })
+
+      expect(controller.draggedItems).toEqual(selection)
+    })
+
+    it("drags a single item when the grabbed item is not selected", () => {
+      controller.getAppController = () => ({ getSelectedExplorerItems: () => [{ path: "other.md", type: "file" }] })
+      const item = element.querySelector('[data-path="folder1/file1.md"]')
+
+      controller.onDragStart({ currentTarget: item, dataTransfer: { effectAllowed: null, setData: vi.fn() } })
+
+      expect(controller.draggedItems).toEqual([{ path: "folder1/file1.md", type: "file" }])
+    })
+
+    it("drags a single item when it is the only selection", () => {
+      controller.getAppController = () => ({ getSelectedExplorerItems: () => [{ path: "folder1/file1.md", type: "file" }] })
+      const item = element.querySelector('[data-path="folder1/file1.md"]')
+
+      controller.onDragStart({ currentTarget: item, dataTransfer: { effectAllowed: null, setData: vi.fn() } })
+
+      expect(controller.draggedItems).toEqual([{ path: "folder1/file1.md", type: "file" }])
+    })
+
     it("sets dataTransfer data", () => {
       const item = element.querySelector('[data-path="folder1/file1.md"]')
       const setDataMock = vi.fn()
@@ -370,7 +402,78 @@ describe("DragDropController", () => {
     })
   })
 
+  describe("isValidDropTarget()", () => {
+    it("accepts a folder outside the dragged set", () => {
+      controller.draggedItem = { path: "folder1/file1.md", type: "file" }
+      controller.draggedItems = [
+        { path: "folder1/file1.md", type: "file" },
+        { path: "notes.md", type: "file" }
+      ]
+      const folder = element.querySelector('[data-path="folder2"]')
+
+      expect(controller.isValidDropTarget(folder)).toBe(true)
+    })
+
+    it("rejects folders inside a dragged folder", () => {
+      controller.draggedItem = { path: "folder1", type: "folder" }
+      controller.draggedItems = [
+        { path: "folder1", type: "folder" },
+        { path: "notes.md", type: "file" }
+      ]
+      const subfolder = element.querySelector('[data-path="folder1/subfolder"]')
+
+      expect(controller.isValidDropTarget(subfolder)).toBe(false)
+    })
+
+    it("rejects the shared current parent of every dragged item", () => {
+      controller.draggedItem = { path: "folder1/file1.md", type: "file" }
+      controller.draggedItems = [
+        { path: "folder1/file1.md", type: "file" },
+        { path: "folder1/file2.md", type: "file" }
+      ]
+      const folder = element.querySelector('[data-path="folder1"]')
+
+      expect(controller.isValidDropTarget(folder)).toBe(false)
+    })
+
+    it("accepts a folder that holds only some of the dragged items", () => {
+      controller.draggedItem = { path: "folder1/file1.md", type: "file" }
+      controller.draggedItems = [
+        { path: "folder1/file1.md", type: "file" },
+        { path: "folder1/file2.md", type: "file" },
+        { path: "notes.md", type: "file" }
+      ]
+      const folder = element.querySelector('[data-path="folder1"]')
+
+      expect(controller.isValidDropTarget(folder)).toBe(true)
+    })
+  })
+
   describe("onDrop()", () => {
+    it("moves every dragged item of a multi-selection (#266)", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        statusCode: 200,
+        headers: new Headers({ "content-type": "text/vnd.turbo-stream.html" }),
+        text: Promise.resolve("")
+      })
+      controller.draggedItem = { path: "folder1/file1.md", type: "file" }
+      controller.draggedItems = [
+        { path: "folder1/file1.md", type: "file" },
+        { path: "folder1/file2.md", type: "file" }
+      ]
+      const folder = element.querySelector('[data-path="folder2"]')
+
+      await controller.onDrop({ preventDefault: () => {}, stopPropagation: () => {}, currentTarget: folder })
+
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+      const urls = global.fetch.mock.calls.map((call) => call[0])
+      expect(urls).toContain("/notes/folder1/file1.md/rename")
+      expect(urls).toContain("/notes/folder1/file2.md/rename")
+      const bodies = global.fetch.mock.calls.map((call) => JSON.parse(call[1].body).new_path)
+      expect(bodies).toEqual(["folder2/file1.md", "folder2/file2.md"])
+    })
+
     it("prevents default and stops propagation", async () => {
       controller.draggedItem = { path: "folder1/file1.md", type: "file" }
       const folder = element.querySelector('[data-path="folder2"]')
@@ -431,6 +534,26 @@ describe("DragDropController", () => {
   })
 
   describe("onDropToRoot()", () => {
+    it("moves nested items to the root and skips items already there (#266)", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        statusCode: 200,
+        headers: new Headers({ "content-type": "text/vnd.turbo-stream.html" }),
+        text: Promise.resolve("")
+      })
+      controller.draggedItem = { path: "folder1/file1.md", type: "file" }
+      controller.draggedItems = [
+        { path: "folder1/file1.md", type: "file" },
+        { path: "rootnote.md", type: "file" }
+      ]
+
+      await controller.onDropToRoot({ preventDefault: () => {}, stopPropagation: () => {} })
+
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+      expect(global.fetch.mock.calls[0][0]).toBe("/notes/folder1/file1.md/rename")
+      expect(JSON.parse(global.fetch.mock.calls[0][1].body).new_path).toBe("file1.md")
+    })
+
     it("clears active row highlight", async () => {
       controller.draggedItem = { path: "folder1/file1.md", type: "file" }
       const folder = element.querySelector('[data-path="folder2"]')
