@@ -64,11 +64,15 @@ export default class extends Controller {
     }
 
     // Dragging an item that belongs to the current selection drags the whole
-    // selection, files and folders together (#266).
+    // selection, files and folders together (#266). Items already covered by a
+    // selected ancestor folder move with that folder, so they are excluded —
+    // the same guard the bulk delete flow applies.
     const selected = this.getAppController()?.getSelectedExplorerItems?.() || []
     const grabbed = selected.some((item) => item.path === this.draggedItem.path && item.type === this.draggedItem.type)
+    const selectedFolders = selected.filter((item) => item.type === "folder")
     this.draggedItems = grabbed && selected.length > 1
-      ? selected.map((item) => ({ path: item.path, type: item.type }))
+      ? selected.filter((item) => !selectedFolders.some((folder) =>
+          item.path !== folder.path && item.path.startsWith(`${folder.path}/`)))
       : [this.draggedItem]
 
     event.dataTransfer.effectAllowed = "move"
@@ -186,12 +190,15 @@ export default class extends Controller {
   }
 
   // Move every dragged item; items already at the destination are skipped.
+  // Stops at the first failure so a partial move cannot continue relocating
+  // the remaining selection after the user has seen an error.
   async moveDraggedItems(destinationFor) {
     const items = this.draggedItems?.length ? this.draggedItems : (this.draggedItem ? [this.draggedItem] : [])
     for (const item of items) {
       const newPath = destinationFor(item)
       if (newPath === item.path) continue
-      await this.moveItem(item.path, newPath, item.type)
+      const moved = await this.moveItem(item.path, newPath, item.type)
+      if (!moved) return
     }
   }
 
@@ -257,7 +264,7 @@ export default class extends Controller {
     const prepared = this.preparePathOperation(oldPath, type)
     if (!prepared.ok) {
       if (prepared.needsAlert) appAlert(window.t("status.draft_storage_error"))
-      return
+      return false
     }
 
     // Open the destination (and its ancestors) in the shared expansion state so
@@ -281,10 +288,12 @@ export default class extends Controller {
       this.dispatch("item-moved", {
         detail: { oldPath, newPath, type }
       })
+      return true
     } catch (error) {
       this.resumePathOperation(prepared)
       console.error("Error moving item:", error)
       appAlert(error.message)
+      return false
     }
   }
 }

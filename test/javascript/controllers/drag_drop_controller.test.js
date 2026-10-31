@@ -95,7 +95,7 @@ describe("DragDropController", () => {
       const selection = [
         { path: "folder1/file1.md", type: "file" },
         { path: "notes.md", type: "file" },
-        { path: "folder1", type: "folder" }
+        { path: "folder2", type: "folder" }
       ]
       controller.getAppController = () => ({ getSelectedExplorerItems: () => selection })
       const item = element.querySelector('[data-path="folder1/file1.md"]')
@@ -121,6 +121,25 @@ describe("DragDropController", () => {
       controller.onDragStart({ currentTarget: item, dataTransfer: { effectAllowed: null, setData: vi.fn() } })
 
       expect(controller.draggedItems).toEqual([{ path: "folder1/file1.md", type: "file" }])
+    })
+
+    it("excludes items covered by a selected ancestor folder (#266)", () => {
+      controller.getAppController = () => ({
+        getSelectedExplorerItems: () => [
+          { path: "notes.md", type: "file" },
+          { path: "folder1", type: "folder" },
+          { path: "folder1/file1.md", type: "file" },
+          { path: "folder1/subfolder", type: "folder" }
+        ]
+      })
+      const item = element.querySelector('[data-path="folder1"]')
+
+      controller.onDragStart({ currentTarget: item, dataTransfer: { effectAllowed: null, setData: vi.fn() } })
+
+      expect(controller.draggedItems).toEqual([
+        { path: "notes.md", type: "file" },
+        { path: "folder1", type: "folder" }
+      ])
     })
 
     it("sets dataTransfer data", () => {
@@ -552,6 +571,24 @@ describe("DragDropController", () => {
       expect(global.fetch).toHaveBeenCalledTimes(1)
       expect(global.fetch.mock.calls[0][0]).toBe("/notes/folder1/file1.md/rename")
       expect(JSON.parse(global.fetch.mock.calls[0][1].body).new_path).toBe("file1.md")
+    })
+
+    it("stops moving the group after the first failure", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        statusCode: 422,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: Promise.resolve({ error: "already exists" })
+      })
+      controller.draggedItem = { path: "folder1/file1.md", type: "file" }
+      controller.draggedItems = [
+        { path: "folder1/file1.md", type: "file" },
+        { path: "folder1/file2.md", type: "file" }
+      ]
+
+      await controller.onDropToRoot({ preventDefault: () => {}, stopPropagation: () => {} })
+
+      expect(global.fetch).toHaveBeenCalledTimes(1)
     })
 
     it("clears active row highlight", async () => {

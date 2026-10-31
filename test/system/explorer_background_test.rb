@@ -33,6 +33,14 @@ class ExplorerBackgroundTest < ApplicationSystemTestCase
     end
     assert_selector ".explorer-selected", count: 2
     assert_selector "[data-app-target='explorerMenu'].hidden", visible: :all
+
+    # Find File opens the file finder from the menu.
+    find("#file-tree-content").click(x: 10, y: 300)
+    within "[data-app-target='explorerMenu']" do
+      click_button "Find File"
+    end
+    assert_selector "dialog[data-file-finder-target='dialog'][open]"
+    find("body").native.send_keys(:escape)
   end
 
   test "the explorer menu creates notes at the root and Escape dismisses it (#267)" do
