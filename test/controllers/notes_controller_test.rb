@@ -98,6 +98,15 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".workspace-sidebar > header [data-app-target='sidebarToggle'] svg path[d='m10 15-3-3 3-3']", count: 1
     assert_select ".workspace-main > button[data-app-target='sidebarOpen'][hidden][aria-controls='workspace-sidebar'][aria-label='#{I18n.t('header.open_explorer')}']", count: 1
     assert_select ".workspace-main > header .workspace-explorer-actions", count: 0
+    assert_select ".workspace-main > nav.workspace-mobile-nav[aria-label] + header.workspace-header", count: 1
+    %w[newNote openFileFinder openContentSearch openSettings].each do |action|
+      assert_select ".workspace-mobile-nav button.workspace-icon[data-action='click->app##{action}'][aria-label][title]", count: 1
+      assert_select ".workspace-sidebar button.workspace-mobile-extracted[data-action='click->app##{action}']", count: 1
+    end
+    assert_select ".workspace-mobile-nav button", count: 4
+    assert_select ".workspace-mobile-nav [data-app-target]", count: 0
+    assert_select ".workspace-sidebar button.workspace-mobile-extracted", count: 4
+    assert_select ".workspace-sidebar button.workspace-mobile-extracted[data-action='click->app#newFolder']", count: 0
     assert_select "#settings-dialog [data-settings-target='statsToggle'][aria-pressed='false'][aria-label]"
   end
 
