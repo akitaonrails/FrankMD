@@ -36,10 +36,10 @@ describe("workspace chrome", () => {
             <button class="workspace-menu-action" role="menuitem" tabindex="-1" data-action="click->app#closeWorkspaceMenu click->app#openHelp">Edit</button>
           </div>
           <button role="menuitem" tabindex="-1" data-workspace-document-action>Copy</button>
+          <button role="menuitem" tabindex="-1">Help</button>
           <div class="workspace-menu-row" data-workspace-document-action>
             <button class="workspace-menu-action" role="menuitem" tabindex="-1" data-action="click->app#closeWorkspaceMenu click->app#deleteCurrentNote">Delete</button>
           </div>
-          <button role="menuitem" tabindex="-1">Help</button>
         </div>
       </div>
       <button data-app-target="sidebarBackdrop" class="hidden"></button>
@@ -449,7 +449,7 @@ describe("workspace chrome", () => {
     app.currentFile = "folder/note.md"
     app.updateWorkspaceChrome()
     expect(target("overflowMenu").classList.contains("hidden")).toBe(false)
-    expect(app.workspaceMenuItems().map(item => item.textContent)).toEqual(["Edit", "Copy", "Delete", "Help"])
+    expect(app.workspaceMenuItems().map(item => item.textContent)).toEqual(["Edit", "Copy", "Help", "Delete"])
   })
 
   it("supports arrow, Home, End and Escape navigation", () => {
@@ -458,7 +458,7 @@ describe("workspace chrome", () => {
     key(document.activeElement, "ArrowDown")
     expect(document.activeElement.textContent).toBe("Copy")
     key(document.activeElement, "End")
-    expect(document.activeElement.textContent).toBe("Help")
+    expect(document.activeElement.textContent).toBe("Delete")
     key(document.activeElement, "Home")
     expect(document.activeElement.textContent).toBe("Edit")
     key(document.activeElement, "Escape")
@@ -466,7 +466,7 @@ describe("workspace chrome", () => {
     expect(document.activeElement).toBe(target("overflowToggle"))
   })
 
-  it.each([["ArrowDown", "Edit"], ["ArrowUp", "Help"]])("opens by pointer without focusing an option and supports %s", (arrow, label) => {
+  it.each([["ArrowDown", "Edit"], ["ArrowUp", "Delete"]])("opens by pointer without focusing an option and supports %s", (arrow, label) => {
     target("overflowToggle").focus()
     target("overflowToggle").dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }))
     expect(target("overflowMenu").classList.contains("hidden")).toBe(false)

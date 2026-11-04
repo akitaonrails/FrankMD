@@ -79,6 +79,7 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select "header [role='menu'] [role='menuitem']", count: 11
     assert_select "header [role='menu'] [role='menuitemcheckbox'][data-workspace-pin][aria-label]", count: 11
     assert_select "header [role='menu'] .workspace-menu-action svg", count: 11
+    assert_select "#workspace-menu > .workspace-menu-row:last-child [data-action$='#deleteCurrentNote']", count: 1
     assert_select "header [data-workspace-pinned-action]", count: 11
     assert_select "header [data-workspace-pinned-action][data-pinned='true']", count: 3
     assert_select "main [data-app-target='editorToolbar']", count: 0
