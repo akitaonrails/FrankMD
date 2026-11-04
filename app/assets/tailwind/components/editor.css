@@ -339,6 +339,7 @@ body.single-view-mode [data-app-target="previewPanel"] {
   .workspace-mobile-nav .workspace-icon svg { width: 1rem; height: 1rem; }
   .workspace-main:has(> .workspace-sidebar-open:not([hidden])) > .workspace-header { padding-inline-start: .5rem; }
   .workspace-mobile-extracted { display: none; }
+  .workspace-esc-hint { display: none; }
 }
 
 .workspace-title-input {

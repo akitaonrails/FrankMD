@@ -106,6 +106,7 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".workspace-mobile-nav button", count: 4
     assert_select ".workspace-mobile-nav [data-app-target]", count: 0
     assert_select ".workspace-sidebar button.workspace-mobile-extracted", count: 4
+    assert_select ".workspace-esc-hint", text: I18n.t("dialogs.file_finder.esc_to_close"), count: 3
     assert_select ".workspace-sidebar button.workspace-mobile-extracted[data-action='click->app#newFolder']", count: 0
     assert_select "#settings-dialog [data-settings-target='statsToggle'][aria-pressed='false'][aria-label]"
   end

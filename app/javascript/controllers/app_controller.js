@@ -24,6 +24,7 @@ import { appAlert } from "lib/app_prompt"
 import { setSlashCommandsEnabledProvider } from "lib/codemirror_slash_commands"
 import { clampMenuToViewport, toggleMenu } from "lib/menu_bounds"
 import { clearInlineError, showInlineError } from "lib/inline_messages"
+import { installMobileBackdropDismiss } from "lib/dialog_backdrop"
 
 function pathMatchesScope(candidatePath, path, type) {
   if (typeof candidatePath !== "string") return false
@@ -194,6 +195,7 @@ export default class extends Controller {
 
     this.setupKeyboardShortcuts()
     this.setupDialogClickOutside()
+    this.removeMobileBackdropDismiss = installMobileBackdropDismiss()
     this.boundTreeStreamRenderHandler = this.invalidateTreeRefreshesForStream.bind(this)
     document.addEventListener("turbo:before-stream-render", this.boundTreeStreamRenderHandler)
     this.boundWorkspaceResize = () => {
@@ -319,6 +321,7 @@ export default class extends Controller {
   disconnect() {
     this._initializationReady = false
     if (this.boundWorkspaceResize) window.removeEventListener("resize", this.boundWorkspaceResize)
+    this.removeMobileBackdropDismiss?.()
     if (window.fetch === this.unauthorizedFetch) window.fetch = this.originalFetch
 
     // Clear all timeouts
