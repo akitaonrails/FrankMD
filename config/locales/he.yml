@@ -271,6 +271,7 @@ he:
       emoji_title: "הוסף אימוג'י (Ctrl+Shift+E)"
       find: "חיפוש"
       find_title: "חיפוש והחלפה (Ctrl+F)"
+      format_title: "עיצוב (Ctrl+M)"
     # שכבת עיבוד AI
     processing_with: "מעבד עם"
     press_esc_to_cancel: "לחץ ESC לביטול"

@@ -304,6 +304,36 @@ describe("workspace chrome", () => {
     })
   })
 
+  describe("format action", () => {
+    let row
+
+    beforeEach(() => {
+      row = document.createElement("div")
+      row.className = "workspace-menu-row"
+      row.dataset.workspaceEditingAction = ""
+      row.dataset.workspaceMobileOnly = ""
+      row.innerHTML = '<button class="workspace-menu-action" role="menuitem" tabindex="-1" data-action="click->app#closeWorkspaceMenu click->app#openTextFormatMenu">Format</button>'
+      target("overflowMenu").prepend(row)
+    })
+
+    it("is hidden on desktop and kept out of keyboard navigation", () => {
+      app.updateWorkspaceChrome()
+      expect(row.hidden).toBe(true)
+      expect(app.workspaceMenuItems().map(item => item.textContent)).not.toContain("Format")
+    })
+
+    it("shows on mobile while editing and opens the format menu", () => {
+      const openFromKeyboard = vi.fn()
+      vi.spyOn(app, "getTextFormatController").mockReturnValue({ openFromKeyboard })
+      app.mobileWorkspace = true
+      app.updateWorkspaceChrome()
+      expect(row.hidden).toBe(false)
+
+      row.querySelector("button").click()
+      expect(openFromKeyboard).toHaveBeenCalledOnce()
+    })
+  })
+
   describe("delete current note", () => {
     const deleteRow = () => root.querySelector('[data-action$="#deleteCurrentNote"]').closest(".workspace-menu-row")
 

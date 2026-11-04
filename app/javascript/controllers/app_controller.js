@@ -203,6 +203,7 @@ export default class extends Controller {
       if (mobile !== this.mobileWorkspace) {
         this.mobileWorkspace = mobile
         this.sidebarVisible = !mobile
+        this.updateWorkspaceChrome()
       }
       this.closeWorkspaceMenu(null, { restoreFocus: false })
       this.applySidebarVisibility()
@@ -1805,6 +1806,7 @@ export default class extends Controller {
       if (action) action.disabled = !editing || action.getAttribute("aria-busy") === "true"
     })
     root.querySelectorAll("[data-workspace-document-action]").forEach(button => { button.hidden = !this.currentFile })
+    root.querySelectorAll("[data-workspace-mobile-only]").forEach(element => { if (!this.mobileWorkspace) element.hidden = true })
     root.querySelectorAll('[data-action$="#deleteCurrentNote"]').forEach(button => {
       const target = button.closest(".workspace-menu-row") || button
       target.hidden = !this.currentFile || this.currentFileType === "config"

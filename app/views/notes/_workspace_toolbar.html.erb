@@ -28,7 +28,7 @@
       <% [ pinnable_actions, fixed_actions ].reject(&:empty?).each_with_index do |group, group_index| %>
         <% if group_index.positive? %><div class="workspace-menu-separator" role="separator"></div><% end %>
         <% group.each do |action| %>
-          <%= tag.div class: "workspace-menu-row", role: "none", data: { workspace_editing_action: action[:scope] == "editing" ? true : nil, workspace_document_action: action[:scope] == "document" ? true : nil, workspace_preview_row: action[:scope] == "preview" ? true : nil } do %>
+          <%= tag.div class: "workspace-menu-row", role: "none", data: { workspace_editing_action: action[:scope] == "editing" ? true : nil, workspace_document_action: action[:scope] == "document" ? true : nil, workspace_preview_row: action[:scope] == "preview" ? true : nil, workspace_mobile_only: action[:mobile_only] ? true : nil } do %>
             <%= render "notes/workspace_action", action: action, menu: true %>
             <% if action[:pinnable] %>
             <button type="button" class="workspace-menu-pin" role="menuitemcheckbox" tabindex="-1" aria-checked="<%= action[:pinned] %>" aria-label="<%= t(action[:pinned] ? 'header.unpin_action' : 'header.pin_action', action: action[:label]) %>" title="<%= t(action[:pinned] ? 'header.unpin_action' : 'header.pin_action', action: action[:label]) %>" data-action="click->app#toggleWorkspacePin" data-workspace-pin="<%= action[:id] %>" data-pin-label="<%= t('header.pin_action', action: action[:label]) %>" data-unpin-label="<%= t('header.unpin_action', action: action[:label]) %>">

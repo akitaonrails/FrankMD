@@ -271,6 +271,7 @@ ko:
       emoji_title: "이모지 삽입 (Ctrl+Shift+E)"
       find: "찾기"
       find_title: "찾기 및 바꾸기 (Ctrl+F)"
+      format_title: "서식 (Ctrl+M)"
     # AI 처리 오버레이
     processing_with: "처리 중:"
     press_esc_to_cancel: "ESC를 눌러 취소"

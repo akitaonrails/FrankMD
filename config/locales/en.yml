@@ -272,6 +272,7 @@ en:
       emoji_title: "Insert Emoji (Ctrl+Shift+E)"
       find: "Find"
       find_title: "Find and Replace (Ctrl+F)"
+      format_title: "Format (Ctrl+M)"
     # AI processing overlay
     processing_with: "Processing with"
     press_esc_to_cancel: "Press ESC to cancel"

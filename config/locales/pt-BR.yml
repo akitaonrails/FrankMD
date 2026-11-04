@@ -271,6 +271,7 @@ pt-BR:
       emoji_title: "Inserir Emoji (Ctrl+Shift+E)"
       find: "Buscar"
       find_title: "Buscar e substituir (Ctrl+F)"
+      format_title: "Formatar (Ctrl+M)"
     # Overlay de processamento IA
     processing_with: "Processando com"
     press_esc_to_cancel: "Pressione ESC para cancelar"

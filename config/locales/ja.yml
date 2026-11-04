@@ -271,6 +271,7 @@ ja:
       emoji_title: "絵文字挿入 (Ctrl+Shift+E)"
       find: "検索"
       find_title: "検索と置換 (Ctrl+F)"
+      format_title: "書式 (Ctrl+M)"
     # AI processing overlay
     processing_with: "処理中："
     press_esc_to_cancel: "ESCでキャンセル"

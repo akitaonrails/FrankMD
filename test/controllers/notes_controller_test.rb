@@ -76,14 +76,17 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select "header .workspace-toolbar button.workspace-icon" do |buttons|
       buttons.each { |button| assert button["aria-label"].present?, "Icon buttons require accessible labels" }
     end
-    assert_select "header [role='menu'] [role='menuitem']", count: 11
-    assert_select "header [role='menu'] [role='menuitemcheckbox'][data-workspace-pin][aria-label]", count: 10
-    assert_select "header [role='menu'] .workspace-menu-action svg", count: 11
+    assert_select "header [role='menu'] [role='menuitem']", count: 12
+    assert_select "header [role='menu'] [role='menuitemcheckbox'][data-workspace-pin][aria-label]", count: 11
+    assert_select "header [role='menu'] .workspace-menu-action svg", count: 12
     assert_select "#workspace-menu > .workspace-menu-row:last-child [data-action$='#deleteCurrentNote']", count: 1
     assert_select "#workspace-menu > .workspace-menu-separator[role='separator'] + .workspace-menu-row [data-action$='#deleteCurrentNote']", count: 1
     assert_select "#workspace-menu > .workspace-menu-separator", count: 1
     assert_select "[data-workspace-pin='delete'], [data-workspace-pinned-action='delete']", count: 0
-    assert_select "header [data-workspace-pinned-action]", count: 10
+    assert_select "header [data-workspace-pinned-action]", count: 11
+    assert_select "#workspace-menu > .workspace-menu-row[data-workspace-mobile-only][data-workspace-editing-action] [data-action$='#openTextFormatMenu'] span", text: "Format", count: 1
+    assert_select "header [data-workspace-pinned-action='format'][data-workspace-mobile-only][data-pinned='false']", count: 1
+    assert_select "[data-workspace-mobile-only]", count: 2
     assert_select "header [data-workspace-pinned-action][data-pinned='true']", count: 3
     assert_select "main [data-app-target='editorToolbar']", count: 0
     assert_select ".workspace-sidebar #workspace-explorer > div:first-child[data-app-target='fileTree']"
@@ -148,7 +151,7 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
           refute_match(/\((?:Ctrl\+|F\d+)/, button["aria-label"], "Shortcut in #{locale} accessible label")
         end
       end
-      [ "header.toggle_preview", "editor.toolbar.find_title", "editor.toolbar.emoji_title", "editor.toolbar.help_title" ].each do |key|
+      [ "header.toggle_preview", "editor.toolbar.find_title", "editor.toolbar.format_title", "editor.toolbar.emoji_title", "editor.toolbar.help_title" ].each do |key|
         assert_select "#workspace-menu [role='menuitem'][title=?]", I18n.t(key, locale: locale), count: 1
       end
     end
