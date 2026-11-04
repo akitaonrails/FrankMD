@@ -2,7 +2,7 @@
 
 module WorkspaceHelper
   def workspace_actions
-    [
+    pinnable = [
       [ "image", "openImagePicker", "editor.toolbar.image_title", "editing", true ],
       [ "find", "openFindReplace", "editor.toolbar.find_title", "editing", true ],
       [ "preview", "togglePreview", "header.toggle_preview", "preview", true ],
@@ -12,11 +12,21 @@ module WorkspaceHelper
       [ "emoji", "openEmojiPicker", "editor.toolbar.emoji_title", "editing", false ],
       [ "ai", "openAiDialog", "editor.toolbar.ai_title", "editing", false ],
       [ "copy", "copyCurrentContent", "header.copy_content", "document", false ],
-      [ "help", "openHelp", "editor.toolbar.help_title", "global", false ],
-      [ "delete", "deleteCurrentNote", "context_menu.delete", "document", false ]
-    ].map do |id, handler, label, scope, pinned|
-      tooltip = t(label)
-      { id: id, handler: handler, label: tooltip.sub(/\s+\((?:Ctrl\+[^)]+|F\d+)\)\z/, ""), tooltip: tooltip, scope: scope, pinned: pinned }
-    end
+      [ "help", "openHelp", "editor.toolbar.help_title", "global", false ]
+    ]
+    # Destructive actions sit apart at the end of the menu and are never pinned.
+    destructive = [
+      [ "delete", "deleteCurrentNote", "context_menu.delete", "document" ]
+    ]
+
+    pinnable.map { |id, handler, label, scope, pinned| workspace_action(id, handler, label, scope, pinned: pinned, pinnable: true) } +
+      destructive.map { |id, handler, label, scope| workspace_action(id, handler, label, scope, pinned: false, pinnable: false) }
+  end
+
+  private
+
+  def workspace_action(id, handler, label, scope, pinned:, pinnable:)
+    tooltip = t(label)
+    { id: id, handler: handler, label: tooltip.sub(/\s+\((?:Ctrl\+[^)]+|F\d+)\)\z/, ""), tooltip: tooltip, scope: scope, pinned: pinned, pinnable: pinnable }
   end
 end

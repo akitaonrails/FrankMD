@@ -245,7 +245,8 @@ body.single-view-mode [data-app-target="previewPanel"] {
 }
 .workspace-menu-action:disabled { opacity: .4; cursor: not-allowed; }
 .workspace-menu-action[data-action$="#deleteCurrentNote"] { color: var(--theme-error); }
-.workspace-menu-row:has(> [data-action$="#deleteCurrentNote"]) { margin-top: .25rem; padding-top: .25rem; border-top: 1px solid color-mix(in srgb, var(--theme-border) 50%, transparent); }
+.workspace-menu-separator { height: 1px; margin-block: .25rem; background: color-mix(in srgb, var(--theme-border) 50%, transparent); }
+.workspace-menu-separator[hidden] { display: none; }
 .workspace-menu-pin {
   display: inline-flex;
   align-items: center;

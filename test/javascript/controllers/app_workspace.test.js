@@ -37,6 +37,7 @@ describe("workspace chrome", () => {
           </div>
           <button role="menuitem" tabindex="-1" data-workspace-document-action>Copy</button>
           <button role="menuitem" tabindex="-1">Help</button>
+          <div class="workspace-menu-separator" role="separator"></div>
           <div class="workspace-menu-row" data-workspace-document-action>
             <button class="workspace-menu-action" role="menuitem" tabindex="-1" data-action="click->app#closeWorkspaceMenu click->app#deleteCurrentNote">Delete</button>
           </div>
@@ -327,8 +328,23 @@ describe("workspace chrome", () => {
       expect(deleteItems).not.toHaveBeenCalled()
     })
 
-    it("is shown for an open markdown note", () => {
+    it("is shown below a divider for an open markdown note", () => {
       expect(deleteRow().hidden).toBe(false)
+      expect(deleteRow().previousElementSibling.hidden).toBe(false)
+    })
+
+    it("hides the divider with the section it introduces", () => {
+      app.currentFile = null
+      app.updateWorkspaceChrome()
+      expect(deleteRow().previousElementSibling.matches(".workspace-menu-separator")).toBe(true)
+      expect(deleteRow().previousElementSibling.hidden).toBe(true)
+    })
+
+    it("ignores a stale pin for an unpinnable action", () => {
+      sessionStorage.setItem("frankmd.workspacePins", JSON.stringify(["delete"]))
+      app._workspacePinnedActions = null
+      app.updateWorkspacePins()
+      expect(app._workspacePinnedActions.has("delete")).toBe(false)
     })
   })
 

@@ -1809,6 +1809,14 @@ export default class extends Controller {
       const target = button.closest(".workspace-menu-row") || button
       target.hidden = !this.currentFile || this.currentFileType === "config"
     })
+    // Hide a section divider when every action in its section is hidden.
+    root.querySelectorAll(".workspace-menu-separator").forEach(separator => {
+      let visible = false
+      for (let row = separator.nextElementSibling; row && !row.matches(".workspace-menu-separator"); row = row.nextElementSibling) {
+        visible ||= !row.hidden
+      }
+      separator.hidden = !visible
+    })
     root.querySelectorAll('[data-workspace-preview-action], [data-app-target~="previewToggle"]').forEach(button => {
       button.disabled = !markdown || Boolean(this.libraryVisible)
     })
