@@ -280,6 +280,29 @@ describe("workspace chrome", () => {
     })
   })
 
+  describe("text-format context menu", () => {
+    let onContextMenu
+
+    beforeEach(() => {
+      onContextMenu = vi.fn()
+      vi.spyOn(app, "getTextFormatController").mockReturnValue({ onContextMenu })
+    })
+
+    it("opens on desktop", () => {
+      const event = new MouseEvent("contextmenu")
+      app.onTextareaContextMenu(event)
+      expect(onContextMenu).toHaveBeenCalledOnce()
+    })
+
+    it("leaves the native menu alone on mobile", () => {
+      app.mobileWorkspace = true
+      const event = new MouseEvent("contextmenu", { cancelable: true })
+      app.onTextareaContextMenu(event)
+      expect(onContextMenu).not.toHaveBeenCalled()
+      expect(event.defaultPrevented).toBe(false)
+    })
+  })
+
   describe("delete current note", () => {
     const deleteRow = () => root.querySelector('[data-action$="#deleteCurrentNote"]').closest(".workspace-menu-row")
 

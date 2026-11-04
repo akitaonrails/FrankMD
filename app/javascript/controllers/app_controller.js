@@ -3409,7 +3409,8 @@ export default class extends Controller {
   }
 
   onTextareaContextMenu(event) {
-    if (!this.isMarkdownFile()) return
+    // Long-press on mobile keeps the native selection menu.
+    if (this.mobileWorkspace || !this.isMarkdownFile()) return
     const cm = this.getCodemirrorController()
     const textFormatController = this.getTextFormatController()
     if (textFormatController) textFormatController.onContextMenu(event, cm, true)
