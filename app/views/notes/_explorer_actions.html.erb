@@ -1,7 +1,7 @@
 <div class="workspace-explorer-actions" role="group" aria-label="<%= t('sidebar.explorer') %>">
   <div class="workspace-global-actions">
     <% [ [ "newNote", "new_note" ], [ "newFolder", "new_folder" ], [ "openFileFinder", "find_file" ], [ "openContentSearch", "search_in_files" ] ].each do |handler, id| %>
-      <button type="button" class="workspace-icon<%= ' workspace-mobile-extracted' unless id == 'new_folder' %>" data-action="click->app#<%= handler %>" title="<%= t("sidebar.#{id}") %>" aria-label="<%= t("sidebar.#{id}") %>">
+      <button type="button" class="workspace-icon" data-action="click->app#<%= handler %>" title="<%= t("sidebar.#{id}") %>" aria-label="<%= t("sidebar.#{id}") %>">
         <%= render "notes/explorer_action_icon", icon: id %>
       </button>
     <% end %>

@@ -1,6 +1,6 @@
 <% mobile = local_assigns.fetch(:mobile, false) %>
 <%= tag.button type: "button",
-               class: mobile ? "settings-toggle workspace-icon" : "settings-toggle workspace-icon workspace-mobile-extracted",
+               class: "settings-toggle workspace-icon",
                title: t("header.open_settings"),
                aria: { label: t("header.open_settings") },
                data: { action: "click->app#openSettings", app_target: mobile ? nil : "settingsToggle" } do %>

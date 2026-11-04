@@ -324,7 +324,7 @@ body.single-view-mode [data-app-target="previewPanel"] {
     width: min(19rem, 100vw);
     z-index: 30;
   }
-  .workspace-sidebar.is-overlay .workspace-sidebar-header { min-height: 5rem; }
+  .workspace-sidebar.is-overlay .workspace-sidebar-header { min-height: 3rem; }
   .workspace-save-status { max-width: 4rem; overflow: hidden; text-overflow: ellipsis; }
   .workspace-mobile-nav {
     display: flex;
@@ -340,7 +340,6 @@ body.single-view-mode [data-app-target="previewPanel"] {
   .workspace-mobile-nav .workspace-icon { width: 2.25rem; height: 2.25rem; padding: .5rem; }
   .workspace-mobile-nav .workspace-icon svg { width: 1rem; height: 1rem; }
   .workspace-main:has(> .workspace-sidebar-open:not([hidden])) > .workspace-header { padding-inline-start: .5rem; }
-  .workspace-mobile-extracted { display: none; }
   .workspace-esc-hint { display: none; }
 }
 
