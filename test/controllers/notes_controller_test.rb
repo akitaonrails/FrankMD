@@ -76,10 +76,10 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select "header .workspace-toolbar button.workspace-icon" do |buttons|
       buttons.each { |button| assert button["aria-label"].present?, "Icon buttons require accessible labels" }
     end
-    assert_select "header [role='menu'] [role='menuitem']", count: 10
-    assert_select "header [role='menu'] [role='menuitemcheckbox'][data-workspace-pin][aria-label]", count: 10
-    assert_select "header [role='menu'] .workspace-menu-action svg", count: 10
-    assert_select "header [data-workspace-pinned-action]", count: 10
+    assert_select "header [role='menu'] [role='menuitem']", count: 11
+    assert_select "header [role='menu'] [role='menuitemcheckbox'][data-workspace-pin][aria-label]", count: 11
+    assert_select "header [role='menu'] .workspace-menu-action svg", count: 11
+    assert_select "header [data-workspace-pinned-action]", count: 11
     assert_select "header [data-workspace-pinned-action][data-pinned='true']", count: 3
     assert_select "main [data-app-target='editorToolbar']", count: 0
     assert_select ".workspace-sidebar #workspace-explorer > div:first-child[data-app-target='fileTree']"

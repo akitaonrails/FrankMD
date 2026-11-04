@@ -1753,6 +1753,11 @@ export default class extends Controller {
     if (shouldRestoreFocus && !document.querySelector("dialog[open]")) this.titleInputTarget.focus()
   }
 
+  deleteCurrentNote() {
+    if (!this.currentFile || this.currentFileType === "config") return
+    this.getFileOperationsController()?.deleteItems([{ path: this.currentFile, type: "file" }])
+  }
+
   async copyCurrentContent() {
     if (!this.currentFile) return
     const editor = this.getCodemirrorController()
@@ -1797,6 +1802,10 @@ export default class extends Controller {
       if (action) action.disabled = !editing || action.getAttribute("aria-busy") === "true"
     })
     root.querySelectorAll("[data-workspace-document-action]").forEach(button => { button.hidden = !this.currentFile })
+    root.querySelectorAll('[data-action$="#deleteCurrentNote"]').forEach(button => {
+      const target = button.closest(".workspace-menu-row") || button
+      target.hidden = !this.currentFile || this.currentFileType === "config"
+    })
     root.querySelectorAll('[data-workspace-preview-action], [data-app-target~="previewToggle"]').forEach(button => {
       button.disabled = !markdown || Boolean(this.libraryVisible)
     })

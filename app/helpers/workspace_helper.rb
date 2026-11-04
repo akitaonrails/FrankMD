@@ -12,6 +12,7 @@ module WorkspaceHelper
       [ "emoji", "openEmojiPicker", "editor.toolbar.emoji_title", "editing", false ],
       [ "ai", "openAiDialog", "editor.toolbar.ai_title", "editing", false ],
       [ "copy", "copyCurrentContent", "header.copy_content", "document", false ],
+      [ "delete", "deleteCurrentNote", "context_menu.delete", "document", false ],
       [ "help", "openHelp", "editor.toolbar.help_title", "global", false ]
     ].map do |id, handler, label, scope, pinned|
       tooltip = t(label)

@@ -36,6 +36,9 @@ describe("workspace chrome", () => {
             <button class="workspace-menu-action" role="menuitem" tabindex="-1" data-action="click->app#closeWorkspaceMenu click->app#openHelp">Edit</button>
           </div>
           <button role="menuitem" tabindex="-1" data-workspace-document-action>Copy</button>
+          <div class="workspace-menu-row" data-workspace-document-action>
+            <button class="workspace-menu-action" role="menuitem" tabindex="-1" data-action="click->app#closeWorkspaceMenu click->app#deleteCurrentNote">Delete</button>
+          </div>
           <button role="menuitem" tabindex="-1">Help</button>
         </div>
       </div>
@@ -277,6 +280,35 @@ describe("workspace chrome", () => {
     })
   })
 
+  describe("delete current note", () => {
+    const deleteRow = () => root.querySelector('[data-action$="#deleteCurrentNote"]').closest(".workspace-menu-row")
+
+    it("deletes the open note through file operations", () => {
+      const deleteItems = vi.fn()
+      app.getFileOperationsController.mockReturnValue({ deleteItems })
+      root.querySelector('[data-action$="#deleteCurrentNote"]').click()
+      expect(deleteItems).toHaveBeenCalledExactlyOnceWith([{ path: "folder/note.md", type: "file" }])
+    })
+
+    it.each([
+      ["no file is open", null, null],
+      ["the config file is open", ".fed", "config"]
+    ])("is hidden and inert when %s", (_label, path, type) => {
+      const deleteItems = vi.fn()
+      app.getFileOperationsController.mockReturnValue({ deleteItems })
+      app.currentFile = path
+      app.currentFileType = type
+      app.updateWorkspaceChrome()
+      expect(deleteRow().hidden).toBe(true)
+      app.deleteCurrentNote()
+      expect(deleteItems).not.toHaveBeenCalled()
+    })
+
+    it("is shown for an open markdown note", () => {
+      expect(deleteRow().hidden).toBe(false)
+    })
+  })
+
   it("hides the entire sidebar, focuses its opener, and restores it", () => {
     target("explorerPanel").querySelector("button").focus()
     app.toggleSidebar()
@@ -394,7 +426,7 @@ describe("workspace chrome", () => {
     app.currentFile = "folder/note.md"
     app.updateWorkspaceChrome()
     expect(target("overflowMenu").classList.contains("hidden")).toBe(false)
-    expect(app.workspaceMenuItems().map(item => item.textContent)).toEqual(["Edit", "Copy", "Help"])
+    expect(app.workspaceMenuItems().map(item => item.textContent)).toEqual(["Edit", "Copy", "Delete", "Help"])
   })
 
   it("supports arrow, Home, End and Escape navigation", () => {
