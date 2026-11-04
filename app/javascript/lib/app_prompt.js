@@ -102,6 +102,14 @@ function showNextPrompt() {
   content.append(actions)
   dialog.append(content)
 
+  // Destructive confirmations focus the dialog itself; Enter there confirms,
+  // while Enter on a focused button still activates that button.
+  dialog.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.target !== dialog || !prompt.confirm || prompt.input) return
+    event.preventDefault()
+    finishPrompt(prompt, true)
+  })
+
   dialog.addEventListener("cancel", (event) => {
     event.preventDefault()
     finishPrompt(prompt, false)

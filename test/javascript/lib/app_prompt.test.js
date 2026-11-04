@@ -72,6 +72,37 @@ describe("app prompts", () => {
     await expect(result).resolves.toBe(false)
   })
 
+  it("confirms a destructive confirmation with Enter on the focused dialog", async () => {
+    const result = appConfirm("Delete this file?", {
+      acceptLabel: window.t("common.delete"),
+      destructive: true
+    })
+    const dialog = document.querySelector("dialog")
+    const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
+
+    dialog.dispatchEvent(enter)
+
+    await expect(result).resolves.toBe(true)
+    expect(enter.defaultPrevented).toBe(true)
+    expect(document.querySelector("dialog")).toBeNull()
+  })
+
+  it("leaves Enter on a focused button to that button", async () => {
+    const result = appConfirm("Delete this file?", {
+      acceptLabel: window.t("common.delete"),
+      destructive: true
+    })
+    const cancel = document.querySelectorAll("dialog button")[0]
+    const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })
+
+    cancel.dispatchEvent(enter)
+
+    expect(enter.defaultPrevented).toBe(false)
+    expect(document.querySelector("dialog")).not.toBeNull()
+    cancel.click()
+    await expect(result).resolves.toBe(false)
+  })
+
   it("resolves false when a confirmation is cancelled", async () => {
     const result = appConfirm("Continue?")
     const dialog = document.querySelector("dialog")
