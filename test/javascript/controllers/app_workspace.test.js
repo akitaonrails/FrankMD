@@ -37,6 +37,10 @@ describe("workspace chrome", () => {
           </div>
           <button role="menuitem" tabindex="-1" data-workspace-document-action>Copy</button>
           <button role="menuitem" tabindex="-1">Help</button>
+          <div class="workspace-menu-separator" role="separator"></div>
+          <div class="workspace-menu-row" data-workspace-document-action>
+            <button class="workspace-menu-action" role="menuitem" tabindex="-1" data-action="click->app#closeWorkspaceMenu click->app#deleteCurrentNote">Delete</button>
+          </div>
         </div>
       </div>
       <button data-app-target="sidebarBackdrop" class="hidden"></button>
@@ -277,6 +281,103 @@ describe("workspace chrome", () => {
     })
   })
 
+  describe("text-format context menu", () => {
+    let onContextMenu
+
+    beforeEach(() => {
+      onContextMenu = vi.fn()
+      vi.spyOn(app, "getTextFormatController").mockReturnValue({ onContextMenu })
+    })
+
+    it("opens on desktop", () => {
+      const event = new MouseEvent("contextmenu")
+      app.onTextareaContextMenu(event)
+      expect(onContextMenu).toHaveBeenCalledOnce()
+    })
+
+    it("leaves the native menu alone on mobile", () => {
+      app.mobileWorkspace = true
+      const event = new MouseEvent("contextmenu", { cancelable: true })
+      app.onTextareaContextMenu(event)
+      expect(onContextMenu).not.toHaveBeenCalled()
+      expect(event.defaultPrevented).toBe(false)
+    })
+  })
+
+  describe("format action", () => {
+    let row
+
+    beforeEach(() => {
+      row = document.createElement("div")
+      row.className = "workspace-menu-row"
+      row.dataset.workspaceEditingAction = ""
+      row.dataset.workspaceMobileOnly = ""
+      row.innerHTML = '<button class="workspace-menu-action" role="menuitem" tabindex="-1" data-action="click->app#closeWorkspaceMenu click->app#openTextFormatMenu">Format</button>'
+      target("overflowMenu").prepend(row)
+    })
+
+    it("is hidden on desktop and kept out of keyboard navigation", () => {
+      app.updateWorkspaceChrome()
+      expect(row.hidden).toBe(true)
+      expect(app.workspaceMenuItems().map(item => item.textContent)).not.toContain("Format")
+    })
+
+    it("shows on mobile while editing and opens the format menu", () => {
+      const openFromKeyboard = vi.fn()
+      vi.spyOn(app, "getTextFormatController").mockReturnValue({ openFromKeyboard })
+      app.mobileWorkspace = true
+      app.updateWorkspaceChrome()
+      expect(row.hidden).toBe(false)
+
+      row.querySelector("button").click()
+      expect(openFromKeyboard).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe("delete current note", () => {
+    const deleteRow = () => root.querySelector('[data-action$="#deleteCurrentNote"]').closest(".workspace-menu-row")
+
+    it("deletes the open note through file operations", () => {
+      const deleteItems = vi.fn()
+      app.getFileOperationsController.mockReturnValue({ deleteItems })
+      root.querySelector('[data-action$="#deleteCurrentNote"]').click()
+      expect(deleteItems).toHaveBeenCalledExactlyOnceWith([{ path: "folder/note.md", type: "file" }])
+    })
+
+    it.each([
+      ["no file is open", null, null],
+      ["the config file is open", ".fed", "config"]
+    ])("is hidden and inert when %s", (_label, path, type) => {
+      const deleteItems = vi.fn()
+      app.getFileOperationsController.mockReturnValue({ deleteItems })
+      app.currentFile = path
+      app.currentFileType = type
+      app.updateWorkspaceChrome()
+      expect(deleteRow().hidden).toBe(true)
+      app.deleteCurrentNote()
+      expect(deleteItems).not.toHaveBeenCalled()
+    })
+
+    it("is shown below a divider for an open markdown note", () => {
+      expect(deleteRow().hidden).toBe(false)
+      expect(deleteRow().previousElementSibling.hidden).toBe(false)
+    })
+
+    it("hides the divider with the section it introduces", () => {
+      app.currentFile = null
+      app.updateWorkspaceChrome()
+      expect(deleteRow().previousElementSibling.matches(".workspace-menu-separator")).toBe(true)
+      expect(deleteRow().previousElementSibling.hidden).toBe(true)
+    })
+
+    it("ignores a stale pin for an unpinnable action", () => {
+      sessionStorage.setItem("frankmd.workspacePins", JSON.stringify(["delete"]))
+      app._workspacePinnedActions = null
+      app.updateWorkspacePins()
+      expect(app._workspacePinnedActions.has("delete")).toBe(false)
+    })
+  })
+
   it("hides the entire sidebar, focuses its opener, and restores it", () => {
     target("explorerPanel").querySelector("button").focus()
     app.toggleSidebar()
@@ -394,7 +495,7 @@ describe("workspace chrome", () => {
     app.currentFile = "folder/note.md"
     app.updateWorkspaceChrome()
     expect(target("overflowMenu").classList.contains("hidden")).toBe(false)
-    expect(app.workspaceMenuItems().map(item => item.textContent)).toEqual(["Edit", "Copy", "Help"])
+    expect(app.workspaceMenuItems().map(item => item.textContent)).toEqual(["Edit", "Copy", "Help", "Delete"])
   })
 
   it("supports arrow, Home, End and Escape navigation", () => {
@@ -403,7 +504,7 @@ describe("workspace chrome", () => {
     key(document.activeElement, "ArrowDown")
     expect(document.activeElement.textContent).toBe("Copy")
     key(document.activeElement, "End")
-    expect(document.activeElement.textContent).toBe("Help")
+    expect(document.activeElement.textContent).toBe("Delete")
     key(document.activeElement, "Home")
     expect(document.activeElement.textContent).toBe("Edit")
     key(document.activeElement, "Escape")
@@ -411,7 +512,7 @@ describe("workspace chrome", () => {
     expect(document.activeElement).toBe(target("overflowToggle"))
   })
 
-  it.each([["ArrowDown", "Edit"], ["ArrowUp", "Help"]])("opens by pointer without focusing an option and supports %s", (arrow, label) => {
+  it.each([["ArrowDown", "Edit"], ["ArrowUp", "Delete"]])("opens by pointer without focusing an option and supports %s", (arrow, label) => {
     target("overflowToggle").focus()
     target("overflowToggle").dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }))
     expect(target("overflowMenu").classList.contains("hidden")).toBe(false)

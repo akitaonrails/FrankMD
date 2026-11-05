@@ -1,4 +1,5 @@
 <% actions = workspace_actions %>
+<% pinnable_actions, fixed_actions = actions.partition { |action| action[:pinnable] } %>
 <div class="workspace-toolbar" role="group" aria-label="<%= t('header.document_actions') %>">
   <div class="workspace-zoom-controls" data-app-target="previewZoomControls" hidden>
     <button type="button" class="workspace-icon" data-action="click->app#zoomPreviewOut" title="<%= t('preview.zoom_out') %>" aria-label="<%= t('preview.zoom_out') %>">
@@ -11,12 +12,12 @@
   </div>
   <div class="workspace-pinned-controls">
     <div class="hidden items-center" data-app-target="editorToolbar">
-      <% actions.select { |action| action[:scope] == "editing" }.each do |action| %>
+      <% pinnable_actions.select { |action| action[:scope] == "editing" }.each do |action| %>
         <%= render "notes/workspace_action", action: action %>
       <% end %>
     </div>
     <div class="workspace-pinned-utilities">
-      <% actions.reject { |action| action[:scope] == "editing" }.each do |action| %>
+      <% pinnable_actions.reject { |action| action[:scope] == "editing" }.each do |action| %>
         <%= render "notes/workspace_action", action: action %>
       <% end %>
     </div>
@@ -24,34 +25,39 @@
   <div class="relative" data-app-target="overflowContainer" data-action="keydown->app#navigateWorkspaceMenu">
     <button type="button" class="workspace-icon" data-app-target="overflowToggle" data-action="click->app#toggleWorkspaceMenu" aria-expanded="false" aria-haspopup="menu" aria-controls="workspace-menu" title="<%= t('header.more_actions') %>" aria-label="<%= t('header.more_actions') %>"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
     <div id="workspace-menu" role="menu" aria-label="<%= t('header.more_actions') %>" data-app-target="overflowMenu" class="hidden frankmd-menu workspace-menu">
-      <% actions.each do |action| %>
-        <%= tag.div class: "workspace-menu-row", role: "none", data: { workspace_editing_action: action[:scope] == "editing" ? true : nil, workspace_document_action: action[:scope] == "document" ? true : nil, workspace_preview_row: action[:scope] == "preview" ? true : nil } do %>
-          <%= render "notes/workspace_action", action: action, menu: true %>
-          <button type="button" class="workspace-menu-pin" role="menuitemcheckbox" tabindex="-1" aria-checked="<%= action[:pinned] %>" aria-label="<%= t(action[:pinned] ? 'header.unpin_action' : 'header.pin_action', action: action[:label]) %>" title="<%= t(action[:pinned] ? 'header.unpin_action' : 'header.pin_action', action: action[:label]) %>" data-action="click->app#toggleWorkspacePin" data-workspace-pin="<%= action[:id] %>" data-pin-label="<%= t('header.pin_action', action: action[:label]) %>" data-unpin-label="<%= t('header.unpin_action', action: action[:label]) %>">
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path transform="rotate(45 12 12)" d="M8.25 2.5
-                A1.25 1.25 0 0 0 7 3.75
-                v.15
-                c0 .33.13.65.37.88L8 5.41V9
-                c0 1.39-1.03 2.55-2.37 2.75
-                A1 1 0 0 0 4.75 12.75
-                V13
-                c0 .55.45 1 1 1
-                H11v6.25
-                c0 .55.45 1 1 1
-                s1-.45 1-1
-                V14h5.25
-                c.55 0 1-.45 1-1
-                v-.25
-                a1 1 0 0 0-.88-.99
-                C17.03 11.55 16 10.39 16 9
-                V5.41l.63-.63
-                c.24-.23.37-.55.37-.88
-                v-.15
-                A1.25 1.25 0 0 0 15.75 2.5
-                h-7.5z"/>
-            </svg>
-          </button>
+      <% [ pinnable_actions, fixed_actions ].reject(&:empty?).each_with_index do |group, group_index| %>
+        <% if group_index.positive? %><div class="workspace-menu-separator" role="separator"></div><% end %>
+        <% group.each do |action| %>
+          <%= tag.div class: "workspace-menu-row", role: "none", data: { workspace_editing_action: action[:scope] == "editing" ? true : nil, workspace_document_action: action[:scope] == "document" ? true : nil, workspace_preview_row: action[:scope] == "preview" ? true : nil, workspace_mobile_only: action[:mobile_only] ? true : nil } do %>
+            <%= render "notes/workspace_action", action: action, menu: true %>
+            <% if action[:pinnable] %>
+            <button type="button" class="workspace-menu-pin" role="menuitemcheckbox" tabindex="-1" aria-checked="<%= action[:pinned] %>" aria-label="<%= t(action[:pinned] ? 'header.unpin_action' : 'header.pin_action', action: action[:label]) %>" title="<%= t(action[:pinned] ? 'header.unpin_action' : 'header.pin_action', action: action[:label]) %>" data-action="click->app#toggleWorkspacePin" data-workspace-pin="<%= action[:id] %>" data-pin-label="<%= t('header.pin_action', action: action[:label]) %>" data-unpin-label="<%= t('header.unpin_action', action: action[:label]) %>">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path transform="rotate(45 12 12)" d="M8.25 2.5
+                  A1.25 1.25 0 0 0 7 3.75
+                  v.15
+                  c0 .33.13.65.37.88L8 5.41V9
+                  c0 1.39-1.03 2.55-2.37 2.75
+                  A1 1 0 0 0 4.75 12.75
+                  V13
+                  c0 .55.45 1 1 1
+                  H11v6.25
+                  c0 .55.45 1 1 1
+                  s1-.45 1-1
+                  V14h5.25
+                  c.55 0 1-.45 1-1
+                  v-.25
+                  a1 1 0 0 0-.88-.99
+                  C17.03 11.55 16 10.39 16 9
+                  V5.41l.63-.63
+                  c.24-.23.37-.55.37-.88
+                  v-.15
+                  A1.25 1.25 0 0 0 15.75 2.5
+                  h-7.5z"/>
+              </svg>
+            </button>
+            <% end %>
+          <% end %>
         <% end %>
       <% end %>
     </div>

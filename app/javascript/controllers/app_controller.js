@@ -24,6 +24,7 @@ import { appAlert } from "lib/app_prompt"
 import { setSlashCommandsEnabledProvider } from "lib/codemirror_slash_commands"
 import { clampMenuToViewport, toggleMenu } from "lib/menu_bounds"
 import { clearInlineError, showInlineError } from "lib/inline_messages"
+import { installMobileBackdropDismiss } from "lib/dialog_backdrop"
 
 function pathMatchesScope(candidatePath, path, type) {
   if (typeof candidatePath !== "string") return false
@@ -194,6 +195,7 @@ export default class extends Controller {
 
     this.setupKeyboardShortcuts()
     this.setupDialogClickOutside()
+    this.removeMobileBackdropDismiss = installMobileBackdropDismiss()
     this.boundTreeStreamRenderHandler = this.invalidateTreeRefreshesForStream.bind(this)
     document.addEventListener("turbo:before-stream-render", this.boundTreeStreamRenderHandler)
     this.boundWorkspaceResize = () => {
@@ -201,6 +203,7 @@ export default class extends Controller {
       if (mobile !== this.mobileWorkspace) {
         this.mobileWorkspace = mobile
         this.sidebarVisible = !mobile
+        this.updateWorkspaceChrome()
       }
       this.closeWorkspaceMenu(null, { restoreFocus: false })
       this.applySidebarVisibility()
@@ -319,6 +322,7 @@ export default class extends Controller {
   disconnect() {
     this._initializationReady = false
     if (this.boundWorkspaceResize) window.removeEventListener("resize", this.boundWorkspaceResize)
+    this.removeMobileBackdropDismiss?.()
     if (window.fetch === this.unauthorizedFetch) window.fetch = this.originalFetch
 
     // Clear all timeouts
@@ -1761,6 +1765,11 @@ export default class extends Controller {
     if (shouldRestoreFocus && !document.querySelector("dialog[open]")) this.titleInputTarget.focus()
   }
 
+  deleteCurrentNote() {
+    if (!this.currentFile || this.currentFileType === "config") return
+    this.getFileOperationsController()?.deleteItems([{ path: this.currentFile, type: "file" }])
+  }
+
   async copyCurrentContent() {
     if (!this.currentFile) return
     const editor = this.getCodemirrorController()
@@ -1805,6 +1814,19 @@ export default class extends Controller {
       if (action) action.disabled = !editing || action.getAttribute("aria-busy") === "true"
     })
     root.querySelectorAll("[data-workspace-document-action]").forEach(button => { button.hidden = !this.currentFile })
+    root.querySelectorAll("[data-workspace-mobile-only]").forEach(element => { if (!this.mobileWorkspace) element.hidden = true })
+    root.querySelectorAll('[data-action$="#deleteCurrentNote"]').forEach(button => {
+      const target = button.closest(".workspace-menu-row") || button
+      target.hidden = !this.currentFile || this.currentFileType === "config"
+    })
+    // Hide a section divider when every action in its section is hidden.
+    root.querySelectorAll(".workspace-menu-separator").forEach(separator => {
+      let visible = false
+      for (let row = separator.nextElementSibling; row && !row.matches(".workspace-menu-separator"); row = row.nextElementSibling) {
+        visible ||= !row.hidden
+      }
+      separator.hidden = !visible
+    })
     root.querySelectorAll('[data-workspace-preview-action], [data-app-target~="previewToggle"]').forEach(button => {
       button.disabled = !markdown || Boolean(this.libraryVisible)
     })
@@ -3404,8 +3426,13 @@ export default class extends Controller {
     if (textFormatController) textFormatController.openFromKeyboard(cm)
   }
 
+  undoEdit() {
+    this.getCodemirrorController()?.undo()
+  }
+
   onTextareaContextMenu(event) {
-    if (!this.isMarkdownFile()) return
+    // Long-press on mobile keeps the native selection menu.
+    if (this.mobileWorkspace || !this.isMarkdownFile()) return
     const cm = this.getCodemirrorController()
     const textFormatController = this.getTextFormatController()
     if (textFormatController) textFormatController.onContextMenu(event, cm, true)

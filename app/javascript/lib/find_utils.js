@@ -101,3 +101,40 @@ function resolveRegexReplacement(replacement, match) {
       : ""
   })
 }
+
+// Describe each match by its line: 1-based line number plus the text before,
+// inside and after the match on that line. Multi-line matches are cut at the
+// end of their first line.
+export function matchLineContexts(text, matches, options = {}) {
+  if (!text || !matches || matches.length === 0) return []
+
+  const { maxLeading = 40 } = options
+  const contexts = []
+  let lineNumber = 1
+  let lineStart = 0
+  let scanned = 0
+
+  for (const match of matches) {
+    for (; scanned < match.start; scanned += 1) {
+      if (text[scanned] === "\n") {
+        lineNumber += 1
+        lineStart = scanned + 1
+      }
+    }
+
+    const newline = text.indexOf("\n", match.start)
+    const lineEnd = newline === -1 ? text.length : newline
+    const matchEnd = Math.min(match.end, lineEnd)
+    const leadingStart = Math.max(lineStart, match.start - maxLeading)
+    const before = text.slice(leadingStart, match.start)
+
+    contexts.push({
+      lineNumber,
+      before: leadingStart > lineStart ? `…${before.trimStart()}` : before,
+      match: text.slice(match.start, matchEnd),
+      after: text.slice(matchEnd, lineEnd)
+    })
+  }
+
+  return contexts
+}

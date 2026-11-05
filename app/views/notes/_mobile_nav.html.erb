@@ -1,0 +1,8 @@
+<nav class="workspace-mobile-nav" aria-label="<%= t('header.workspace_navigation') %>">
+  <% [ [ "newNote", "new_note" ], [ "openFileFinder", "find_file" ], [ "openContentSearch", "search_in_files" ] ].each do |handler, id| %>
+    <button type="button" class="workspace-icon" data-action="click->app#<%= handler %>" title="<%= t("sidebar.#{id}") %>" aria-label="<%= t("sidebar.#{id}") %>">
+      <%= render "notes/explorer_action_icon", icon: id %>
+    </button>
+  <% end %>
+  <%= render "notes/settings_button", mobile: true %>
+</nav>

@@ -1,7 +1,7 @@
 <div data-controller="find-replace"
      data-action="find-replace:jump->app#onFindReplaceJump find-replace:replace->app#onFindReplaceReplace find-replace:replace-all->app#onFindReplaceReplaceAll">
   <dialog
-    class="p-0 rounded-lg shadow-xl bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] w-[520px] z-50"
+    class="p-0 rounded-lg shadow-xl bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] w-[520px] z-50 max-md:mt-2 max-md:w-[calc(100vw-1rem)] max-md:max-w-none"
     data-find-replace-target="dialog"
   >
     <div class="flex flex-col">
@@ -26,7 +26,7 @@
           <button
             type="button"
             data-action="click->find-replace#minimize"
-            class="p-1 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
+            class="p-1 max-md:p-2 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7-7-7 7" />
@@ -35,7 +35,7 @@
           <button
             type="button"
             data-action="click->find-replace#close"
-            class="p-1 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
+            class="p-1 max-md:p-2 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -50,7 +50,7 @@
             type="text"
             data-find-replace-target="findInput"
             data-action="input->find-replace#onInput keydown->find-replace#onKeydown"
-            class="flex-1 px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] placeholder-[var(--theme-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+            class="flex-1 min-w-0 px-3 py-2 text-sm max-md:text-base border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] placeholder-[var(--theme-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
             placeholder="<%= t("dialogs.find_replace.find_placeholder") %>"
             autocomplete="off"
             spellcheck="false"
@@ -101,12 +101,12 @@
       </div>
 
       <div class="px-3 pb-3 hidden" data-find-replace-target="replaceSection">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 max-md:flex-wrap">
           <input
             type="text"
             data-find-replace-target="replaceInput"
             data-action="keydown->find-replace#onKeydown"
-            class="flex-1 px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] placeholder-[var(--theme-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+            class="flex-1 min-w-0 max-md:basis-full px-3 py-2 text-sm max-md:text-base border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] placeholder-[var(--theme-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
             placeholder="<%= t("dialogs.find_replace.replace_placeholder") %>"
             autocomplete="off"
             spellcheck="false"
@@ -114,7 +114,7 @@
           <button
             type="button"
             data-action="click->find-replace#replaceCurrent"
-            class="px-3 py-1.5 text-sm rounded-md bg-[var(--theme-accent)] text-[var(--theme-accent-text)] hover:bg-[var(--theme-accent-hover)]"
+            class="px-3 py-1.5 text-sm rounded-md bg-[var(--theme-accent)] text-[var(--theme-accent-text)] hover:bg-[var(--theme-accent-hover)] max-md:flex-1 max-md:py-2"
             title="<%= t("dialogs.find_replace.replace_one_title") %>"
           >
             <%= t("dialogs.find_replace.replace") %>
@@ -122,20 +122,27 @@
           <button
             type="button"
             data-action="click->find-replace#skip"
-            class="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-secondary)]"
+            class="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-secondary)] max-md:flex-1 max-md:py-2"
           >
             <%= t("dialogs.find_replace.skip") %>
           </button>
           <button
             type="button"
             data-action="click->find-replace#replaceAll"
-            class="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-secondary)]"
+            class="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-secondary)] max-md:flex-1 max-md:py-2"
             title="<%= t("dialogs.find_replace.replace_all_title") %>"
           >
             <%= t("dialogs.find_replace.replace_all") %>
           </button>
         </div>
       </div>
+
+      <%# Mobile only: matches listed with context instead of selected in the editor %>
+      <div
+        data-find-replace-target="results"
+        data-action="click->find-replace#selectResult"
+        class="hidden max-h-[50vh] overflow-y-auto border-t border-[var(--theme-border)] bg-[var(--theme-bg-tertiary)] rounded-b-lg"
+      ></div>
     </div>
   </dialog>
 

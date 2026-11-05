@@ -594,9 +594,12 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "mobile Explorer overlays the document and closes after selection and Escape" do
-    page.current_window.resize_to(320, 720)
+    page.current_window.resize_to(390, 844)
     create_test_note("mobile.md", "Mobile")
     visit root_url
+    assert_equal "width=device-width,initial-scale=1", find("meta[name='viewport']", visible: :all)["content"]
+    assert_selector ".workspace-mobile-nav", visible: true
+    assert_selector ".workspace-mobile-nav button", visible: true, count: 4
     assert_selector ".workspace-sidebar.is-hidden", visible: :all
     assert_no_selector "[data-app-target='libraryToggle']", visible: true
     assert_no_selector "[data-app-target='settingsToggle']", visible: true
@@ -605,8 +608,13 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector ".workspace-sidebar.is-overlay"
     assert_selector ".workspace-sidebar-footer .workspace-brand span", text: "FrankMD"
     assert_selector "[data-workspace-main][inert]"
+    assert_selector "[data-app-target='sidebarBackdrop']", visible: true
     assert_selector ".workspace-global-actions button", visible: true, count: 4
     assert_nil page.evaluate_script("document.querySelector('[data-app-target=sidebarToggle]').closest('[inert]')")
+    find("[data-app-target='sidebarBackdrop']").click(x: 180, y: 0)
+    assert_selector ".workspace-sidebar.is-hidden", visible: :all
+    assert_no_selector "[data-app-target='sidebarBackdrop']", visible: true
+    find("[data-app-target='sidebarOpen']").click
     find("[data-path='mobile.md'][data-type='file']").click
     assert_selector ".workspace-sidebar.is-hidden", visible: :all
     assert_selector "[data-app-target='sidebarOpen']", visible: true
