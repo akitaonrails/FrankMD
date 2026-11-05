@@ -325,6 +325,9 @@ describe("workspace chrome", () => {
     it("shows on mobile while editing and opens the format menu", () => {
       const openFromKeyboard = vi.fn()
       vi.spyOn(app, "getTextFormatController").mockReturnValue({ openFromKeyboard })
+      app.updateWorkspaceChrome()
+      expect(row.hidden).toBe(true)
+
       app.mobileWorkspace = true
       app.updateWorkspaceChrome()
       expect(row.hidden).toBe(false)
