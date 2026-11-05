@@ -3,6 +3,7 @@ import {
   escapeRegexChars,
   findAllMatches,
   findClosestMatchIndex,
+  matchLineContexts,
   replaceMatches,
   validateRegex
 } from "../../../app/javascript/lib/find_utils.js"
@@ -88,5 +89,36 @@ describe("validateRegex", () => {
     const result = validateRegex("[")
     expect(result.valid).toBe(false)
     expect(result.error).toBeTruthy()
+  })
+})
+
+describe("matchLineContexts", () => {
+  it("returns line numbers and the text around each match", () => {
+    const text = "alpha\nbeta alpha gamma\nalpha"
+    const contexts = matchLineContexts(text, findAllMatches(text, "alpha"))
+
+    expect(contexts).toEqual([
+      { lineNumber: 1, before: "", match: "alpha", after: "" },
+      { lineNumber: 2, before: "beta ", match: "alpha", after: " gamma" },
+      { lineNumber: 3, before: "", match: "alpha", after: "" }
+    ])
+  })
+
+  it("cuts multi-line matches at the end of their first line", () => {
+    const text = "one\ntwo"
+    const [context] = matchLineContexts(text, findAllMatches(text, "e\\nt", { useRegex: true }))
+
+    expect(context).toEqual({ lineNumber: 1, before: "on", match: "e", after: "" })
+  })
+
+  it("trims long leading text", () => {
+    const text = `${"x".repeat(50)} needle`
+    const [context] = matchLineContexts(text, findAllMatches(text, "needle"), { maxLeading: 5 })
+
+    expect(context.before).toBe("…xxxx ")
+  })
+
+  it("returns an empty list without matches", () => {
+    expect(matchLineContexts("text", [])).toEqual([])
   })
 })

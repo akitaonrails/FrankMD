@@ -40,6 +40,7 @@ describe("FindReplaceController", () => {
         <span data-find-replace-target="miniModeLabel"></span>
         <button data-find-replace-target="caseSensitiveToggle"></button>
         <button data-find-replace-target="regexToggle"></button>
+        <div data-find-replace-target="results" data-action="click->find-replace#selectResult" class="hidden"></div>
       </div>
     `
 
@@ -108,6 +109,67 @@ describe("FindReplaceController", () => {
     expect(dispatchSpy).toHaveBeenCalledWith("jump", {
       detail: { start: 0, end: 3 }
     })
+  })
+
+  describe("on mobile", () => {
+    beforeEach(() => {
+      vi.spyOn(window, "innerWidth", "get").mockReturnValue(390)
+      textarea.value = "one\ntwo one\nthree"
+      controller.textareaRef = textarea
+      controller.findInputTarget.value = "one"
+      controller.findAll()
+    })
+
+    it("lists matches with line numbers and context", () => {
+      const rows = controller.resultsTarget.querySelectorAll("button[data-index]")
+
+      expect(controller.resultsTarget.classList.contains("hidden")).toBe(false)
+      expect(rows).toHaveLength(2)
+      expect(rows[1].textContent).toBe("2two one")
+      expect(rows[1].querySelector(".bg-\\[var\\(--theme-selection\\)\\]").textContent).toBe("one")
+    })
+
+    it("moves through the list without jumping in the editor", () => {
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+      controller.findNext()
+
+      expect(dispatchSpy).not.toHaveBeenCalled()
+      expect(controller.currentMatchIndex).toBe(1)
+      expect(controller.resultsTarget.querySelector("[aria-current]").dataset.index).toBe("1")
+
+      controller.findNext()
+      expect(controller.currentMatchIndex).toBe(0)
+      controller.findPrevious()
+      expect(controller.currentMatchIndex).toBe(1)
+    })
+
+    it("jumps to a tapped match and closes", () => {
+      controller.open({ textarea })
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+      const row = controller.resultsTarget.querySelectorAll("button[data-index]")[1]
+      controller.selectResult({ target: row.lastChild })
+
+      expect(dispatchSpy).toHaveBeenCalledWith("jump", { detail: { start: 8, end: 11 } })
+      expect(controller.dialogTarget.open).toBe(false)
+      expect(controller.resultsTarget.classList.contains("hidden")).toBe(true)
+    })
+
+    it("hides the list when nothing matches", () => {
+      controller.findInputTarget.value = "missing"
+      controller.findAll()
+
+      expect(controller.resultsTarget.classList.contains("hidden")).toBe(true)
+      expect(controller.resultsTarget.children).toHaveLength(0)
+    })
+  })
+
+  it("does not list matches on desktop", () => {
+    textarea.value = "one one"
+    controller.textareaRef = textarea
+    controller.findInputTarget.value = "one"
+    controller.findAll()
+
+    expect(controller.resultsTarget.classList.contains("hidden")).toBe(true)
   })
 
   it("dispatches replace with resolved regex groups", () => {

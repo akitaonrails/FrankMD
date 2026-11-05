@@ -136,6 +136,13 @@
           </button>
         </div>
       </div>
+
+      <%# Mobile only: matches listed with context instead of selected in the editor %>
+      <div
+        data-find-replace-target="results"
+        data-action="click->find-replace#selectResult"
+        class="hidden max-h-[50vh] overflow-y-auto border-t border-[var(--theme-border)] bg-[var(--theme-bg-tertiary)] rounded-b-lg"
+      ></div>
     </div>
   </dialog>
 

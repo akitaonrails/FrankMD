@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import {
   findAllMatches,
   findClosestMatchIndex,
+  matchLineContexts,
   replaceMatches,
   validateRegex
 } from "lib/find_utils"
@@ -19,7 +20,8 @@ export default class extends Controller {
     "miniCount",
     "miniModeLabel",
     "caseSensitiveToggle",
-    "regexToggle"
+    "regexToggle",
+    "results"
   ]
 
   static values = {
@@ -66,6 +68,7 @@ export default class extends Controller {
     this.matches = []
     this.currentMatchIndex = -1
     this.updateMatchCount()
+    this.renderResults()
     this.unbindTextareaListener()
     this.unbindDocumentKeydown()
   }
@@ -169,6 +172,7 @@ export default class extends Controller {
       this.matches = []
       this.currentMatchIndex = -1
       this.updateMatchCount()
+      this.renderResults()
       return
     }
 
@@ -179,6 +183,7 @@ export default class extends Controller {
         this.currentMatchIndex = -1
         this.matchCountTarget.textContent = validation.error || "Invalid regex"
         this.matchCountTarget.classList.add("text-red-500")
+        this.renderResults()
         return
       }
     }
@@ -191,6 +196,7 @@ export default class extends Controller {
     const position = this.textareaRef ? this.textareaRef.selectionStart : 0
     this.currentMatchIndex = findClosestMatchIndex(this.matches, position, "next")
     this.updateMatchCount()
+    this.renderResults()
   }
 
   findNext() {
@@ -199,6 +205,11 @@ export default class extends Controller {
     }
 
     if (!this.matches.length) return
+
+    if (this.isMobile()) {
+      this.stepResult(1)
+      return
+    }
 
     const position = this.textareaRef ? this.textareaRef.selectionEnd : 0
     this.currentMatchIndex = findClosestMatchIndex(this.matches, position, "next")
@@ -211,6 +222,11 @@ export default class extends Controller {
     }
 
     if (!this.matches.length) return
+
+    if (this.isMobile()) {
+      this.stepResult(-1)
+      return
+    }
 
     const position = this.textareaRef ? this.textareaRef.selectionStart : 0
     this.currentMatchIndex = findClosestMatchIndex(this.matches, position, "previous")
@@ -227,7 +243,8 @@ export default class extends Controller {
     this.dispatch("replace", { detail: { start: match.start, end: match.end, replacement } })
     this.findAll()
 
-    if (advance) {
+    // On mobile findAll already moved to the match after the replacement.
+    if (advance && !this.isMobile()) {
       this.findNext()
     }
   }
@@ -279,6 +296,69 @@ export default class extends Controller {
 
     this.dispatch("jump", { detail: { start: match.start, end: match.end } })
     this.updateMatchCount()
+  }
+
+  // On mobile the dialog lists matches instead of selecting them in the
+  // editor, which the dialog and on-screen keyboard would mostly cover.
+  isMobile() {
+    return window.innerWidth < 768
+  }
+
+  stepResult(direction) {
+    const total = this.matches.length
+    const start = this.currentMatchIndex < 0 ? (direction > 0 ? -1 : 0) : this.currentMatchIndex
+    this.currentMatchIndex = (start + direction + total) % total
+    this.updateMatchCount()
+    this.renderResults()
+  }
+
+  selectResult(event) {
+    const row = event.target.closest("[data-index]")
+    if (!row) return
+
+    const index = Number.parseInt(row.dataset.index, 10)
+    if (!this.matches[index]) return
+
+    this.currentMatchIndex = index
+    this.jumpToMatch(index)
+    this.close()
+  }
+
+  renderResults() {
+    if (!this.hasResultsTarget) return
+
+    const list = this.resultsTarget
+    list.replaceChildren()
+
+    const show = this.isMobile() && this.matches.length > 0
+    list.classList.toggle("hidden", !show)
+    if (!show) return
+
+    const text = this.textareaRef ? this.textareaRef.value : ""
+    matchLineContexts(text, this.matches).forEach((context, index) => {
+      const current = index === this.currentMatchIndex
+      const row = document.createElement("button")
+      row.type = "button"
+      row.dataset.index = index
+      row.className = `w-full flex text-left font-mono text-xs leading-relaxed px-2 py-2 border-b border-[var(--theme-border)] last:border-b-0 ${current ? "bg-[var(--theme-accent)] text-[var(--theme-accent-text)]" : "hover:bg-[var(--theme-bg-hover)]"}`
+      if (current) row.setAttribute("aria-current", "true")
+
+      const lineNumber = document.createElement("span")
+      lineNumber.className = `w-10 flex-shrink-0 text-right pr-2 select-none ${current ? "opacity-80" : "text-[var(--theme-text-faint)]"}`
+      lineNumber.textContent = context.lineNumber
+
+      const line = document.createElement("span")
+      line.className = "flex-1 min-w-0 truncate"
+      const highlight = document.createElement("span")
+      highlight.className = "rounded-sm bg-[var(--theme-selection)] text-[var(--theme-selection-text)]"
+      highlight.textContent = context.match
+      line.append(context.before, highlight, context.after)
+
+      row.append(lineNumber, line)
+      list.append(row)
+    })
+
+    list.querySelector("[aria-current]")?.scrollIntoView?.({ block: "nearest" })
   }
 
   updateMatchCount() {
