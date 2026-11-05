@@ -129,6 +129,14 @@ function fed
             echo "[fed] Warning: no images directory found (set IMAGES_PATH or create ~/Pictures)"
         end
 
+        # Mount Omarchy's generated active theme read-only at the rails user's
+        # home so theme sync works inside the container.
+        set -l omarchy_mount
+        set -l omarchy_state "$HOME/.local/state/omarchy/current"
+        if test -d "$omarchy_state"
+            set omarchy_mount --mount "type=bind,source=$omarchy_state,target=/home/rails/.local/state/omarchy/current,readonly"
+        end
+
         set -l env_file_flag
         if set -q FRANKMD_ENV; and test -n "$FRANKMD_ENV"
             set env_file_flag --env-file "$FRANKMD_ENV"
@@ -142,6 +150,7 @@ function fed
             --user "$user_id:$group_id" \
             -v "$notes:/rails/notes" \
             $images_mount \
+            $omarchy_mount \
             $env_flags \
             $env_file_flag \
             akitaonrails/frankmd:latest >/dev/null

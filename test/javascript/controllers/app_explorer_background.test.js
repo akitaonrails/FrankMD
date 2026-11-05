@@ -45,37 +45,49 @@ function select(app, path, type = "file") {
 }
 
 describe("explorer background interaction (#261, #267)", () => {
-  it("clears the selection when clicking the explorer's empty surface", () => {
+  it("clears the selection when right-clicking the explorer's empty surface", () => {
     const { app } = createApp()
     select(app, "a.md")
     select(app, "docs", "folder")
     expect(app.explorerSelection.size).toBe(1)
 
-    app.onExplorerBackgroundClick({ target: app.fileTreeTarget, clientX: 10, clientY: 10 })
+    app.onExplorerBackgroundContextMenu({ target: app.fileTreeTarget, clientX: 10, clientY: 10, preventDefault: vi.fn() })
 
     expect(app.explorerSelection.size).toBe(0)
     expect(app.explorerSelectionAnchor).toBeNull()
     expect(app.fileTreeTarget.querySelector(".explorer-selected")).toBeNull()
   })
 
-  it("shows the positioned menu on the background click", () => {
+  it("shows the positioned menu on the background context menu event", () => {
     const { app, menu } = createApp()
     expect(menu.classList.contains("hidden")).toBe(true)
 
-    app.onExplorerBackgroundClick({ target: app.fileTreeTarget, clientX: 40, clientY: 60 })
+    app.onExplorerBackgroundContextMenu({ target: app.fileTreeTarget, clientX: 40, clientY: 60, preventDefault: vi.fn() })
 
     expect(menu.classList.contains("hidden")).toBe(false)
     expect(menu.style.left).toBe("40px")
     expect(menu.style.top).toBe("60px")
   })
 
-  it("ignores clicks that land on tree items", () => {
+  it("closes the menu when left-clicking empty explorer space without clearing selection", () => {
+    const { app, menu } = createApp()
+    select(app, "a.md")
+    menu.classList.remove("hidden")
+    const selection = app.explorerSelection
+
+    app.onExplorerBackgroundClick({ target: app.fileTreeTarget })
+
+    expect(menu.classList.contains("hidden")).toBe(true)
+    expect(app.explorerSelection).toBe(selection)
+  })
+
+  it("ignores context menu events that land on tree items", () => {
     const { app, menu } = createApp()
     const item = app.fileTreeTarget.querySelector('[data-path="a.md"]')
     select(app, "c.md")
     const selectionSnapshot = app.explorerSelection
 
-    app.onExplorerBackgroundClick({ target: item, clientX: 0, clientY: 0 })
+    app.onExplorerBackgroundContextMenu({ target: item, clientX: 0, clientY: 0, preventDefault: vi.fn() })
 
     expect(app.explorerSelection).toBe(selectionSnapshot)
     expect(menu.classList.contains("hidden")).toBe(true)
@@ -83,7 +95,7 @@ describe("explorer background interaction (#261, #267)", () => {
 
   it("hides the menu when an explorer item is selected", () => {
     const { app, menu } = createApp()
-    app.onExplorerBackgroundClick({ target: app.fileTreeTarget, clientX: 10, clientY: 10 })
+    app.onExplorerBackgroundContextMenu({ target: app.fileTreeTarget, clientX: 10, clientY: 10, preventDefault: vi.fn() })
     expect(menu.classList.contains("hidden")).toBe(false)
 
     select(app, "a.md")
@@ -93,7 +105,7 @@ describe("explorer background interaction (#261, #267)", () => {
 
   it("select all picks every visible item and skips collapsed children", () => {
     const { app, menu } = createApp()
-    app.onExplorerBackgroundClick({ target: app.fileTreeTarget, clientX: 10, clientY: 10 })
+    app.onExplorerBackgroundContextMenu({ target: app.fileTreeTarget, clientX: 10, clientY: 10, preventDefault: vi.fn() })
 
     app.selectAllExplorerItems()
 
@@ -108,7 +120,7 @@ describe("explorer background interaction (#261, #267)", () => {
     app.mobileWorkspace = false
     app.sidebarVisible = true
     app.hasOverflowMenuTarget = false
-    app.onExplorerBackgroundClick({ target: app.fileTreeTarget, clientX: 10, clientY: 10 })
+    app.onExplorerBackgroundContextMenu({ target: app.fileTreeTarget, clientX: 10, clientY: 10, preventDefault: vi.fn() })
 
     const handled = app.onWorkspaceKeydown({ key: "Escape", preventDefault: () => {}, stopImmediatePropagation: () => {} })
 

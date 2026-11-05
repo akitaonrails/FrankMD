@@ -16,6 +16,11 @@
   </a>
 </p>
 
+> **Web or desktop?** For remote use, keep FrankMD: it is the web version you can reach from any
+> browser. If you only want a desktop app, use [FrankMDFast](https://github.com/akitaonrails/FrankMDFast),
+> a native rewrite in Rust for Linux, macOS and Windows. It works on the same notes folder and reads
+> the same `.fed` file, so you can switch between the two.
+
 ## Why FrankMD?
 
 - **No database** - Notes are plain markdown files on your filesystem
@@ -377,13 +382,17 @@ That lets you:
 
 **Note:** AI credentials behave differently. If ANY AI key is set in `.fed`, ALL AI environment variables are ignored. See [Per-Folder AI Configuration](#per-folder-ai-configuration) for details.
 
-### Editing .fed in the App
+### Editing .fed Safely
 
-The `.fed` file appears in the explorer panel with a gear icon. You can click it to edit directly in FrankMD:
+The `.fed` file is deliberately hidden from the explorer and blocked from the
+generic note routes. It can contain credentials, so FrankMD never opens it in
+the note editor or sends it through note-processing features such as AI grammar
+correction.
 
-- The toolbar and preview panel are hidden when editing config files (they only appear for markdown files)
-- Changes are auto-saved like any other file
-- **Live reload**: When you save `.fed`, the UI immediately applies your changes (theme, font, etc.)
+Use Settings for the options exposed in the UI, or edit `.fed` directly on the
+host with a text editor and reload FrankMD. Prefer environment variables for
+API keys and other secrets; keep `.fed` readable only by its owner when it does
+contain credentials.
 
 ### Available Settings
 
@@ -883,7 +892,7 @@ FrankMD ships with 18 built-in color themes, plus [Omarchy](https://omarchy.org)
 | Solarized Light | Classic light color scheme |
 | Tokyo Night | High-contrast night theme |
 
-**Omarchy sync:** If you run the [Omarchy](https://omarchy.org) desktop environment, FrankMD detects your terminal theme and adds it as a selectable "Omarchy" option. Switching your terminal theme updates FrankMD in real time.
+**Omarchy sync:** If you run the [Omarchy](https://omarchy.org) desktop environment, FrankMD reads the active palette from `~/.local/state/omarchy/current/theme/colors.toml` and adds it as a selectable "Omarchy" option. Switching your terminal theme updates FrankMD in real time. The `fed` Bash and Fish launchers mount that state directory read-only inside Docker; older Omarchy installations using `~/.config/omarchy/current/theme/alacritty.toml` remain supported.
 
 Change themes from the dropdown in the top-right corner. Your preference is saved to the `.fed` file.
 

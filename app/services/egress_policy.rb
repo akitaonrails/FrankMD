@@ -49,6 +49,7 @@ module EgressPolicy
     unless ALLOWED_SCHEMES.include?(uri.scheme)
       raise BlockedError, "Only http and https URLs can be fetched"
     end
+    raise BlockedError, "URL credentials are not allowed" unless uri.userinfo.nil?
     raise BlockedError, "URL has no host" if uri.host.blank?
 
     addresses = resolve(uri.host)
