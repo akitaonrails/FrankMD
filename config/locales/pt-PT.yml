@@ -272,6 +272,7 @@ pt-PT:
       find: "Pesquisar"
       find_title: "Pesquisar e substituir (Ctrl+F)"
       format_title: "Formatar (Ctrl+M)"
+      undo_title: "Anular (Ctrl+Z)"
     # Overlay de processamento IA
     processing_with: "A processar com"
     press_esc_to_cancel: "Prima ESC para cancelar"

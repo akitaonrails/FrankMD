@@ -272,6 +272,7 @@ ja:
       find: "検索"
       find_title: "検索と置換 (Ctrl+F)"
       format_title: "書式 (Ctrl+M)"
+      undo_title: "元に戻す (Ctrl+Z)"
     # AI processing overlay
     processing_with: "処理中："
     press_esc_to_cancel: "ESCでキャンセル"

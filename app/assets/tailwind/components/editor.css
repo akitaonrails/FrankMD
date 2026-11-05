@@ -178,8 +178,11 @@ body.single-view-mode [data-app-target="previewPanel"] {
   color: var(--theme-text-muted);
 }
 .workspace-icon:disabled { opacity: .4; }
-.workspace-icon:not(:disabled):hover,
-.workspace-document-title:not(:disabled):hover { background: var(--theme-bg-hover); }
+/* Touch screens keep :hover on the last tapped element, so only real hover highlights. */
+@media (hover: hover) {
+  .workspace-icon:not(:disabled):hover,
+  .workspace-document-title:not(:disabled):hover { background: var(--theme-bg-hover); }
+}
 .workspace-icon[aria-pressed="true"],
 .workspace-navigation [aria-pressed="true"] { color: var(--theme-accent); background: var(--theme-bg-hover); }
 .workspace-header button:focus-visible,

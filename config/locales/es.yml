@@ -272,6 +272,7 @@ es:
       find: "Buscar"
       find_title: "Buscar y reemplazar (Ctrl+F)"
       format_title: "Formato (Ctrl+M)"
+      undo_title: "Deshacer (Ctrl+Z)"
     # AI processing overlay
     processing_with: "Procesando con"
     press_esc_to_cancel: "Presiona ESC para cancelar"

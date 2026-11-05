@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { EditorView } from "@codemirror/view"
 import { EditorState, Transaction } from "@codemirror/state"
-import { history } from "@codemirror/commands"
+import { history, undo, undoDepth } from "@codemirror/commands"
 import {
   createExtensions,
   themeCompartment,
@@ -96,9 +96,7 @@ export default class extends Controller {
       onSelectionChange: (update) => this.onSelectionChange(update),
       onScroll: (event, view) => this.onScroll(event, view),
       onPaste: (file) => this.onImagePaste(file),
-      onUndoAtHistoryStart: (view) => !this.vimModeValue && this.undoAtHistoryStartHandler
-        ? this.undoAtHistoryStartHandler(this._activeHistoryPath, view)
-        : false,
+      onUndoAtHistoryStart: (view) => this.handleUndoAtHistoryStart(view),
       onRedoAtHistoryEnd: (view) => !this.vimModeValue && this.redoAtHistoryEndHandler
         ? this.redoAtHistoryEndHandler(this._activeHistoryPath, view)
         : false
@@ -420,6 +418,20 @@ export default class extends Controller {
     if (pathMatchesScope(this._activeHistoryPath, path, type)) {
       this._activeHistoryPath = null
     }
+  }
+
+  /** Undo like Mod-z, deferring to the history-start handler once history runs out. */
+  undo() {
+    const view = this.editor
+    if (!view) return false
+    if (undoDepth(view.state) > 0) return undo(view)
+    return this.handleUndoAtHistoryStart(view)
+  }
+
+  handleUndoAtHistoryStart(view) {
+    return !this.vimModeValue && this.undoAtHistoryStartHandler
+      ? this.undoAtHistoryStartHandler(this._activeHistoryPath, view)
+      : false
   }
 
   setUndoAtHistoryStartHandler(handler) {

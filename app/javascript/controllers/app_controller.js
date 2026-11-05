@@ -3418,6 +3418,10 @@ export default class extends Controller {
     if (textFormatController) textFormatController.openFromKeyboard(cm)
   }
 
+  undoEdit() {
+    this.getCodemirrorController()?.undo()
+  }
+
   onTextareaContextMenu(event) {
     // Long-press on mobile keeps the native selection menu.
     if (this.mobileWorkspace || !this.isMarkdownFile()) return

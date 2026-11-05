@@ -310,6 +310,20 @@ describe("CodemirrorController", () => {
       expect(event.defaultPrevented).toBe(true)
     })
 
+    it("undo() follows the same path as Ctrl+Z", () => {
+      controller.loadContent("created note baseline", "created.md")
+      const handler = vi.fn(() => true)
+      controller.setUndoAtHistoryStartHandler(handler)
+      controller.setValue("edited created note")
+
+      expect(controller.undo()).toBe(true)
+      expect(controller.getValue()).toBe("created note baseline")
+      expect(handler).not.toHaveBeenCalled()
+
+      expect(controller.undo()).toBe(true)
+      expect(handler).toHaveBeenCalledWith("created.md", controller.getEditorView())
+    })
+
     it("leaves exhausted Ctrl+Z to Vim mode", () => {
       controller.loadContent("created note baseline", "created.md")
       const handler = vi.fn(() => true)

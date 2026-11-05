@@ -12,11 +12,13 @@ module WorkspaceHelper
       [ "emoji", "openEmojiPicker", "editor.toolbar.emoji_title", "editing", false ],
       [ "ai", "openAiDialog", "editor.toolbar.ai_title", "editing", false ],
       [ "format", "openTextFormatMenu", "editor.toolbar.format_title", "editing", false ],
+      [ "undo", "undoEdit", "editor.toolbar.undo_title", "editing", false ],
       [ "copy", "copyCurrentContent", "header.copy_content", "document", false ],
       [ "help", "openHelp", "editor.toolbar.help_title", "global", false ]
     ]
     # Long-press keeps the native selection menu on mobile, so Format stands in for it there.
-    mobile_only = %w[format]
+    # Undo stands in for Ctrl+Z, which phones lack.
+    mobile_only = %w[format undo]
     # Destructive actions sit apart at the end of the menu and are never pinned.
     destructive = [
       [ "delete", "deleteCurrentNote", "context_menu.delete", "document" ]
