@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "securerandom"
+require "stringio"
 require "uri"
 
 # Shared helpers for drag-and-drop file uploads (images and videos).
@@ -23,6 +24,18 @@ module UploadStorage
 
   S3_KEY_PREFIX = "frankmd"
   DEFAULT_S3_REGION = "us-east-1"
+
+  CONTENT_MIME_TYPES = {
+    "image" => %w[
+      image/jpeg image/png image/gif image/webp image/bmp image/x-bmp image/x-ms-bmp
+    ].freeze,
+    "video" => %w[
+      video/mp4 video/webm video/x-matroska video/quicktime video/x-msvideo video/x-m4v
+      video/ogg application/ogg application/x-matroska
+    ].freeze
+  }.freeze
+  MARKUP_HEADER_BYTES = 16 * 1024
+  ACTIVE_MARKUP = /<\s*(?:!doctype\s+html|html\b|script\b|svg\b|\?xml\b)/in
 
   # Raised when an upload is rejected for a user-correctable reason (bad
   # extension, too large). Services rescue it and return { error: message }.
@@ -88,12 +101,46 @@ module UploadStorage
     extension
   end
 
+  # Detect the payload from bytes alone. Never pass a filename or declared
+  # content type to Marcel here: those are attacker-controlled hints and Marcel
+  # deliberately falls back to them when magic bytes are inconclusive.
+  def validate_content!(source, kind:)
+    require "marcel"
+
+    allowed = CONTENT_MIME_TYPES[kind]
+    raise ArgumentError, "Unknown upload kind: #{kind}" unless allowed
+
+    io, close_after = content_io(source)
+    io.binmode if io.respond_to?(:binmode)
+    io.rewind
+    detected = Marcel::MimeType.for(io)
+    io.rewind
+    header = io.read(MARKUP_HEADER_BYTES).to_s.b
+
+    if !allowed.include?(detected) || (kind == "image" && header.match?(ACTIVE_MARKUP))
+      raise RejectedError, "File content is not an accepted #{kind} type"
+    end
+
+    detected
+  rescue Errno::ENOENT, Errno::EACCES, Errno::EISDIR, IOError
+    raise RejectedError, "File content could not be validated"
+  ensure
+    io&.close if close_after
+  end
+
   # Reject uploads larger than MAX_UPLOAD_BYTES before we read them into memory
   # or copy them to disk.
   def enforce_size!(uploaded_file)
     size = uploaded_file.size if uploaded_file.respond_to?(:size)
     enforce_bytes!(size)
   end
+
+  def content_io(source)
+    return [ source, false ] if source.respond_to?(:read) && source.respond_to?(:rewind)
+
+    [ File.open(source.to_s, "rb"), true ]
+  end
+  private_class_method :content_io
 
   # Same cap for an already-known byte size (e.g. decoded base64 content).
   def enforce_bytes!(size)

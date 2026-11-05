@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "stringio"
+
 class ImagesService
   SUPPORTED_EXTENSIONS = %w[.jpg .jpeg .png .gif .webp .svg .bmp].freeze
   MAX_RESULTS = 10
@@ -108,6 +110,7 @@ class ImagesService
 
       full_path = find_image(path)
       return nil unless full_path
+      detected_type = UploadStorage.validate_content!(full_path, kind: "image")
 
       require "aws-sdk-s3"
 
@@ -118,9 +121,10 @@ class ImagesService
       # Process image if resize ratio provided
       if resize
         file_content, content_type, filename = resize_and_compress(full_path, nil, resize)
+        content_type = UploadStorage.validate_content!(StringIO.new(file_content), kind: "image")
       else
         file_content = full_path.binread
-        content_type = content_type_for(full_path)
+        content_type = detected_type
         filename = full_path.basename.to_s
       end
 
@@ -162,7 +166,9 @@ class ImagesService
 
       UploadStorage.with_temp_copy(uploaded_file, extension) do |temp_path|
         if provider == "s3"
-          upload_temp_to_s3(temp_path, uploaded_file.original_filename, resize: resize, custom_key: s3_key)
+          upload_temp_to_s3(
+            temp_path, uploaded_file.original_filename, resize: resize, custom_key: s3_key
+          )
         else
           save_to_notes_directory(temp_path, uploaded_file.original_filename, resize: resize)
         end
@@ -205,6 +211,7 @@ class ImagesService
       # served inline by NotesController#serve_asset (stored XSS). See UploadStorage.
       UploadStorage.enforce_bytes!(file_content.bytesize)
       UploadStorage.validate_filename!(filename, "image_upload_extensions", "image")
+      UploadStorage.validate_content!(StringIO.new(file_content), kind: "image")
 
       # Create temp file
       temp_dir = Rails.root.join("tmp", "uploads")
@@ -240,7 +247,7 @@ class ImagesService
       return nil unless result
 
       file_content = result[:body]
-      content_type = result[:content_type]
+      content_type = UploadStorage.validate_content!(StringIO.new(file_content), kind: "image")
       source_uri = result[:uri]
 
       # Generate filename from URL or use random name
@@ -248,6 +255,8 @@ class ImagesService
       original_name = File.basename(source_uri.path).gsub(/[^a-zA-Z0-9._-]/, "_")
       if original_name.blank? || original_name == "_" || !original_name.match?(/\.\w+$/)
         original_name = "#{SecureRandom.hex(8)}#{extension}"
+      else
+        original_name = "#{File.basename(original_name, File.extname(original_name))}#{extension}"
       end
 
       # Process image if resize ratio provided
@@ -260,6 +269,7 @@ class ImagesService
           temp_file.close
 
           file_content, content_type, original_name = resize_and_compress(Pathname.new(temp_file.path), original_name, resize)
+          content_type = UploadStorage.validate_content!(StringIO.new(file_content), kind: "image")
         ensure
           temp_file.unlink
         end
@@ -291,6 +301,8 @@ class ImagesService
     rescue EgressPolicy::BlockedError => e
       Rails.logger.warn "Refused to fetch external image: #{e.message}"
       nil
+    rescue UploadStorage::RejectedError
+      nil
     end
 
     def import_image(url: nil, path: nil, resize: nil, s3_key: nil, s3_prefix: nil, upload_to_s3: nil)
@@ -304,15 +316,13 @@ class ImagesService
         return { error: "Image not found" } unless source
         UploadStorage.validate_filename!(source.basename.to_s, "image_upload_extensions", "image")
         UploadStorage.enforce_bytes!(source.size)
+        UploadStorage.validate_content!(source, kind: "image")
         return store_import(source, source.basename.to_s, provider, resize: resize, s3_key: s3_key, s3_prefix: s3_prefix)
       end
 
       result = fetch_external_image(url)
       return { error: "Image download failed" } unless result
-      mime_type = result[:content_type].to_s.split(";").first.to_s.downcase
-      unless %w[image/jpeg image/png image/gif image/webp image/bmp image/x-ms-bmp].include?(mime_type)
-        return { error: "Unsupported image content type" }
-      end
+      mime_type = UploadStorage.validate_content!(StringIO.new(result[:body]), kind: "image")
       extension = extension_for_content_type(mime_type)
       UploadStorage.validate_filename!("image#{extension}", "image_upload_extensions", "image")
       name = File.basename(result[:uri].path).gsub(UploadStorage::SANITIZE_RE, "_")
@@ -336,7 +346,8 @@ class ImagesService
 
     def store_import(source, filename, provider, resize:, s3_key:, s3_prefix:)
       if provider == "s3"
-        upload_temp_to_s3(source, filename, resize: resize, custom_key: s3_key, custom_prefix: s3_prefix) || { error: "Image upload failed" }
+        upload_temp_to_s3(source, filename, resize: resize, custom_key: s3_key, custom_prefix: s3_prefix) ||
+          { error: "Image upload failed" }
       else
         save_to_notes_directory(source, filename, resize: resize)
       end
@@ -363,6 +374,7 @@ class ImagesService
     def find_images(search)
       pattern = images_path.join("**", "*")
       Pathname.glob(pattern).select do |file|
+        next false if file.symlink?
         next false unless file.file?
         next false unless SUPPORTED_EXTENSIONS.include?(file.extname.downcase)
         next false if search.present? && !file.basename.to_s.downcase.include?(search.downcase)
@@ -400,7 +412,7 @@ class ImagesService
       when "image/gif" then ".gif"
       when "image/webp" then ".webp"
       when "image/svg+xml" then ".svg"
-      when "image/bmp", "image/x-ms-bmp" then ".bmp"
+      when "image/bmp", "image/x-bmp", "image/x-ms-bmp" then ".bmp"
       else ".jpg"
       end
     end
@@ -460,6 +472,8 @@ class ImagesService
     def save_to_notes_directory(temp_path, original_filename, resize: nil)
       require "fileutils"
 
+      UploadStorage.validate_content!(Pathname.new(temp_path), kind: "image")
+
       notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
       images_dir = notes_path.join("images")
       FileUtils.mkdir_p(images_dir)
@@ -471,6 +485,7 @@ class ImagesService
         base_name = File.basename(safe_name, ".*")
         dest_filename = UploadStorage.dest_filename("#{base_name}.jpg")
         resized_data, _content_type, _new_filename = resize_and_compress(Pathname.new(temp_path), dest_filename, resize.to_f)
+        UploadStorage.validate_content!(StringIO.new(resized_data), kind: "image")
         dest_path = images_dir.join(dest_filename)
         File.binwrite(dest_path, resized_data)
         { url: "images/#{dest_filename}" }
@@ -591,6 +606,8 @@ class ImagesService
     def upload_temp_to_s3(temp_path, original_filename, resize: nil, custom_key: nil, custom_prefix: nil)
       require "aws-sdk-s3"
 
+      content_type = UploadStorage.validate_content!(Pathname.new(temp_path), kind: "image")
+
       cfg = Config.new
       bucket = cfg.get("aws_s3_bucket")
       region = UploadStorage.s3_region
@@ -600,9 +617,9 @@ class ImagesService
       # Process image if resize ratio provided
       if resize
         file_content, content_type, filename = resize_and_compress(Pathname.new(temp_path), original_filename, resize)
+        content_type = UploadStorage.validate_content!(StringIO.new(file_content), kind: "image")
       else
         file_content = File.binread(temp_path)
-        content_type = content_type_for(Pathname.new(temp_path))
         filename = original_filename
       end
 

@@ -137,4 +137,25 @@ class BacklinksServiceTest < ActiveSupport::TestCase
     assert_raises(ArgumentError) { @service.find_backlinks("../etc/passwd") }
     assert_raises(ArgumentError) { @service.find_backlinks("folder/../../secret.md") }
   end
+
+  test "skips symlinks that escape the notes directory or form loops" do
+    create_test_note("target.md", "# Target")
+    create_test_folder("real")
+    create_test_note("real/source.md", "A legitimate [[target]] backlink")
+
+    Dir.mktmpdir("frankmd-backlinks-outside") do |outside|
+      outside_path = Pathname.new(outside)
+      outside_path.join("outside.md").write("Outside [[target]] canary")
+
+      File.symlink(outside, @test_notes_dir.join("outside-dir"))
+      File.symlink(outside_path.join("outside.md"), @test_notes_dir.join("outside-file.md"))
+      File.symlink(@test_notes_dir.join("missing.md"), @test_notes_dir.join("dangling.md"))
+      File.symlink(".", @test_notes_dir.join("loop"))
+
+      results = @service.find_backlinks("target.md")
+
+      assert_equal [ "real/source.md" ], results.map { |result| result[:path] }
+      refute results.any? { |result| result[:match_text].include?("canary") }
+    end
+  end
 end

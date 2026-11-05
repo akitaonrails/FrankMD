@@ -3,7 +3,8 @@
 require "test_helper"
 
 class MediaControllerTest < ActionDispatch::IntegrationTest
-  def video_file(filename, content = "fake video bytes")
+  def video_file(filename, content = nil)
+    content ||= tiny_mp4
     Rack::Test::UploadedFile.new(StringIO.new(content), "video/mp4", original_filename: filename)
   end
 

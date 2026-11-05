@@ -56,7 +56,7 @@ class AiService
 
       { corrected: response.content, provider: provider, model: model }
     rescue StandardError => e
-      Rails.logger.error "AI error (#{provider}/#{model}): #{e.class} - #{e.message}"
+      Rails.logger.error "AI error (#{provider}/#{model}): #{e.class}"
       { error: "AI provider request failed" }
     end
 
@@ -131,7 +131,7 @@ class AiService
 
       extract_image_from_response(response, model)
     rescue StandardError => e
-      Rails.logger.error "Image generation error: #{e.class} - #{e.message}"
+      Rails.logger.error "Image generation error: #{e.class}"
       { error: "Image generation failed" }
     end
 

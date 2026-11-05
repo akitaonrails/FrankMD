@@ -1,20 +1,30 @@
 # frozen_string_literal: true
 
 class OmarchyThemeService
-  OMARCHY_DIR = File.expand_path("~/.config/omarchy/current")
-  THEME_NAME_FILE = File.join(OMARCHY_DIR, "theme.name")
-  ALACRITTY_FILE = File.join(OMARCHY_DIR, "theme", "alacritty.toml")
+  STATE_DIR = File.expand_path("~/.local/state/omarchy/current")
+  STATE_THEME_NAME_FILE = File.join(STATE_DIR, "theme.name")
+  STATE_COLORS_FILE = File.join(STATE_DIR, "theme", "colors.toml")
+
+  LEGACY_DIR = File.expand_path("~/.config/omarchy/current")
+  LEGACY_THEME_NAME_FILE = File.join(LEGACY_DIR, "theme.name")
+  LEGACY_ALACRITTY_FILE = File.join(LEGACY_DIR, "theme", "alacritty.toml")
+
+  # Compatibility aliases for callers that referenced the original constants.
+  OMARCHY_DIR = LEGACY_DIR
+  THEME_NAME_FILE = LEGACY_THEME_NAME_FILE
+  ALACRITTY_FILE = LEGACY_ALACRITTY_FILE
 
   class << self
     def available?
-      File.exist?(THEME_NAME_FILE) && File.exist?(ALACRITTY_FILE)
+      theme_source.present?
     end
 
     def theme_data
-      return nil unless available?
+      source = theme_source
+      return nil unless source
 
-      name = File.read(THEME_NAME_FILE).strip
-      colors = parse_alacritty(File.read(ALACRITTY_FILE))
+      name = File.read(source[:name_file]).strip
+      colors = source[:format] == :colors ? parse_colors(File.read(source[:palette_file])) : parse_alacritty(File.read(source[:palette_file]))
       variables = map_variables(colors)
 
       {
@@ -27,6 +37,60 @@ class OmarchyThemeService
     end
 
     private
+
+    def theme_source
+      if File.exist?(STATE_THEME_NAME_FILE) && File.exist?(STATE_COLORS_FILE)
+        { format: :colors, name_file: STATE_THEME_NAME_FILE, palette_file: STATE_COLORS_FILE }
+      elsif File.exist?(LEGACY_THEME_NAME_FILE) && File.exist?(LEGACY_ALACRITTY_FILE)
+        { format: :alacritty, name_file: LEGACY_THEME_NAME_FILE, palette_file: LEGACY_ALACRITTY_FILE }
+      end
+    end
+
+    def parse_colors(content)
+      flat = {}
+      in_section = false
+
+      content.each_line do |line|
+        line = line.strip
+        if line.start_with?("[")
+          in_section = true
+          next
+        end
+        next if in_section
+
+        match = line.match(/\A([a-zA-Z0-9_]+)\s*=\s*["']?(#[0-9a-fA-F]{6})["']?\s*(?:#.*)?\z/)
+        flat[match[1].to_sym] = match[2] if match
+      end
+
+      normalize_flat_colors(flat)
+    end
+
+    def normalize_flat_colors(c)
+      {
+        background: c[:background],
+        foreground: c[:foreground],
+        dim_foreground: c[:dark_foreground] || c[:muted],
+        selection_background: c[:selection_background] || c[:selection],
+        selection_text: c[:selection_foreground] || c[:selection_text] || c[:foreground],
+        cursor_cursor: c[:cursor],
+        normal_black: c[:color0] || c[:muted] || c[:dark_background],
+        normal_red: c[:color1] || c[:red],
+        normal_green: c[:color2] || c[:green],
+        normal_yellow: c[:color3] || c[:yellow],
+        normal_blue: c[:color4] || c[:blue] || c[:accent],
+        normal_magenta: c[:color5] || c[:magenta],
+        normal_cyan: c[:color6] || c[:cyan],
+        normal_white: c[:color7] || c[:light_foreground] || c[:bright_foreground],
+        bright_black: c[:color8] || c[:dark_foreground] || c[:muted],
+        bright_red: c[:color9] || c[:bright_red] || c[:red],
+        bright_green: c[:color10] || c[:bright_green] || c[:green],
+        bright_yellow: c[:color11] || c[:bright_yellow] || c[:yellow],
+        bright_blue: c[:color12] || c[:bright_blue] || c[:blue] || c[:accent],
+        bright_magenta: c[:color13] || c[:bright_magenta] || c[:magenta],
+        bright_cyan: c[:color14] || c[:bright_cyan] || c[:cyan],
+        bright_white: c[:color15] || c[:bright_foreground] || c[:foreground]
+      }.compact
+    end
 
     def parse_alacritty(content)
       colors = {}

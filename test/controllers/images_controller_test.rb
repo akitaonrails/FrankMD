@@ -436,7 +436,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       stub_request(:get, "https://example.com/photo.jpg")
         .to_return(
           status: 200,
-          body: "fake image bytes",
+          body: tiny_jpeg,
           headers: { "Content-Type" => "image/jpeg" }
         )
 

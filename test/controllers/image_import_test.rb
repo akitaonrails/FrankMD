@@ -26,7 +26,7 @@ class ImageImportTest < ActionDispatch::IntegrationTest
   end
 
   def external_image(url = "https://example.com/image.png")
-    stub_request(:get, url).to_return(body: "image bytes", headers: { "Content-Type" => "image/png" })
+    stub_request(:get, url).to_return(body: tiny_png, headers: { "Content-Type" => "image/png" })
   end
 
   test "external URL is saved locally without requiring a server image folder" do
@@ -35,13 +35,13 @@ class ImageImportTest < ActionDispatch::IntegrationTest
     post "/images/import", params: { url: "https://example.com/image.png" }, as: :json
     assert_response :success
     assert_match %r{\Aimages/}, response.parsed_body["url"]
-    assert_equal "image bytes", @test_notes_dir.join(response.parsed_body["url"]).binread
+    assert_equal tiny_png, @test_notes_dir.join(response.parsed_body["url"]).binread
   end
 
   test "external and server images are saved to S3 without local media copies" do
     use_s3
     external_image
-    @images.join("photo.png").binwrite("image bytes")
+    @images.join("photo.png").binwrite(tiny_png)
     client = stub("s3")
     client.expects(:put_object).twice.with { |args| args[:bucket] == "bucket" && args[:key].start_with?("chosen/") && args[:if_none_match] == "*" }
     Aws::S3::Client.stubs(:new).returns(client)
@@ -86,11 +86,20 @@ class ImageImportTest < ActionDispatch::IntegrationTest
   end
 
   test "server images can be copied locally without changing the original" do
-    @images.join("photo.png").binwrite("original")
+    @images.join("photo.png").binwrite(tiny_png)
     post "/images/import", params: { path: "photo.png" }, as: :json
     assert_response :success
-    assert_equal "original", @test_notes_dir.join(response.parsed_body["url"]).binread
-    assert_equal "original", @images.join("photo.png").binread
+    assert_equal tiny_png, @test_notes_dir.join(response.parsed_body["url"]).binread
+    assert_equal tiny_png, @images.join("photo.png").binread
+  end
+
+  test "server import rejects text disguised with an image extension" do
+    @images.join("disguised.png").binwrite("plain text")
+
+    post "/images/import", params: { path: "disguised.png" }, as: :json
+
+    assert_response :unprocessable_entity
+    refute @test_notes_dir.join("images").exist?
   end
 
   test "exactly one string source is required" do
@@ -118,6 +127,18 @@ class ImageImportTest < ActionDispatch::IntegrationTest
       post "/images/import", params: { url: "https://example.com/image.png" }, as: :json
       assert_response :unprocessable_entity
     end
+    refute @test_notes_dir.join("images").exist?
+  end
+
+  test "external import ignores a spoofed image response type" do
+    stub_request(:get, "https://example.com/image.png").to_return(
+      body: "<!doctype html><script>alert(1)</script>",
+      headers: { "Content-Type" => "image/png" }
+    )
+
+    post "/images/import", params: { url: "https://example.com/image.png" }, as: :json
+
+    assert_response :unprocessable_entity
     refute @test_notes_dir.join("images").exist?
   end
 

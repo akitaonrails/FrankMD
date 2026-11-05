@@ -121,11 +121,21 @@ fed() {
       echo "[fed] Warning: no images directory found (set IMAGES_PATH or create ~/Pictures)"
     fi
 
+    # Omarchy keeps the generated active theme under XDG state. Mount it at
+    # the rails user's home so FrankMD can follow theme changes without write
+    # access to the host state directory.
+    local omarchy_mount=()
+    local omarchy_state="$HOME/.local/state/omarchy/current"
+    if [[ -d "$omarchy_state" ]]; then
+      omarchy_mount=(--mount "type=bind,source=$omarchy_state,target=/home/rails/.local/state/omarchy/current,readonly")
+    fi
+
     docker run -d --name frankmd --rm \
       -p 7591:80 \
       --user "$(id -u):$(id -g)" \
       -v "$notes:/rails/notes" \
       "${images_mount[@]}" \
+      "${omarchy_mount[@]}" \
       "${env_flags[@]}" \
       ${FRANKMD_ENV:+--env-file "$FRANKMD_ENV"} \
       akitaonrails/frankmd:latest >/dev/null
