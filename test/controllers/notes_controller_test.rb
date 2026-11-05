@@ -20,9 +20,11 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".home-recent, .home-recent-heading", count: 0
   end
 
-  test "the viewport keeps the page at device width without zoom" do
+  test "the viewport keeps the page at device width and permits zoom" do
     get root_url
-    assert_select "meta[name='viewport'][content='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no']", count: 1
+    assert_select "meta[name='viewport'][content='width=device-width,initial-scale=1']", count: 1
+    assert_select "meta[name='viewport'][content*='user-scalable=no']", count: 0
+    assert_select "meta[name='viewport'][content*='maximum-scale']", count: 0
   end
 
   test "Home introduces FrankMD with find before create and concise history actions" do

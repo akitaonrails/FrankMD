@@ -161,6 +161,23 @@ describe("FindReplaceController", () => {
       expect(controller.resultsTarget.classList.contains("hidden")).toBe(true)
       expect(controller.resultsTarget.children).toHaveLength(0)
     })
+
+    it("bounds large result sets while keeping the current match visible and navigable", () => {
+      textarea.value = Array.from({ length: 1000 }, (_, index) => `line ${index} one`).join("\n")
+      controller.findAll()
+      controller.currentMatchIndex = 750
+      controller.renderResults()
+
+      let rows = controller.resultsTarget.querySelectorAll("button[data-index]")
+      expect(rows).toHaveLength(100)
+      expect(controller.resultsTarget.querySelector("[aria-current]").dataset.index).toBe("750")
+
+      controller.findNext()
+      rows = controller.resultsTarget.querySelectorAll("button[data-index]")
+      expect(rows).toHaveLength(100)
+      expect(controller.currentMatchIndex).toBe(751)
+      expect(controller.resultsTarget.querySelector("[aria-current]").dataset.index).toBe("751")
+    })
   })
 
   it("does not list matches on desktop", () => {

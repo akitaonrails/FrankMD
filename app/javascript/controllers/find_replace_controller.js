@@ -7,6 +7,8 @@ import {
   validateRegex
 } from "lib/find_utils"
 
+const MOBILE_RESULT_LIMIT = 100
+
 export default class extends Controller {
   static targets = [
     "dialog",
@@ -335,7 +337,13 @@ export default class extends Controller {
     if (!show) return
 
     const text = this.textareaRef ? this.textareaRef.value : ""
-    matchLineContexts(text, this.matches).forEach((context, index) => {
+    const current = Math.max(this.currentMatchIndex, 0)
+    const maxStart = Math.max(this.matches.length - MOBILE_RESULT_LIMIT, 0)
+    const start = Math.min(Math.max(current - Math.floor(MOBILE_RESULT_LIMIT / 2), 0), maxStart)
+    const visibleMatches = this.matches.slice(start, start + MOBILE_RESULT_LIMIT)
+
+    matchLineContexts(text, visibleMatches).forEach((context, offset) => {
+      const index = start + offset
       const current = index === this.currentMatchIndex
       const row = document.createElement("button")
       row.type = "button"
