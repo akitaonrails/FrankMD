@@ -22,7 +22,8 @@ class ImagesServiceTest < ActiveSupport::TestCase
     FileUtils.rm_rf(@temp_dir) if @temp_dir&.exist?
   end
 
-  def create_test_image(name, content = "fake image data")
+  def create_test_image(name, content = nil)
+    content ||= File.extname(name).downcase == ".png" ? tiny_png : tiny_jpeg
     path = @temp_dir.join(name)
     FileUtils.mkdir_p(path.dirname)
     File.binwrite(path, content)
@@ -184,6 +185,17 @@ class ImagesServiceTest < ActiveSupport::TestCase
     assert_includes paths, "subfolder/nested.png"
   end
 
+  test "list skips symlinked image leaves" do
+    outside = Rails.root.join("tmp", "outside_image_#{SecureRandom.hex(4)}.jpg")
+    File.binwrite(outside, tiny_jpeg)
+    File.symlink(outside, @temp_dir.join("linked.jpg"))
+
+    assert_empty ImagesService.list
+    assert_equal 0, ImagesService.count
+  ensure
+    FileUtils.rm_f(outside) if outside
+  end
+
   # === delete ===
 
   test "delete removes an existing image and returns true" do
@@ -260,6 +272,18 @@ class ImagesServiceTest < ActiveSupport::TestCase
 
   # === upload_base64_data ===
 
+  test "upload_file rejects HTML disguised as a PNG" do
+    file = Rack::Test::UploadedFile.new(
+      StringIO.new("<!doctype html><script>alert(1)</script>"),
+      "image/png",
+      original_filename: "disguised.png"
+    )
+
+    result = ImagesService.upload_file(file)
+
+    assert_includes result[:error], "content is not an accepted image"
+  end
+
   test "upload_base64_data saves base64 image to notes directory" do
     # 1x1 PNG image
     png_data = [
@@ -326,6 +350,22 @@ class ImagesServiceTest < ActiveSupport::TestCase
       "a rejected upload must not write an .html file under the notes dir"
   end
 
+  test "upload_base64_data rejects HTML disguised as a PNG" do
+    data = Base64.strict_encode64("<!doctype html><script>alert(1)</script>")
+
+    result = ImagesService.upload_base64_data(data, mime_type: "image/png", filename: "disguised.png")
+
+    assert_includes result[:error], "content is not an accepted image"
+  end
+
+  test "upload_base64_data rejects an image and HTML polyglot" do
+    data = Base64.strict_encode64(tiny_png + "<script>alert(1)</script>")
+
+    result = ImagesService.upload_base64_data(data, mime_type: "image/png", filename: "polyglot.png")
+
+    assert_includes result[:error], "content is not an accepted image"
+  end
+
   test "upload_base64_data generates filename when not provided" do
     png_data = [
       0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
@@ -350,8 +390,8 @@ class ImagesServiceTest < ActiveSupport::TestCase
   test "local image saves use unique filenames for same-second uploads" do
     temp_one = @temp_dir.join("one.png")
     temp_two = @temp_dir.join("two.png")
-    File.binwrite(temp_one, "one")
-    File.binwrite(temp_two, "two")
+    File.binwrite(temp_one, tiny_png)
+    File.binwrite(temp_two, tiny_png)
     Time.stubs(:now).returns(Time.utc(2026, 1, 1, 12, 0, 0))
 
     first = ImagesService.send(:save_to_notes_directory, temp_one, "photo.png")
@@ -551,7 +591,8 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     WebMock.allow_net_connect!
   end
 
-  def create_test_image(name, content = "fake image data")
+  def create_test_image(name, content = nil)
+    content ||= File.extname(name).downcase == ".png" ? tiny_png : tiny_jpeg
     path = @temp_dir.join(name)
     FileUtils.mkdir_p(path.dirname)
     File.binwrite(path, content)
@@ -560,18 +601,20 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
 
   test "saved S3 provider handles multipart and base64 images without request flags" do
     client = stub("s3")
-    client.expects(:put_object).twice.with { |args| args[:bucket] == "test-bucket" && args[:if_none_match] == "*" }
+    client.expects(:put_object).twice.with do |args|
+      args[:bucket] == "test-bucket" && args[:if_none_match] == "*" && args[:content_type] == "image/png"
+    end
     Aws::S3::Client.stubs(:new).returns(client)
     ImagesService.expects(:save_to_notes_directory).never
-    file = Rack::Test::UploadedFile.new(StringIO.new("image"), "image/png", original_filename: "image.png")
+    file = Rack::Test::UploadedFile.new(StringIO.new(tiny_png), "text/html", original_filename: "image.png")
     assert_match %r{https://test-bucket}, ImagesService.upload_file(file)[:url]
-    assert_match %r{https://test-bucket}, ImagesService.upload_base64_data(Base64.strict_encode64("image"), mime_type: "image/png")[:url]
+    assert_match %r{https://test-bucket}, ImagesService.upload_base64_data(Base64.strict_encode64(tiny_png), mime_type: "image/png")[:url]
   end
 
   test "unavailable S3 rejects every new image without local fallback" do
     @config_stub.stubs(:get).with("aws_access_key_id").returns(nil)
     ImagesService.expects(:save_to_notes_directory).never
-    file = Rack::Test::UploadedFile.new(StringIO.new("image"), "image/png", original_filename: "image.png")
+    file = Rack::Test::UploadedFile.new(StringIO.new(tiny_png), "image/png", original_filename: "image.png")
     assert_equal "S3 is not configured", ImagesService.upload_file(file)[:error]
     assert_equal "S3 is not configured", ImagesService.upload_base64_data("aW1hZ2U=")[:error]
   end
@@ -582,7 +625,7 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     Aws::S3::Client.stubs(:new).returns(client)
     ImagesService.expects(:save_to_notes_directory).never
     assert_raises(Aws::S3::Errors::ServiceError) do
-      ImagesService.upload_base64_data("aW1hZ2U=", mime_type: "image/png")
+      ImagesService.upload_base64_data(Base64.strict_encode64(tiny_png), mime_type: "image/png")
     end
   end
 
@@ -610,8 +653,17 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     assert_nil result
   end
 
+  test "upload_to_s3 rejects a text file disguised as a local image" do
+    create_test_image("disguised.png", "plain text")
+    Aws::S3::Client.expects(:new).never
+
+    assert_raises(UploadStorage::RejectedError) do
+      ImagesService.upload_to_s3("disguised.png")
+    end
+  end
+
   test "upload_to_s3 calls S3 client with correct parameters" do
-    create_test_image("upload_test.jpg", "image content")
+    create_test_image("upload_test.jpg")
 
     mock_client = stub
     mock_client.expects(:put_object).with { |args| args[:if_none_match] == "*" }.returns(nil)
@@ -625,7 +677,7 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
   end
 
   test "upload_to_s3 sanitizes special characters in the object key" do
-    create_test_image("my photo (1).jpg", "image content")
+    create_test_image("my photo (1).jpg")
 
     mock_client = stub
     mock_client.stubs(:put_object).returns(nil)
@@ -643,7 +695,7 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
   end
 
   test "upload_to_s3 handles ACL not supported error gracefully" do
-    create_test_image("acl_test.jpg", "image data")
+    create_test_image("acl_test.jpg")
 
     mock_client = stub
     mock_client.stubs(:put_object).raises(Aws::S3::Errors::AccessControlListNotSupported.new(nil, "ACL not supported"))
@@ -698,7 +750,7 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     stub_request(:get, "https://example.com/photo.jpg")
       .to_return(
         status: 200,
-        body: "fake image content",
+        body: tiny_jpeg,
         headers: { "Content-Type" => "image/jpeg" }
       )
 
@@ -712,12 +764,24 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     assert_match %r{^https://test-bucket\.s3\.us-east-1\.amazonaws\.com/frankmd/\d{4}/\d{2}/photo-[0-9a-f]{16}\.jpg$}, result
   end
 
+  test "download_and_upload_to_s3 rejects HTML with an image response type" do
+    stub_request(:get, "https://example.com/photo.png")
+      .to_return(
+        status: 200,
+        body: "<!doctype html><script>alert(1)</script>",
+        headers: { "Content-Type" => "image/jpeg" }
+      )
+    Aws::S3::Client.expects(:new).never
+
+    assert_nil ImagesService.download_and_upload_to_s3("https://example.com/photo.png")
+  end
+
   test "download_and_upload_to_s3 generates filename when URL has no extension" do
     stub_request(:get, "https://example.com/images/")
       .to_return(
         status: 200,
-        body: "fake image content",
-        headers: { "Content-Type" => "image/png" }
+        body: tiny_png,
+        headers: { "Content-Type" => "image/jpeg" }
       )
 
     mock_client = stub
@@ -757,7 +821,7 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     stub_request(:get, "https://example.com/go.jpg")
       .to_return(status: 302, headers: { "Location" => "https://cdn.example.com/real.jpg" })
     stub_request(:get, "https://cdn.example.com/real.jpg")
-      .to_return(status: 200, body: "fake image content", headers: { "Content-Type" => "image/jpeg" })
+      .to_return(status: 200, body: tiny_jpeg, headers: { "Content-Type" => "image/jpeg" })
     Aws::S3::Client.any_instance.stubs(:put_object).returns(true)
 
     result = ImagesService.download_and_upload_to_s3("https://example.com/go.jpg")

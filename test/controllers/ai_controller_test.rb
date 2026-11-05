@@ -151,6 +151,33 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_includes data["error"], "No file path"
   end
 
+  test "fix_grammar rejects paths outside the visible markdown note boundary before reading" do
+    Note.expects(:find).never
+    AiService.expects(:fix_grammar).never
+
+    [ ".fed", ".hidden/x.md", "../x.md", "notes.txt", "folder//note.md", "folder\\note.md" ].each do |path|
+      post "/ai/fix_grammar", params: { path: path }, as: :json
+
+      assert_response :not_found
+      assert_includes JSON.parse(response.body)["error"], "not found"
+    end
+  end
+
+  test "fix_grammar accepts visible markdown notes at the root and in folders" do
+    create_test_note("root.md", "Root text")
+    create_test_note("folder/nested.md", "Nested text")
+    AiService.expects(:fix_grammar).with("Root text").returns(corrected: "Root corrected", provider: "test", model: "test")
+    AiService.expects(:fix_grammar).with("Nested text").returns(corrected: "Nested corrected", provider: "test", model: "test")
+
+    post "/ai/fix_grammar", params: { path: "root.md" }, as: :json
+    assert_response :success
+    assert_equal "Root corrected", JSON.parse(response.body)["corrected"]
+
+    post "/ai/fix_grammar", params: { path: "folder/nested.md" }, as: :json
+    assert_response :success
+    assert_equal "Nested corrected", JSON.parse(response.body)["corrected"]
+  end
+
   test "fix_grammar returns error when note not found" do
     post "/ai/fix_grammar", params: { path: "nonexistent.md" }, as: :json
     assert_response :not_found

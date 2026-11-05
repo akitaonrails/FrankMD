@@ -15,7 +15,8 @@ class MediaServiceTest < ActiveSupport::TestCase
     @notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
   end
 
-  def uploaded(filename, content = "fake video bytes")
+  def uploaded(filename, content = nil)
+    content ||= File.extname(filename).downcase == ".webm" ? tiny_webm : tiny_mp4
     Rack::Test::UploadedFile.new(StringIO.new(content), "video/mp4", original_filename: filename)
   end
 
@@ -49,6 +50,13 @@ class MediaServiceTest < ActiveSupport::TestCase
 
     assert_nil result[:url]
     assert_includes result[:error], "no extension"
+  end
+
+  test "save_upload rejects text disguised as an allowed video" do
+    result = MediaService.save_upload(uploaded("clip.mp4", "plain text"))
+
+    assert_nil result[:url]
+    assert_includes result[:error], "not an accepted video type"
   end
 
   test "save_upload sanitizes the stored filename" do
@@ -102,13 +110,16 @@ class MediaServiceS3Test < ActiveSupport::TestCase
     WebMock.allow_net_connect!
   end
 
-  def uploaded(filename, content = "fake video bytes")
+  def uploaded(filename, content = nil)
+    content ||= File.extname(filename).downcase == ".webm" ? tiny_webm : tiny_mp4
     Rack::Test::UploadedFile.new(StringIO.new(content), "video/mp4", original_filename: filename)
   end
 
   test "save_upload uploads to S3 with the correct video mime type" do
     mock_client = stub
-    mock_client.expects(:put_object).with { |args| args[:content_type] == "video/webm" && args[:if_none_match] == "*" }.returns(nil)
+    mock_client.expects(:put_object).with do |args|
+      args[:content_type] == "application/x-matroska" && args[:if_none_match] == "*"
+    end.returns(nil)
     Aws::S3::Client.stubs(:new).returns(mock_client)
 
     MediaService.expects(:store_local).never

@@ -14,6 +14,10 @@ class AiController < ApplicationController
       return render json: { error: t("errors.no_file_provided") }, status: :bad_request
     end
 
+    unless visible_markdown_note_path?(path)
+      return render json: { error: t("errors.note_not_found") }, status: :not_found
+    end
+
     # Read the file content from disk
     begin
       note = Note.find(path)
@@ -61,5 +65,23 @@ class AiController < ApplicationController
     else
       render json: result
     end
+  end
+
+  private
+
+  def visible_markdown_note_path?(path)
+    return false unless path.end_with?(".md")
+    return false if path.include?("\\") || path.include?("\0")
+
+    pathname = Pathname.new(path)
+    return false if pathname.absolute?
+
+    segments = path.split("/", -1)
+    return false if segments.any? { |segment| segment.blank? || segment == "." || segment == ".." || segment.start_with?(".") }
+
+    notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
+    PathSafety.contain(notes_path, path).present?
+  rescue ArgumentError
+    false
   end
 end

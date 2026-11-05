@@ -71,6 +71,47 @@ class UploadStorageTest < ActiveSupport::TestCase
     assert_includes err.message, ".html"
   end
 
+  test "validate_content! accepts magic-valid images and videos" do
+    assert_equal "image/png", UploadStorage.validate_content!(StringIO.new(tiny_png), kind: "image")
+    assert_equal "video/mp4", UploadStorage.validate_content!(StringIO.new(tiny_mp4), kind: "video")
+    assert_equal "application/x-matroska", UploadStorage.validate_content!(StringIO.new(tiny_webm), kind: "video")
+  end
+
+  test "validate_content! rejects text and markup regardless of extension hints" do
+    [
+      "plain text",
+      "<html><script>alert(1)</script></html>",
+      "<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>"
+    ].each do |content|
+      assert_raises(UploadStorage::RejectedError) do
+        UploadStorage.validate_content!(StringIO.new(content), kind: "image")
+      end
+    end
+
+    assert_raises(UploadStorage::RejectedError) do
+      UploadStorage.validate_content!(StringIO.new("plain text"), kind: "video")
+    end
+  end
+
+  test "validate_content! rejects a magic-valid PNG with active markup in its header" do
+    polyglot = tiny_png + "<html><script>alert(1)</script></html>"
+
+    error = assert_raises(UploadStorage::RejectedError) do
+      UploadStorage.validate_content!(StringIO.new(polyglot), kind: "image")
+    end
+
+    assert_includes error.message, "not an accepted image type"
+  end
+
+  test "validate_content! enforces the expected upload kind" do
+    assert_raises(UploadStorage::RejectedError) do
+      UploadStorage.validate_content!(StringIO.new(tiny_png), kind: "video")
+    end
+    assert_raises(UploadStorage::RejectedError) do
+      UploadStorage.validate_content!(StringIO.new(tiny_mp4), kind: "image")
+    end
+  end
+
   # === enforce_size! ===
 
   test "enforce_size! raises when the file exceeds the cap" do

@@ -9,16 +9,6 @@
 class MediaService
   SUBDIR = "videos"
 
-  VIDEO_MIME_TYPES = {
-    ".mp4"  => "video/mp4",
-    ".webm" => "video/webm",
-    ".mkv"  => "video/x-matroska",
-    ".mov"  => "video/quicktime",
-    ".avi"  => "video/x-msvideo",
-    ".m4v"  => "video/x-m4v",
-    ".ogv"  => "video/ogg"
-  }.freeze
-
   class << self
     # Save an uploaded video file locally or to S3.
     # Returns { url: "..." } on success or { error: "..." } on failure.
@@ -30,8 +20,9 @@ class MediaService
       extension = UploadStorage.validate_extension!(uploaded_file, "video_upload_extensions", "video")
 
       UploadStorage.with_temp_copy(uploaded_file, extension) do |temp_path|
+        content_type = UploadStorage.validate_content!(temp_path, kind: "video")
         if provider == "s3"
-          store_s3(temp_path, uploaded_file.original_filename, custom_prefix: s3_prefix)
+          store_s3(temp_path, uploaded_file.original_filename, content_type:, custom_prefix: s3_prefix)
         else
           store_local(temp_path, uploaded_file.original_filename)
         end
@@ -54,7 +45,7 @@ class MediaService
       { url: "#{SUBDIR}/#{dest_filename}" }
     end
 
-    def store_s3(temp_path, original_filename, custom_prefix: nil)
+    def store_s3(temp_path, original_filename, content_type:, custom_prefix: nil)
       require "aws-sdk-s3"
 
       cfg = Config.new
@@ -64,7 +55,6 @@ class MediaService
       client = UploadStorage.s3_client(cfg)
 
       key = UploadStorage.s3_key(original_filename, custom_prefix: custom_prefix)
-      content_type = VIDEO_MIME_TYPES[File.extname(key).downcase] || "application/octet-stream"
 
       File.open(temp_path, "rb") do |io|
         client.put_object(bucket: bucket, key: key, body: io, content_type: content_type, if_none_match: "*")

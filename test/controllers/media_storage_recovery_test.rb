@@ -9,7 +9,7 @@ class MediaStorageRecoveryTest < ActionDispatch::IntegrationTest
     @config = Config.new
     @server_images = @test_notes_dir.join("server")
     FileUtils.mkdir_p(@server_images)
-    @server_images.join("photo.png").write("image bytes")
+    @server_images.join("photo.png").binwrite(tiny_png)
     @config.set("images_path", @server_images.to_s)
     select_s3
   end
@@ -24,15 +24,15 @@ class MediaStorageRecoveryTest < ActionDispatch::IntegrationTest
   end
 
   def image_file
-    Rack::Test::UploadedFile.new(StringIO.new("image bytes"), "image/png", original_filename: "photo.png")
+    Rack::Test::UploadedFile.new(StringIO.new(tiny_png), "image/png", original_filename: "photo.png")
   end
 
   def upload_params(endpoint)
     case endpoint
     when "/images/upload" then { file: image_file }
-    when "/images/upload_base64" then { data: Base64.strict_encode64("image bytes"), mime_type: "image/png", filename: "photo.png" }
+    when "/images/upload_base64" then { data: Base64.strict_encode64(tiny_png), mime_type: "image/png", filename: "photo.png" }
     when "/images/import" then { path: "photo.png" }
-    when "/media/upload" then { file: Rack::Test::UploadedFile.new(StringIO.new("video bytes"), "video/mp4", original_filename: "clip.mp4") }
+    when "/media/upload" then { file: Rack::Test::UploadedFile.new(StringIO.new(tiny_mp4), "video/mp4", original_filename: "clip.mp4") }
     end
   end
 

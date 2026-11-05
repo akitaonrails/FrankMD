@@ -16,6 +16,15 @@ class EgressPolicyTest < ActiveSupport::TestCase
     assert_raises(EgressPolicy::BlockedError) { EgressPolicy.checked_target("http://") }
   end
 
+  test "rejects URL userinfo before DNS resolution" do
+    EgressPolicy.expects(:resolve).never
+
+    [ "http://user:pass@example.test/image.png", "http://example.com@evil.test/image.png" ].each do |url|
+      error = assert_raises(EgressPolicy::BlockedError) { EgressPolicy.checked_target(url) }
+      assert_includes error.message, "credentials"
+    end
+  end
+
   test "rejects a host that does not resolve" do
     EgressPolicy.stubs(:resolve).returns([])
 

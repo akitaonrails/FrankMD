@@ -56,6 +56,7 @@ class BacklinksService
     return unless dir.directory?
 
     dir.children.each do |entry|
+      next if entry.symlink?
       next if entry.basename.to_s.start_with?(".")
 
       if entry.directory?
@@ -64,6 +65,8 @@ class BacklinksService
         yield entry
       end
     end
+  rescue Errno::ENOENT, Errno::ENOTDIR, Errno::ELOOP
+    nil
   end
 
   def search_file(file_path, regex, context_lines)
@@ -88,5 +91,7 @@ class BacklinksService
     end
 
     matches
+  rescue Errno::ENOENT, Errno::ENOTDIR, Errno::ELOOP
+    []
   end
 end

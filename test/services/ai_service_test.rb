@@ -283,9 +283,14 @@ class AiServiceTest < ActiveSupport::TestCase
   test "fix_grammar returns error on API failure" do
     ENV["OPENAI_API_KEY"] = "sk-test-key"
 
+    canary = "private-note-canary sk-synthetic-secret"
+    Rails.logger.expects(:error).with do |message|
+      message.include?("StandardError") && !message.include?(canary)
+    end
+
     mock_chat = stub
     mock_chat.stubs(:with_instructions).returns(mock_chat)
-    mock_chat.stubs(:ask).raises(StandardError.new("API connection failed"))
+    mock_chat.stubs(:ask).raises(StandardError.new(canary))
 
     RubyLLM.stubs(:chat).returns(mock_chat)
 
@@ -293,7 +298,7 @@ class AiServiceTest < ActiveSupport::TestCase
 
     assert result[:error].present?
     assert_equal "AI provider request failed", result[:error]
-    refute_includes result[:error], "API connection failed"
+    refute_includes result[:error], canary
   end
 
   test "fix_grammar does not log an API key fragment" do
@@ -427,9 +432,13 @@ class AiServiceImageGenerationTest < ActiveSupport::TestCase
   end
 
   test "generate_image handles API error" do
+    canary = "private-prompt-canary sk-synthetic-secret"
+    Rails.logger.expects(:error).with do |message|
+      message.include?("StandardError") && !message.include?(canary)
+    end
     mock_chat = stub
     mock_chat.stubs(:with_params).returns(mock_chat)
-    mock_chat.stubs(:ask).raises(StandardError.new("OpenRouter API error: Invalid prompt"))
+    mock_chat.stubs(:ask).raises(StandardError.new(canary))
     RubyLLM.stubs(:chat).returns(mock_chat)
 
     result = AiService.generate_image("bad prompt")
