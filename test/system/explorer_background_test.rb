@@ -17,8 +17,8 @@ class ExplorerBackgroundTest < ApplicationSystemTestCase
     assert_selector "[data-app-target='explorerMenu']:not(.hidden)"
     assert_no_selector ".explorer-selected"
 
-    # A left-click on empty explorer space dismisses the menu.
-    find("#file-tree-content").click(x: 10, y: 300)
+    # A left-click outside the menu dismisses it.
+    find("body").click(x: 700, y: 40)
     assert_selector "[data-app-target='explorerMenu'].hidden", visible: :all
     find("#file-tree-content").right_click(x: 10, y: 300)
 
