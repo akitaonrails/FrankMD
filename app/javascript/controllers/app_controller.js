@@ -161,9 +161,8 @@ export default class extends Controller {
     document.addEventListener("pointerup", this.boundExplorerPointerUp, true)
     document.addEventListener("pointercancel", this.boundExplorerPointerUp, true)
 
-    // Close the explorer background menu on any click outside it. Clicks
-    // inside the tree are managed by the item actions and the background
-    // handler itself, so they are skipped here.
+    // Close the explorer background menu on outside clicks or right-clicks.
+    // Interactions inside the tree are managed by its own actions.
     this.boundExplorerMenuClose = (event) => {
       if (!this.hasExplorerMenuTarget) return
       if (this.explorerMenuTarget.classList.contains("hidden")) return
@@ -172,6 +171,7 @@ export default class extends Controller {
       this.hideExplorerMenu()
     }
     document.addEventListener("click", this.boundExplorerMenuClose)
+    document.addEventListener("contextmenu", this.boundExplorerMenuClose)
 
     // Start desktop Explorer expanded and mobile Explorer closed.
     // Visibility remains session-only.
@@ -358,6 +358,7 @@ export default class extends Controller {
     }
     if (this.boundExplorerMenuClose) {
       document.removeEventListener("click", this.boundExplorerMenuClose)
+      document.removeEventListener("contextmenu", this.boundExplorerMenuClose)
     }
 
     // Clean up object URLs to prevent memory leaks
@@ -856,12 +857,19 @@ export default class extends Controller {
   }
 
   // === Explorer background interaction (#261, #267) ===
-  // A left click on the explorer's empty surface clears the selection (so
+  // A right-click on the explorer's empty surface clears the selection (so
   // toolbar creation targets the root again) and offers the explorer menu.
-  onExplorerBackgroundClick(event) {
+  onExplorerBackgroundContextMenu(event) {
     if (event.target.closest(".tree-item")) return
+    event.preventDefault()
     this.clearExplorerSelection()
     this.showExplorerMenu(event)
+  }
+
+  // A left-click on empty tree space dismisses the menu without changing selection.
+  onExplorerBackgroundClick(event) {
+    if (event.target.closest(".tree-item")) return
+    this.hideExplorerMenu()
   }
 
   clearExplorerSelection() {
