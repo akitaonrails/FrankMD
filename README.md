@@ -16,6 +16,11 @@
   </a>
 </p>
 
+> **Web or desktop?** For remote use, keep FrankMD: it is the web version you can reach from any
+> browser. If you only want a desktop app, use [FrankMDFast](https://github.com/akitaonrails/FrankMDFast),
+> a native rewrite in Rust for Linux, macOS and Windows. It works on the same notes folder and reads
+> the same `.fed` file, so you can switch between the two.
+
 ## Why FrankMD?
 
 - **No database** - Notes are plain markdown files on your filesystem
