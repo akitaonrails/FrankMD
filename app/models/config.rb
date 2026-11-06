@@ -67,6 +67,8 @@ class Config
     "gemini_model" => { default: "gemini-2.0-flash", type: :string, env: "GEMINI_MODEL" },
     "openai_api_key" => { default: nil, type: :string, env: "OPENAI_API_KEY" },
     "openai_model" => { default: "gpt-4o-mini", type: :string, env: "OPENAI_MODEL" },
+    "cheaperinference_api_key" => { default: nil, type: :string, env: "CHEAPERINFERENCE_API_KEY" },
+    "cheaperinference_model" => { default: "gpt-5.4-mini", type: :string, env: "CHEAPERINFERENCE_MODEL" },
 
     # Hugo blog post settings
     "hugo_path_style" => { default: "dated", type: :string, env: "HUGO_PATH_STYLE" },
@@ -90,6 +92,7 @@ class Config
     openrouter_api_key
     anthropic_api_key
     gemini_api_key
+    cheaperinference_api_key
   ].freeze
 
   # Keys that are UI settings (saved from frontend)
@@ -117,7 +120,7 @@ class Config
   # OpenAI first as most reliable, then cloud providers, then local
   # Gemini is last because its API key is primarily for image generation (Imagen)
   # This allows using Anthropic for text while Gemini handles images
-  AI_PROVIDER_PRIORITY = %w[openai anthropic openrouter ollama gemini].freeze
+  AI_PROVIDER_PRIORITY = %w[openai anthropic openrouter cheaperinference ollama gemini].freeze
 
   # AI credential keys - if ANY of these are set in .fed, ignore ALL AI ENV vars
   # This allows users to override their global ENV config per-folder
@@ -128,6 +131,7 @@ class Config
     anthropic_api_key
     gemini_api_key
     openai_api_key
+    cheaperinference_api_key
   ].freeze
 
   # Template sections for config file (used for upgrades)
@@ -251,7 +255,7 @@ class Config
       lines: [
         "",
         "# AI/LLM (for grammar checking)",
-        "# Provider priority when ai_provider = auto: openai > anthropic > openrouter > ollama > gemini",
+        "# Provider priority when ai_provider = auto: openai > anthropic > openrouter > cheaperinference > ollama > gemini",
         "# Gemini is lowest priority for text (its key is mainly for image generation)",
         "",
         "# ai_provider = auto",
@@ -272,6 +276,10 @@ class Config
         "# OpenRouter (multiple providers, pay-per-use)",
         "# openrouter_api_key = sk-or-...",
         "# openrouter_model = openai/gpt-4o-mini",
+        "",
+        "# Cheaper Inference (OpenAI-compatible gateway)",
+        "# cheaperinference_api_key = ci_live_...",
+        "# cheaperinference_model = gpt-5.4-mini",
         "",
         "# Ollama (local, free) - for privacy, requires local setup",
         "# ollama_api_base = http://localhost:11434",
@@ -437,6 +445,7 @@ class Config
     available << "anthropic" if get_ai("anthropic_api_key").present?
     available << "gemini" if get_ai("gemini_api_key").present?
     available << "openai" if get_ai("openai_api_key").present?
+    available << "cheaperinference" if get_ai("cheaperinference_api_key").present?
     available
   end
 

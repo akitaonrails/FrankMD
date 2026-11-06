@@ -638,6 +638,8 @@ pt-BR:
       gemini_description: "Use modelos Gemini:"
       openai_title: "OpenAI"
       openai_description: "Use modelos GPT:"
+      cheaperinference_title: "Cheaper Inference"
+      cheaperinference_description: "Gateway compatível com OpenAI:"
       provider_selection: "Seleção de Provedor"
       provider_override: "Sobrescrever auto-detecção:"
       get_key_from: "Obtenha a chave em"

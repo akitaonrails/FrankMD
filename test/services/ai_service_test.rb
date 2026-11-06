@@ -11,6 +11,7 @@ class AiServiceTest < ActiveSupport::TestCase
       OPENAI_API_KEY OPENROUTER_API_KEY ANTHROPIC_API_KEY
       GEMINI_API_KEY OLLAMA_API_BASE AI_PROVIDER AI_MODEL
       OPENAI_MODEL OPENROUTER_MODEL ANTHROPIC_MODEL GEMINI_MODEL OLLAMA_MODEL
+      CHEAPERINFERENCE_API_KEY CHEAPERINFERENCE_MODEL
       IMAGE_GENERATION_MODEL
     ].each do |key|
       @original_env[key] = ENV[key]
@@ -57,6 +58,11 @@ class AiServiceTest < ActiveSupport::TestCase
 
   test "enabled? returns true when Ollama base is set" do
     ENV["OLLAMA_API_BASE"] = "http://localhost:11434"
+    assert AiService.enabled?
+  end
+
+  test "enabled? returns true when Cheaper Inference key is set" do
+    ENV["CHEAPERINFERENCE_API_KEY"] = "ci_live_test"
     assert AiService.enabled?
   end
 
@@ -134,6 +140,11 @@ class AiServiceTest < ActiveSupport::TestCase
   test "current_model returns gemini default model" do
     ENV["GEMINI_API_KEY"] = "gemini-test"
     assert_equal "gemini-2.0-flash", AiService.current_model
+  end
+
+  test "current_model returns cheaperinference default model" do
+    ENV["CHEAPERINFERENCE_API_KEY"] = "ci_live_test"
+    assert_equal "gpt-5.4-mini", AiService.current_model
   end
 
   test "current_model returns openrouter default model" do
@@ -338,6 +349,32 @@ class AiServiceTest < ActiveSupport::TestCase
 
     assert_equal "Fixed by Claude", result[:corrected]
     assert_equal "anthropic", result[:provider]
+  end
+
+  test "fix_grammar sends cheaperinference through the OpenAI provider with its API base" do
+    ENV["CHEAPERINFERENCE_API_KEY"] = "ci_live_test"
+
+    mock_response = stub(content: "Fixed by Cheaper Inference")
+    mock_chat = stub
+    mock_chat.stubs(:with_instructions).returns(mock_chat)
+    mock_chat.stubs(:ask).returns(mock_response)
+
+    RubyLLM.expects(:chat)
+      .with(model: "gpt-5.4-mini", provider: :openai, protocol: :chat_completions, assume_model_exists: true)
+      .returns(mock_chat)
+
+    result = AiService.fix_grammar("Input text")
+
+    assert_equal "Fixed by Cheaper Inference", result[:corrected]
+    assert_equal "cheaperinference", result[:provider]
+    assert_equal "gpt-5.4-mini", result[:model]
+    assert_equal "ci_live_test", RubyLLM.config.openai_api_key
+    assert_equal "https://api.cheaperinference.com/v1", RubyLLM.config.openai_api_base
+  ensure
+    RubyLLM.configure do |config|
+      config.openai_api_key = nil
+      config.openai_api_base = nil
+    end
   end
 
   # === Image generation response parsing ===

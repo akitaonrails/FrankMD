@@ -150,7 +150,7 @@
 - **Grammar Check**: AI-powered grammar, spelling, and typo correction
 - Side-by-side diff view with original and corrected text
 - Editable corrections before accepting changes
-- Supports Ollama (local), OpenAI, Anthropic, Gemini, and OpenRouter
+- Supports Ollama (local), OpenAI, Anthropic, Gemini, OpenRouter, and Cheaper Inference
 
 <p align="center">
   <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-22-28.jpg" alt="AI grammar checker" width="700">
@@ -371,6 +371,8 @@ google_cse_id = your-cse-id
 # gemini_model = gemini-2.0-flash
 # openai_api_key = sk-...
 # openai_model = gpt-4o-mini
+# cheaperinference_api_key = ci_live_...
+# cheaperinference_model = gpt-5.4-mini
 ```
 
 **Priority order:** File settings override environment variables. Environment variables override defaults.
@@ -419,7 +421,7 @@ contain credentials.
 | `youtube_api_key` | string | - | YouTube Data API key |
 | `google_api_key` | string | - | Google API key |
 | `google_cse_id` | string | - | Google Custom Search Engine ID |
-| `ai_provider` | string | auto | AI provider: auto, ollama, openrouter, anthropic, gemini, openai |
+| `ai_provider` | string | auto | AI provider: auto, ollama, openrouter, anthropic, gemini, openai, cheaperinference |
 | `ai_model` | string | (per provider) | Override model for any provider |
 | `ollama_api_base` | string | - | Ollama API base URL (e.g., http://localhost:11434/v1) |
 | `ollama_model` | string | llama3.2:latest | Ollama model |
@@ -431,6 +433,8 @@ contain credentials.
 | `gemini_model` | string | gemini-2.0-flash | Gemini model |
 | `openai_api_key` | string | - | OpenAI API key |
 | `openai_model` | string | gpt-4o-mini | OpenAI model |
+| `cheaperinference_api_key` | string | - | Cheaper Inference API key |
+| `cheaperinference_model` | string | gpt-5.4-mini | Cheaper Inference model |
 
 ### Environment Variables
 
@@ -526,7 +530,8 @@ FrankMD has an AI grammar and spelling checker. Click the "AI" button in the edi
 2. **Anthropic** - Claude models
 3. **Google Gemini** - Gemini models
 4. **OpenRouter** - Multiple providers, pay-per-use
-5. **Ollama** - Local, free, private
+5. **Cheaper Inference** - OpenAI-compatible gateway
+6. **Ollama** - Local, free, private
 
 When multiple providers are configured, FrankMD uses the first available one in the priority order above. You can override this with `ai_provider = <provider>`.
 
@@ -596,9 +601,22 @@ openai_api_key = sk-...
 openai_model = gpt-4o-mini
 ```
 
+#### Option 6: Cheaper Inference
+
+Cheaper Inference is an OpenAI-compatible gateway.
+One API key gives access to models from several labs:
+
+1. Get an API key from [cheaperinference.com](https://cheaperinference.com)
+2. Configure in `.fed`:
+
+```ini
+cheaperinference_api_key = ci_live_...
+cheaperinference_model = gpt-5.4-mini
+```
+
 #### Provider Selection
 
-By default, FrankMD uses the first configured provider in priority order (OpenAI -> Anthropic -> Gemini -> OpenRouter -> Ollama). To force a specific provider:
+By default, FrankMD uses the first configured provider in priority order (OpenAI -> Anthropic -> Gemini -> OpenRouter -> Cheaper Inference -> Ollama). To force a specific provider:
 
 ```ini
 ai_provider = anthropic
@@ -638,6 +656,7 @@ This is useful for:
 | Anthropic | claude-sonnet-4-20250514 |
 | Gemini | gemini-2.0-flash |
 | OpenAI | gpt-4o-mini |
+| Cheaper Inference | gpt-5.4-mini |
 
 **Usage:**
 - Click the "AI" button in the toolbar while editing a note

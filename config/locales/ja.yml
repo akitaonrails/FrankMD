@@ -638,6 +638,8 @@ ja:
       gemini_description: "Geminiモデルを使用："
       openai_title: "OpenAI"
       openai_description: "GPTモデルを使用："
+      cheaperinference_title: "Cheaper Inference"
+      cheaperinference_description: "OpenAI互換ゲートウェイ："
       provider_selection: "プロバイダー選択"
       provider_override: "自動検出を上書き："
       get_key_from: "キーの取得先："
