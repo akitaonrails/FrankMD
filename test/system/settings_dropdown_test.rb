@@ -20,10 +20,18 @@ class SettingsDropdownTest < ApplicationSystemTestCase
       assert_menu_in_viewport
 
       page.driver.browser.action.send_keys(:end).perform
-      assert_selector '[data-theme="tokyo-night"]:focus'
+      # The runtime list ends with a detected Omarchy theme when available, so
+      # assert on whichever option is last instead of a fixed theme id.
+      assert page.evaluate_script(<<~JS), "End must focus the last theme option"
+        (() => {
+          const options = Array.from(document.querySelectorAll('[data-theme-target="menu"] [data-theme]'));
+          return options.length > 0 && document.activeElement === options[options.length - 1];
+        })()
+      JS
       assert page.evaluate_script(<<~JS), "Last option must be visible and clickable above the dialog's clipping boundary"
         (() => {
-          const option = document.querySelector('[data-theme="tokyo-night"]');
+          const options = Array.from(document.querySelectorAll('[data-theme-target="menu"] [data-theme]'));
+          const option = options[options.length - 1];
           const rect = option.getBoundingClientRect();
           return option.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2));
         })()

@@ -575,9 +575,24 @@ class WorkspaceTest < ApplicationSystemTestCase
       assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
       find("[data-app-target='titleInput']").send_keys(:escape)
       find("[data-app-target='overflowToggle']").click
-      all("[data-workspace-pin][aria-checked='false']", visible: :all).each do |pin|
-        pin.find(:xpath, "..").hover
-        pin.click
+      # Pins sit at opacity 0 until their row is hovered, which Selenium cannot
+      # click. Prove the hover reveal, then pin through the DOM.
+      unpinned = page.evaluate_script(
+        "Array.from(document.querySelectorAll('[data-workspace-pin][aria-checked=\"false\"]')).map(p => p.dataset.workspacePin)"
+      )
+      assert unpinned.any?, "phone layout should expose pinnable actions"
+      unpinned.each do |id|
+        # Rows without layout (hidden at this breakpoint) cannot be hovered.
+        next unless page.evaluate_script(
+          "document.querySelector('[data-workspace-pin=\"#{id}\"]').parentElement.getClientRects().length > 0"
+        )
+        pin = find("[data-workspace-pin='#{id}']", visible: :all)
+        pin.find(:xpath, "..", visible: :all).hover
+        assert_equal "1", page.evaluate_script(
+          "getComputedStyle(document.querySelector('[data-workspace-pin=\"#{id}\"]')).opacity"
+        ), "hovering the row should reveal the #{id} pin"
+        page.execute_script("document.querySelector('[data-workspace-pin=\"#{id}\"]').click()")
+        assert_selector "[data-workspace-pin='#{id}'][aria-checked='true']", visible: :all
       end
       assert_selector "#workspace-menu", visible: true
       assert_equal 0, page.evaluate_script("Math.max(0, document.documentElement.scrollWidth - window.innerWidth)")
