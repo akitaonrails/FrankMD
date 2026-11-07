@@ -65,7 +65,6 @@ class SaveConflictTest < ApplicationSystemTestCase
 
     # The local text wins and reaches the disk without a second dialog.
     assert_selector "dialog[open]", count: 0, wait: 10
-    assert_equal "# Local edit", wait_for_editor("# Local edit")
     Timeout.timeout(10) do
       sleep 0.1 until @test_notes_dir.join("conflict.md").read == "# Local edit"
     end

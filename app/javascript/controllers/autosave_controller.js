@@ -4,6 +4,14 @@ import { encodePath } from "lib/url_utils"
 import draftStorage from "lib/draft_storage"
 import { undo } from "@codemirror/commands"
 
+// @rails/request.js exposes the parsed body as a `json` getter returning a
+// Promise, while native fetch exposes a method. Accept both shapes so the
+// revision/conflict bodies are actually read.
+async function readJson(response) {
+  const value = response.json
+  return typeof value === "function" ? value.call(response) : value
+}
+
 export default class extends Controller {
   static targets = ["contentLossBanner", "saveStatus"]
   static values = { statusLabels: Object }
@@ -115,6 +123,7 @@ export default class extends Controller {
 
   setFile(path, content, revision = null) {
     this.dismissContentLossWarning()
+    if (this._saveConflict && this._saveConflict.path !== path) this._saveConflict = null
     this.currentFile = path
     this._lastSavedContent = content
     this._baseRevision = typeof revision === "string" && revision ? revision : null
@@ -193,6 +202,7 @@ export default class extends Controller {
 
   clearFile() {
     this.clearPendingTimers()
+    this._saveConflict = null
     if (this.currentFile) this.clearDraftWriteTimeout(this.currentFile)
     this.currentFile = null
     this._lastSavedContent = null
@@ -236,6 +246,12 @@ export default class extends Controller {
     }
     if (remappedPath === currentPath) return false
 
+    if (this._saveConflict && this._saveConflict.path === currentPath) {
+      this._saveConflict = { ...this._saveConflict, path: remappedPath }
+    }
+    if (this._pendingRecovery && this._pendingRecovery.path === currentPath) {
+      this._pendingRecovery = { ...this._pendingRecovery, path: remappedPath }
+    }
     this.currentFile = remappedPath
     this._fileVersion += 1
     if (this._baseRevision) this._knownBaseRevisions.set(remappedPath, this._baseRevision)
@@ -395,6 +411,8 @@ export default class extends Controller {
   deleteFile(path, type = "file") {
     const cleanup = draftStorage.removeDrafts(path, type)
     const deletesActiveFile = this.pathMatches(this.currentFile, path, type)
+    if (this._saveConflict && this.pathMatches(this._saveConflict.path, path, type)) this._saveConflict = null
+    if (this._pendingRecovery && this.pathMatches(this._pendingRecovery.path, path, type)) this._pendingRecovery = null
 
     if (deletesActiveFile) {
       this.clearPendingTimers()
@@ -634,6 +652,10 @@ export default class extends Controller {
     const recovery = this.getRecoveryDiffController()
     if (!recovery) return false
 
+    // Never mutate an already-open dialog: showModal() throws when open, and
+    // the visible content would belong to a different note.
+    if (recovery.hasDialogTarget && recovery.dialogTarget.open) recovery.dialogTarget.close()
+
     if (path === this.currentFile) {
       this.clearDraftWriteTimeout(path)
       this.clearPendingTimers()
@@ -675,27 +697,38 @@ export default class extends Controller {
 
   // Resolve a save conflict after the diff dialog closes. "server" keeps the
   // on-disk version (and reloads the editor); anything else keeps the local
-  // text and re-saves rebased on the server revision.
+  // text and re-saves rebased on the server revision. The editor is only
+  // touched when the conflicting note is still the open one, and newer text
+  // is never replaced by the conflict snapshot.
   resolveSaveConflict(conflict, { keepServer }) {
     const { path, revision, serverContent, content, draftRevision } = conflict
-    const cm = this.getCodemirrorController()
+    const isCurrent = path === this.currentFile
+    const cm = isCurrent ? this.getCodemirrorController() : null
+    const editorValue = cm ? cm.getValue() : null
+    const keepLocalContent = typeof editorValue === "string" && editorValue !== this._lastSavedContent
+      ? editorValue
+      : content
 
     if (this.hasPendingRecovery(path)) this._pendingRecovery = null
 
     if (keepServer) {
       if (cm) cm.setValue(serverContent)
-      this._lastSavedContent = serverContent
-      this._baseRevision = revision || null
       if (revision) this._knownBaseRevisions.set(path, revision)
       if (draftRevision) this.removeDraftIfRevision(path, draftRevision)
-      this.hasUnsavedChanges = false
-      this.showSaveStatus("")
+      if (isCurrent) {
+        this._lastSavedContent = serverContent
+        this._baseRevision = revision || null
+        this.hasUnsavedChanges = false
+        this.showSaveStatus("")
+      }
       return
     }
 
     if (revision) this._knownBaseRevisions.set(path, revision)
+    if (!isCurrent) return
+
     this._baseRevision = revision || null
-    if (cm && cm.getValue() !== content) cm.setValue(content)
+    if (cm && cm.getValue() !== keepLocalContent) cm.setValue(keepLocalContent)
     this.hasUnsavedChanges = true
     this.scheduleAutoSave()
   }
@@ -961,15 +994,28 @@ export default class extends Controller {
 
       if (!response.ok) {
         if (response.statusCode === 409) {
-          const conflict = typeof response.json === "function" ? await response.json() : await response.json
+          const conflict = await readJson(response)
           if (conflict?.code === "revision_conflict") {
             // The file changed on disk (another editor, another machine).
             // Keep the local text in the draft store and let the user choose
             // between the server version and their own (#272).
+            if (this.currentFile !== filePath || this._fileVersion !== fileVersion) {
+              // The user already moved to another note. Its draft was flushed
+              // before the request, so leave the newer view alone.
+              if (this.currentFile && this.hasUnsavedChanges) this.scheduleAutoSave()
+              return
+            }
+            // Text typed while the request was in flight is newer than the
+            // snapshot: it must be the local side of the conflict.
+            const latestContent = codemirrorController ? codemirrorController.getValue() : content
+            const localContent = typeof latestContent === "string" ? latestContent : content
+            const localDraft = localContent === content
+              ? savedDraftRevision
+              : (this.flushDraftWrite(filePath, localContent, baseRevision).draft?.draftRevision || savedDraftRevision)
             this.handleSaveConflict({
               path: filePath,
-              content,
-              draftRevision: savedDraftRevision,
+              content: localContent,
+              draftRevision: localDraft,
               revision: conflict.revision,
               serverContent: conflict.content
             })
@@ -979,7 +1025,7 @@ export default class extends Controller {
         throw new Error(window.t("errors.failed_to_save"))
       }
 
-      const responseData = typeof response.json === "function" ? await response.json() : await response.json
+      const responseData = await readJson(response)
       const newRevision = typeof responseData?.revision === "string" ? responseData.revision : null
       if (newRevision) this._knownBaseRevisions.set(filePath, newRevision)
 
@@ -1158,8 +1204,10 @@ export default class extends Controller {
     const path = this.currentFile
 
     // A save rejected by the server (file changed on disk) resolves through
-    // the same dialog, with its own keep-server / keep-mine contract.
-    if (this._saveConflict && this._saveConflict.path === path) {
+    // the same dialog, with its own keep-server / keep-mine contract. Route by
+    // the dialog's own path: the user may have switched notes while it was
+    // open, and that must never resolve against the wrong file.
+    if (this._saveConflict && this._saveConflict.path === event.detail.path) {
       const saveConflict = this._saveConflict
       this._saveConflict = null
       this.resolveSaveConflict(saveConflict, { keepServer: source === "server" })

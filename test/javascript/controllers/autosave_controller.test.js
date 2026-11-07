@@ -266,7 +266,7 @@ describe("AutosaveController — Content Loss Detection", () => {
       global.fetch.mockResolvedValue(conflictResponse("revision-server", "external edit"))
       await controller.saveNow()
 
-      controller.onRecoveryResolved({ detail: { source: "server" } })
+      controller.onRecoveryResolved({ detail: { source: "server", path: "test.md" } })
 
       expect(mockCodemirrorController.setValue).toHaveBeenCalledWith("external edit")
       expect(controller._lastSavedContent).toBe("external edit")
@@ -276,6 +276,69 @@ describe("AutosaveController — Content Loss Detection", () => {
       expect(controller.hasPendingRecovery("test.md")).toBe(false)
     })
 
+    it("does not lose text typed while the save was in flight", async () => {
+      controller.setFile("test.md", "saved content", "revision-loaded")
+      mockCodemirrorValue = "first local edit"
+      let resolveFetch
+      global.fetch = vi.fn().mockImplementation(() => new Promise((resolve) => { resolveFetch = resolve }))
+
+      const saving = controller.saveNow()
+      await Promise.resolve()
+      mockCodemirrorValue = "typed while saving"
+      resolveFetch({
+        ok: false,
+        status: 409,
+        json: () => Promise.resolve({ code: "revision_conflict", revision: "rev2", content: "server text" })
+      })
+      await saving
+
+      expect(controller._saveConflict.content).toBe("typed while saving")
+      const setValueCalls = mockCodemirrorController.setValue.mock.calls
+      expect(setValueCalls.some(([value]) => value === "first local edit")).toBe(false)
+    })
+
+    it("ignores a conflict that arrives after the user switched notes", async () => {
+      controller.setFile("first.md", "saved content", "revision-a")
+      mockCodemirrorValue = "local edit"
+      let resolveFetch
+      global.fetch = vi.fn().mockImplementation(() => new Promise((resolve) => { resolveFetch = resolve }))
+
+      const saving = controller.saveNow()
+      await Promise.resolve()
+      controller.setFile("second.md", "other note", "revision-b")
+      mockCodemirrorValue = "other note"
+      resolveFetch({
+        ok: false,
+        status: 409,
+        json: () => Promise.resolve({ code: "revision_conflict", revision: "rev2", content: "server text" })
+      })
+      await saving
+
+      expect(controller._saveConflict).toBeNull()
+      expect(controller.hasPendingRecovery("first.md")).toBe(false)
+      expect(container.querySelector("dialog").hasAttribute("open")).toBe(false)
+      expect(draftStorage.readDraft("first.md").draft.content).toBe("local edit")
+    })
+
+    it("does not touch the editor when resolving a conflict for another note", async () => {
+      controller.setFile("open.md", "open content", "revision-open")
+      mockCodemirrorValue = "open content"
+      controller._saveConflict = {
+        path: "first.md",
+        revision: "rev-server",
+        serverContent: "server text",
+        content: "local text",
+        draftRevision: null
+      }
+
+      controller.onRecoveryResolved({ detail: { source: "server", path: "first.md" } })
+
+      expect(mockCodemirrorController.setValue).not.toHaveBeenCalled()
+      expect(controller._knownBaseRevisions.get("first.md")).toBe("rev-server")
+      expect(controller.currentFile).toBe("open.md")
+      expect(controller._saveConflict).toBeNull()
+    })
+
     it("re-saves the local version rebased on the server revision", async () => {
       controller.setFile("test.md", "saved content", "revision-loaded")
       mockCodemirrorValue = "local edit"
@@ -283,7 +346,7 @@ describe("AutosaveController — Content Loss Detection", () => {
       await controller.saveNow()
       const scheduleSpy = vi.spyOn(controller, "scheduleAutoSave").mockImplementation(() => {})
 
-      controller.onRecoveryResolved({ detail: { source: "conflict" } })
+      controller.onRecoveryResolved({ detail: { source: "conflict", path: "test.md" } })
 
       expect(controller._knownBaseRevisions.get("test.md")).toBe("revision-server")
       expect(controller.hasUnsavedChanges).toBe(true)

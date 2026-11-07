@@ -50,6 +50,7 @@
 - **Content loss protection**: If you accidentally delete a large portion of your note (more than 20% and 50+ characters), a warning banner appears with "Undo" and "Save Anyway" buttons, giving you a chance to recover before the deletion is saved.
 - **Offline backup**: While you're editing, FrankMD periodically saves your work to the browser's local storage as a safety net.
 - **Recovery dialog**: If the app detects that a local backup differs from the saved version (e.g., after a crash or lost connection), it shows a side-by-side diff so you can choose to keep the server version or restore the backup.
+- **External edit protection**: Every save carries the revision the note was loaded with. If the file changed on disk in the meantime (another editor, another machine, a sync client), FrankMD shows the same diff instead of silently overwriting it: keep the server version, or keep yours and save it on top of the new revision. The check is best-effort against writers that do not use FrankMD's lock, such as sync tools that write mid-save.
 
 ### Organization
 - Nested folder structure with context menu (right-click to create new notes or folders)

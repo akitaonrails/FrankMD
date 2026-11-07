@@ -23,6 +23,10 @@ class AiService
 
   CHEAPER_INFERENCE_API_BASE = "https://api.cheaperinference.com/v1"
 
+  # RubyLLM's configuration is process-global; guard it so concurrent requests
+  # cannot mix one provider's API key with another provider's base URL.
+  CLIENT_LOCK = Mutex.new
+
   class << self
     def enabled?
       config_instance.feature_available?("ai")
@@ -51,15 +55,22 @@ class AiService
 
       Rails.logger.info "AI request: provider=#{provider}"
 
-      configure_client
-      chat = if provider == "cheaperinference"
-        # Cheaper Inference is OpenAI-compatible: use RubyLLM's OpenAI provider with its API base
-        RubyLLM.chat(model: model, provider: :openai, protocol: :chat_completions, assume_model_exists: true)
-      else
-        RubyLLM.chat(model: model, provider: provider.to_sym, assume_model_exists: provider == "ollama")
+      # RubyLLM keeps its configuration in one process-global object that a
+      # chat reads at request time. Puma serves requests on threads, so two
+      # overlapping AI calls could otherwise pair one provider's key with the
+      # other's endpoint (e.g. an OpenAI key sent to the gateway). Serialize
+      # configure + chat so keys and base URLs always belong together.
+      response = CLIENT_LOCK.synchronize do
+        configure_client
+        chat = if provider == "cheaperinference"
+          # Cheaper Inference is OpenAI-compatible: use RubyLLM's OpenAI provider with its API base
+          RubyLLM.chat(model: model, provider: :openai, protocol: :chat_completions, assume_model_exists: true)
+        else
+          RubyLLM.chat(model: model, provider: provider.to_sym, assume_model_exists: provider == "ollama")
+        end
+        chat.with_instructions(GRAMMAR_PROMPT)
+        chat.ask(text)
       end
-      chat.with_instructions(GRAMMAR_PROMPT)
-      response = chat.ask(text)
 
       { corrected: response.content, provider: provider, model: model }
     rescue StandardError => e

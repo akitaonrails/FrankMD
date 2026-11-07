@@ -192,6 +192,14 @@ class NoteTest < ActiveSupport::TestCase
     assert_equal "second edit", File.read(@test_notes_dir.join("edited.md"))
   end
 
+  test "note.save refuses a revision check on non-update writes" do
+    note = Note.new(path: "new.md", content: "content")
+
+    assert_raises(ArgumentError) do
+      note.save(create_only: true, expected_revision: Digest::SHA256.hexdigest("x"))
+    end
+  end
+
   # === note.rename ===
 
   test "note.rename moves file" do

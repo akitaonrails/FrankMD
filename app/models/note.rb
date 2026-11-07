@@ -77,6 +77,9 @@ class Note
   end
 
   def save(existing_only: false, create_only: false, expected_revision: nil)
+    if expected_revision.present? && !existing_only
+      raise ArgumentError, "expected_revision only applies to existing_only saves"
+    end
     return false unless valid?
     if existing_only
       service.update(normalized_path, content || "", expected_revision: expected_revision)
@@ -90,7 +93,7 @@ class Note
     errors.add(
       :base,
       :revision_conflict,
-      message: I18n.t("errors.note_changed_since_loaded")
+      message: I18n.t("errors.note_save_conflict")
     )
     false
   rescue NotesService::AlreadyExistsError

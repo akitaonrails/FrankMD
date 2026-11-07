@@ -67,7 +67,7 @@ class AiServiceTest < ActiveSupport::TestCase
   end
 
   # Provider priority tests (auto mode)
-  # Priority: openai > anthropic > openrouter > ollama > gemini
+  # Priority: openai > anthropic > openrouter > cheaperinference > ollama > gemini
   # Gemini is lowest because its key is primarily for image generation (Imagen)
   test "current_provider returns openai when multiple providers available" do
     ENV["OLLAMA_API_BASE"] = "http://localhost:11434"
