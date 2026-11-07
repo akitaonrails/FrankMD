@@ -76,16 +76,23 @@ class Note
     Digest::SHA256.hexdigest(content.to_s)
   end
 
-  def save(existing_only: false, create_only: false)
+  def save(existing_only: false, create_only: false, expected_revision: nil)
     return false unless valid?
     if existing_only
-      service.update(normalized_path, content || "")
+      service.update(normalized_path, content || "", expected_revision: expected_revision)
     elsif create_only
       service.create(normalized_path, content || "")
     else
       service.write(normalized_path, content || "")
     end
     true
+  rescue NotesService::RevisionConflictError
+    errors.add(
+      :base,
+      :revision_conflict,
+      message: I18n.t("errors.note_changed_since_loaded")
+    )
+    false
   rescue NotesService::AlreadyExistsError
     errors.add(:base, I18n.t("errors.note_already_exists"))
     false

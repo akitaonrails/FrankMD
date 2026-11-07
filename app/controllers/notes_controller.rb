@@ -98,8 +98,18 @@ class NotesController < ApplicationController
   def update
     @note.content = params[:content] || ""
 
-    if @note.save(existing_only: true)
+    if @note.save(existing_only: true, expected_revision: params[:expected_revision])
       render json: { path: @note.path, message: t("success.note_saved"), revision: @note.revision }
+    elsif @note.revision_conflict?
+      # Return the on-disk state so the client can show a diff instead of
+      # silently overwriting an external edit (#272).
+      current = current_disk_note(@note.path)
+      render json: {
+        error: @note.errors.full_messages.join(", "),
+        code: "revision_conflict",
+        revision: current&.revision,
+        content: current&.content
+      }, status: :conflict
     else
       status = @note.errors[:base].include?(t("errors.note_not_found")) ? :not_found : :unprocessable_entity
       render json: { error: @note.errors.full_messages.join(", ") }, status: status
@@ -160,6 +170,13 @@ class NotesController < ApplicationController
   end
 
   private
+
+  # Fresh read of the note as it exists on disk, nil when it was removed.
+  def current_disk_note(path)
+    Note.find(path)
+  rescue NotesService::NotFoundError
+    nil
+  end
 
   def serve_asset(path)
     notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))

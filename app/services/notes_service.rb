@@ -54,10 +54,17 @@ class NotesService
 
   # Update an existing note without creating missing parent directories. This
   # keeps stale autosave requests from recreating a moved or deleted note.
-  def update(path, content)
+  def update(path, content, expected_revision: nil)
     with_filesystem_lock do
       full_path = safe_path(path)
       raise NotFoundError, "Note not found: #{path}" unless full_path.file?
+
+      # Keep the revision check and the write in one lock scope so a
+      # cooperating FrankMD writer cannot slip between them. Without an
+      # expected revision the write stays last-write-wins (legacy callers).
+      if expected_revision.present? && Digest::SHA256.file(full_path.to_s).hexdigest != expected_revision.to_s
+        raise RevisionConflictError, "Note has changed: #{path}"
+      end
 
       atomic_write(full_path, content)
     end

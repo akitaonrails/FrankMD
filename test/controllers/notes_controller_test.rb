@@ -444,6 +444,34 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     refute @test_notes_dir.join("missing.md").exist?
   end
 
+  test "update refuses to overwrite an external edit and returns the server content" do
+    create_test_note("test.md", "Original")
+    stale_revision = Digest::SHA256.hexdigest("Original")
+    File.write(@test_notes_dir.join("test.md"), "Edited outside FrankMD")
+
+    patch update_note_url(path: "test.md"),
+      params: { content: "Local edit", expected_revision: stale_revision }, as: :json
+
+    assert_response :conflict
+    body = JSON.parse(response.body)
+    assert_equal "revision_conflict", body["code"]
+    assert_equal "Edited outside FrankMD", body["content"]
+    assert_equal Digest::SHA256.hexdigest("Edited outside FrankMD"), body["revision"]
+    assert_equal "Edited outside FrankMD", File.read(@test_notes_dir.join("test.md"))
+  end
+
+  test "update saves when the expected revision matches" do
+    create_test_note("test.md", "Original")
+    revision = Digest::SHA256.hexdigest("Original")
+
+    patch update_note_url(path: "test.md"),
+      params: { content: "Local edit", expected_revision: revision }, as: :json
+
+    assert_response :success
+    assert_equal "Local edit", File.read(@test_notes_dir.join("test.md"))
+    assert_equal Digest::SHA256.hexdigest("Local edit"), JSON.parse(response.body)["revision"]
+  end
+
   test "stale update cannot recreate a note after rename" do
     create_test_note("foo.md", "Original content")
 

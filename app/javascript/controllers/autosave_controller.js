@@ -51,6 +51,7 @@ export default class extends Controller {
     document.addEventListener("visibilitychange", this._visibilityChangeHandler)
     window.addEventListener("pagehide", this._pageHideHandler)
     this._pendingRecovery = null
+    this._saveConflict = null
   }
 
   disconnect() {
@@ -652,6 +653,53 @@ export default class extends Controller {
     return true
   }
 
+  // A save was rejected because the file changed on disk. Keep the local text
+  // in the draft store (already flushed by saveNow) and show the diff: the user
+  // decides between the server version and their own (#272).
+  handleSaveConflict({ path, content, draftRevision = null, revision = null, serverContent = "" }) {
+    const serverText = typeof serverContent === "string" ? serverContent : ""
+    this._saveConflict = { path, revision, serverContent: serverText, content, draftRevision }
+    this.hasUnsavedChanges = true
+
+    const opened = this.openRecovery({
+      path,
+      serverContent: serverText,
+      content,
+      timestamp: Date.now(),
+      source: "conflict",
+      draftRevision
+    })
+    if (!opened) this.showSaveStatus(window.t("errors.failed_to_save"))
+    return opened
+  }
+
+  // Resolve a save conflict after the diff dialog closes. "server" keeps the
+  // on-disk version (and reloads the editor); anything else keeps the local
+  // text and re-saves rebased on the server revision.
+  resolveSaveConflict(conflict, { keepServer }) {
+    const { path, revision, serverContent, content, draftRevision } = conflict
+    const cm = this.getCodemirrorController()
+
+    if (this.hasPendingRecovery(path)) this._pendingRecovery = null
+
+    if (keepServer) {
+      if (cm) cm.setValue(serverContent)
+      this._lastSavedContent = serverContent
+      this._baseRevision = revision || null
+      if (revision) this._knownBaseRevisions.set(path, revision)
+      if (draftRevision) this.removeDraftIfRevision(path, draftRevision)
+      this.hasUnsavedChanges = false
+      this.showSaveStatus("")
+      return
+    }
+
+    if (revision) this._knownBaseRevisions.set(path, revision)
+    this._baseRevision = revision || null
+    if (cm && cm.getValue() !== content) cm.setValue(content)
+    this.hasUnsavedChanges = true
+    this.scheduleAutoSave()
+  }
+
   recoverDraft(serverContent, serverRevision) {
     const path = this.currentFile
     if (!path) return serverContent
@@ -905,12 +953,29 @@ export default class extends Controller {
     const saveCompletion = new Promise((resolve) => { resolveSaveCompletion = resolve })
     this._saveCompletion = saveCompletion
     try {
+      const expectedRevision = this._knownBaseRevisions.get(filePath) || null
       const response = await patch(`/notes/${encodePath(filePath)}`, {
-        body: { content },
+        body: { content, expected_revision: expectedRevision },
         responseKind: "json"
       })
 
       if (!response.ok) {
+        if (response.statusCode === 409) {
+          const conflict = typeof response.json === "function" ? await response.json() : await response.json
+          if (conflict?.code === "revision_conflict") {
+            // The file changed on disk (another editor, another machine).
+            // Keep the local text in the draft store and let the user choose
+            // between the server version and their own (#272).
+            this.handleSaveConflict({
+              path: filePath,
+              content,
+              draftRevision: savedDraftRevision,
+              revision: conflict.revision,
+              serverContent: conflict.content
+            })
+            return
+          }
+        }
         throw new Error(window.t("errors.failed_to_save"))
       }
 
@@ -1091,6 +1156,16 @@ export default class extends Controller {
   onRecoveryResolved(event) {
     const { source, content, draftRevision, backupContent, backupTimestamp, conflictId } = event.detail
     const path = this.currentFile
+
+    // A save rejected by the server (file changed on disk) resolves through
+    // the same dialog, with its own keep-server / keep-mine contract.
+    if (this._saveConflict && this._saveConflict.path === path) {
+      const saveConflict = this._saveConflict
+      this._saveConflict = null
+      this.resolveSaveConflict(saveConflict, { keepServer: source === "server" })
+      return
+    }
+
     const removeSelectedBackup = () => {
       if (typeof backupContent !== "string" || !Number.isFinite(backupTimestamp) || !path) return
       const result = draftStorage.removeBackupIfSnapshot(path, backupContent, backupTimestamp)

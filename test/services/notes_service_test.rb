@@ -302,6 +302,29 @@ class NotesServiceTest < ActiveSupport::TestCase
     refute @test_notes_dir.join("missing").exist?
   end
 
+  test "update refuses to overwrite a note changed since the expected revision" do
+    create_test_note("note.md", "Original")
+    stale_revision = Digest::SHA256.hexdigest("Original")
+    File.write(@test_notes_dir.join("note.md"), "Changed elsewhere")
+
+    assert_raises(NotesService::RevisionConflictError) do
+      @service.update("note.md", "Local edit", expected_revision: stale_revision)
+    end
+    assert_equal "Changed elsewhere", File.read(@test_notes_dir.join("note.md"))
+  end
+
+  test "update writes when the expected revision matches and when none is given" do
+    create_test_note("note.md", "Original")
+    current_revision = Digest::SHA256.hexdigest("Original")
+
+    @service.update("note.md", "With revision", expected_revision: current_revision)
+    assert_equal "With revision", File.read(@test_notes_dir.join("note.md"))
+
+    # Legacy callers that send no revision keep last-write-wins behavior.
+    @service.update("note.md", "Without revision")
+    assert_equal "Without revision", File.read(@test_notes_dir.join("note.md"))
+  end
+
   test "write creates parent directories" do
     @service.write("deep/nested/note.md", "Content")
 

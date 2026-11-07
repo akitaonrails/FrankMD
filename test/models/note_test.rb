@@ -168,6 +168,30 @@ class NoteTest < ActiveSupport::TestCase
     assert note.errors[:base].any?
   end
 
+  test "note.save reports a revision conflict and preserves the external edit" do
+    create_test_note("edited.md", "external edit")
+    note = Note.new(path: "edited.md", content: "local edit")
+
+    refute note.save(existing_only: true, expected_revision: Digest::SHA256.hexdigest("original"))
+
+    assert note.revision_conflict?
+    assert_equal "external edit", File.read(@test_notes_dir.join("edited.md"))
+  end
+
+  test "note.save writes when the expected revision matches or is omitted" do
+    content = "original"
+    create_test_note("edited.md", content)
+    revision = Digest::SHA256.hexdigest(content)
+
+    note = Note.new(path: "edited.md", content: "first edit")
+    assert note.save(existing_only: true, expected_revision: revision)
+    assert_equal "first edit", File.read(@test_notes_dir.join("edited.md"))
+
+    legacy = Note.new(path: "edited.md", content: "second edit")
+    assert legacy.save(existing_only: true)
+    assert_equal "second edit", File.read(@test_notes_dir.join("edited.md"))
+  end
+
   # === note.rename ===
 
   test "note.rename moves file" do

@@ -758,7 +758,7 @@ he:
     failed_to_copy_content: "לא ניתן להעתיק את תוכן המסמך."
     title_required: "נדרשת כותרת"
     note_not_found: "ההערה לא נמצאה"
-    note_changed_since_loaded: "הפתק השתנה מאז שנטען. יש לטעון אותו מחדש לפני המחיקה."
+    note_changed_since_loaded: "הפתק השתנה מאז שנטען. יש לטעון אותו מחדש ולהחיל את השינויים שוב."
     note_already_exists: "ההערה כבר קיימת"
     note_is_empty: "ההערה ריקה"
     folder_not_found: "התיקייה לא נמצאה"

@@ -209,6 +209,90 @@ describe("AutosaveController — Content Loss Detection", () => {
     })
   })
 
+  describe("saveNow() — revision conflicts (#272)", () => {
+    const conflictResponse = (revision, content) => ({
+      ok: false,
+      status: 409,
+      json: () => Promise.resolve({ code: "revision_conflict", revision, content }),
+      text: () => Promise.resolve(JSON.stringify({ code: "revision_conflict", revision, content }))
+    })
+
+    it("sends the loaded revision as expected_revision", async () => {
+      controller.setFile("test.md", "saved content", "revision-loaded")
+      mockCodemirrorValue = "local edit"
+
+      await controller.saveNow()
+
+      expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({
+        content: "local edit",
+        expected_revision: "revision-loaded"
+      })
+    })
+
+    it("keeps the local draft and opens the diff when the server rejects the save", async () => {
+      controller.setFile("test.md", "saved content", "revision-loaded")
+      mockCodemirrorValue = "local edit"
+      global.fetch.mockResolvedValue(conflictResponse("revision-server", "external edit"))
+
+      await controller.saveNow()
+
+      expect(controller._saveConflict).toMatchObject({
+        path: "test.md",
+        revision: "revision-server",
+        serverContent: "external edit",
+        content: "local edit"
+      })
+      expect(controller.hasPendingRecovery("test.md")).toBe(true)
+      expect(controller.hasUnsavedChanges).toBe(true)
+      expect(container.querySelector("dialog").hasAttribute("open")).toBe(true)
+      expect(draftStorage.readDraft("test.md").draft.content).toBe("local edit")
+    })
+
+    it("does not retry while the conflict is unresolved", async () => {
+      controller.setFile("test.md", "saved content", "revision-loaded")
+      mockCodemirrorValue = "local edit"
+      global.fetch.mockResolvedValue(conflictResponse("revision-server", "external edit"))
+      await controller.saveNow()
+      const callsAfterConflict = global.fetch.mock.calls.length
+
+      await controller.saveNow()
+
+      expect(global.fetch.mock.calls.length).toBe(callsAfterConflict)
+    })
+
+    it("keeps the server version when the user accepts it", async () => {
+      controller.setFile("test.md", "saved content", "revision-loaded")
+      mockCodemirrorValue = "local edit"
+      global.fetch.mockResolvedValue(conflictResponse("revision-server", "external edit"))
+      await controller.saveNow()
+
+      controller.onRecoveryResolved({ detail: { source: "server" } })
+
+      expect(mockCodemirrorController.setValue).toHaveBeenCalledWith("external edit")
+      expect(controller._lastSavedContent).toBe("external edit")
+      expect(controller._knownBaseRevisions.get("test.md")).toBe("revision-server")
+      expect(controller.hasUnsavedChanges).toBe(false)
+      expect(controller._saveConflict).toBeNull()
+      expect(controller.hasPendingRecovery("test.md")).toBe(false)
+    })
+
+    it("re-saves the local version rebased on the server revision", async () => {
+      controller.setFile("test.md", "saved content", "revision-loaded")
+      mockCodemirrorValue = "local edit"
+      global.fetch.mockResolvedValue(conflictResponse("revision-server", "external edit"))
+      await controller.saveNow()
+      const scheduleSpy = vi.spyOn(controller, "scheduleAutoSave").mockImplementation(() => {})
+
+      controller.onRecoveryResolved({ detail: { source: "conflict" } })
+
+      expect(controller._knownBaseRevisions.get("test.md")).toBe("revision-server")
+      expect(controller.hasUnsavedChanges).toBe(true)
+      expect(scheduleSpy).toHaveBeenCalled()
+      expect(controller._saveConflict).toBeNull()
+      expect(controller.hasPendingRecovery("test.md")).toBe(false)
+    })
+  })
+
   describe("scheduleAutoSave()", () => {
     it("blocked while warning is active", () => {
       controller.setFile("test.md", "saved", "revision-test")
@@ -1374,7 +1458,7 @@ describe("AutosaveController — Content Loss Detection", () => {
       expect(global.fetch).toHaveBeenCalledTimes(1)
       expect(global.fetch.mock.calls[0][0]).toContain("/notes/bar.md")
       expect(global.fetch.mock.calls[0][0]).not.toContain("/notes/foo.md")
-      expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({ content: "edited content" })
+      expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({ content: "edited content", expected_revision: "revision-foo" })
       expect(controller.hasUnsavedChanges).toBe(false)
     })
 
