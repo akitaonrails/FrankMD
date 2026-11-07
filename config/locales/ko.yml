@@ -638,6 +638,8 @@ ko:
       gemini_description: "Gemini 모델 사용:"
       openai_title: "OpenAI"
       openai_description: "GPT 모델 사용:"
+      cheaperinference_title: "Cheaper Inference"
+      cheaperinference_description: "OpenAI 호환 게이트웨이:"
       provider_selection: "제공자 선택"
       provider_override: "자동 감지 재정의:"
       get_key_from: "키 가져오기:"

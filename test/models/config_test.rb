@@ -52,6 +52,7 @@ class ConfigTest < ActiveSupport::TestCase
       OPENAI_API_KEY OPENROUTER_API_KEY ANTHROPIC_API_KEY
       GEMINI_API_KEY OLLAMA_API_BASE AI_PROVIDER AI_MODEL
       OPENAI_MODEL OPENROUTER_MODEL ANTHROPIC_MODEL GEMINI_MODEL OLLAMA_MODEL
+      CHEAPERINFERENCE_API_KEY CHEAPERINFERENCE_MODEL
     ]
   end
 
@@ -650,6 +651,16 @@ class ConfigTest < ActiveSupport::TestCase
     assert_includes providers, "anthropic"
     assert_not_includes providers, "ollama"
     assert_not_includes providers, "gemini"
+  end
+
+  test "ai_providers_available includes cheaperinference when its key is set" do
+    ENV["CHEAPERINFERENCE_API_KEY"] = "ci_live_test"
+
+    config = Config.new(base_path: @test_dir)
+
+    assert_equal [ "cheaperinference" ], config.ai_providers_available
+    assert_equal "cheaperinference", config.effective_ai_provider
+    assert_equal "gpt-5.4-mini", config.effective_ai_model
   end
 
   test "effective_ai_provider follows priority order" do

@@ -88,6 +88,17 @@ gemini_model = gemini-2.0-flash</pre>
 openai_model = gpt-4o-mini</pre>
                 </div>
 
+                <!-- Cheaper Inference -->
+                <div class="bg-[var(--theme-bg-primary)] p-4 rounded border border-[var(--theme-border)]">
+                  <h4 class="font-semibold mb-2"><%= t('dialogs.ai_diff.cheaperinference_title') %></h4>
+                  <p class="text-[var(--theme-text-muted)] text-xs mb-2"><%= t('dialogs.ai_diff.cheaperinference_description') %></p>
+                  <ol class="list-decimal list-inside space-y-1 text-[var(--theme-text-muted)] text-xs">
+                    <li><%= t('dialogs.ai_diff.get_key_from') %> <a href="https://cheaperinference.com" target="_blank" class="text-[var(--theme-accent)] hover:underline">cheaperinference.com</a></li>
+                  </ol>
+                  <pre class="mt-2 bg-[var(--theme-code-bg)] p-2 rounded text-xs overflow-x-auto">cheaperinference_api_key = ci_live_...
+cheaperinference_model = gpt-5.4-mini</pre>
+                </div>
+
                 <!-- Provider Selection -->
                 <div class="bg-[var(--theme-bg-primary)] p-4 rounded border border-[var(--theme-border)]">
                   <h4 class="font-semibold mb-2"><%= t('dialogs.ai_diff.provider_selection') %></h4>

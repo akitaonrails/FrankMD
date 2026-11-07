@@ -21,6 +21,8 @@ class AiService
     Return ONLY the corrected text with no explanations or commentary.
   PROMPT
 
+  CHEAPER_INFERENCE_API_BASE = "https://api.cheaperinference.com/v1"
+
   class << self
     def enabled?
       config_instance.feature_available?("ai")
@@ -50,7 +52,12 @@ class AiService
       Rails.logger.info "AI request: provider=#{provider}"
 
       configure_client
-      chat = RubyLLM.chat(model: model, provider: provider.to_sym, assume_model_exists: provider == "ollama")
+      chat = if provider == "cheaperinference"
+        # Cheaper Inference is OpenAI-compatible: use RubyLLM's OpenAI provider with its API base
+        RubyLLM.chat(model: model, provider: :openai, protocol: :chat_completions, assume_model_exists: true)
+      else
+        RubyLLM.chat(model: model, provider: provider.to_sym, assume_model_exists: provider == "ollama")
+      end
       chat.with_instructions(GRAMMAR_PROMPT)
       response = chat.ask(text)
 
@@ -161,6 +168,7 @@ class AiService
       RubyLLM.configure do |config|
         # Clear all keys first
         config.openai_api_key = nil
+        config.openai_api_base = nil
         config.openrouter_api_key = nil
         config.anthropic_api_key = nil
         config.gemini_api_key = nil
@@ -179,6 +187,7 @@ class AiService
         # Clear ALL provider keys first to avoid cross-contamination
         # RubyLLM.configure is additive, so previous keys may persist
         config.openai_api_key = nil
+        config.openai_api_base = nil
         config.openrouter_api_key = nil
         config.anthropic_api_key = nil
         config.gemini_api_key = nil
@@ -203,6 +212,9 @@ class AiService
           config.gemini_api_key = cfg.get_ai("gemini_api_key")
         when "openai"
           config.openai_api_key = cfg.get_ai("openai_api_key")
+        when "cheaperinference"
+          config.openai_api_key = cfg.get_ai("cheaperinference_api_key")
+          config.openai_api_base = CHEAPER_INFERENCE_API_BASE
         end
       end
     end
