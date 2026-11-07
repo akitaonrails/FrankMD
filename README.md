@@ -528,10 +528,10 @@ FrankMD has an AI grammar and spelling checker. Click the "AI" button in the edi
 **Supported Providers** (priority order in auto mode):
 1. **OpenAI** - GPT models
 2. **Anthropic** - Claude models
-3. **Google Gemini** - Gemini models
-4. **OpenRouter** - Multiple providers, pay-per-use
-5. **Cheaper Inference** - OpenAI-compatible gateway
-6. **Ollama** - Local, free, private
+3. **OpenRouter** - Multiple providers, pay-per-use
+4. **Cheaper Inference** - OpenAI-compatible gateway
+5. **Ollama** - Local, free, private
+6. **Google Gemini** - Gemini models (last for text; its key mainly covers image generation)
 
 When multiple providers are configured, FrankMD uses the first available one in the priority order above. You can override this with `ai_provider = <provider>`.
 
@@ -616,7 +616,7 @@ cheaperinference_model = gpt-5.4-mini
 
 #### Provider Selection
 
-By default, FrankMD uses the first configured provider in priority order (OpenAI -> Anthropic -> Gemini -> OpenRouter -> Cheaper Inference -> Ollama). To force a specific provider:
+By default, FrankMD uses the first configured provider in priority order (OpenAI -> Anthropic -> OpenRouter -> Cheaper Inference -> Ollama -> Gemini). To force a specific provider:
 
 ```ini
 ai_provider = anthropic

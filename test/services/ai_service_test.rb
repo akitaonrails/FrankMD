@@ -377,6 +377,24 @@ class AiServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "fix_grammar clears the Cheaper Inference API base for other providers" do
+    ENV["OPENAI_API_KEY"] = "sk-openai-test"
+    RubyLLM.configure { |config| config.openai_api_base = "https://api.cheaperinference.com/v1" }
+
+    mock_response = stub(content: "Fixed by OpenAI")
+    mock_chat = stub
+    mock_chat.stubs(:with_instructions).returns(mock_chat)
+    mock_chat.stubs(:ask).returns(mock_response)
+    RubyLLM.stubs(:chat).returns(mock_chat)
+
+    result = AiService.fix_grammar("Input text")
+
+    assert_equal "openai", result[:provider]
+    assert_nil RubyLLM.config.openai_api_base,
+      "an OpenAI request must not inherit the Cheaper Inference base URL"
+    assert_equal "sk-openai-test", RubyLLM.config.openai_api_key
+  end
+
   # === Image generation response parsing ===
 
   test "extract_image_from_response extracts base64 from a Message with attachments" do
