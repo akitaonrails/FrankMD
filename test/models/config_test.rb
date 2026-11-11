@@ -558,6 +558,18 @@ class ConfigTest < ActiveSupport::TestCase
     assert config2.feature_available?(:google_search)
   end
 
+  test "google_cse_endpoint is unset by default and read from .fed" do
+    config = Config.new(base_path: @test_dir)
+    assert_nil config.get("google_cse_endpoint")
+
+    @test_dir.join(".fed").write(<<~CONFIG)
+      google_cse_endpoint = http://search.example.test/customsearch/v1
+    CONFIG
+
+    config2 = Config.new(base_path: @test_dir)
+    assert_equal "http://search.example.test/customsearch/v1", config2.get("google_cse_endpoint")
+  end
+
   # === Corrupted File Handling ===
 
   test "handles empty config file gracefully" do

@@ -569,6 +569,35 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       assert_equal 42, data["total"]
     end
 
+    test "search_google calls Google when google_cse_endpoint is unset" do
+      stub = stub_request(:get, "https://www.googleapis.com/customsearch/v1")
+        .with(query: hash_including("cx" => "test-cse-id", "q" => "landscape"))
+        .to_return(status: 200, body: { "items" => [] }.to_json, headers: { "Content-Type" => "application/json" })
+
+      get "/images/search_google", params: { q: "landscape" }, as: :json
+      assert_response :success
+      assert_requested stub
+    end
+
+    test "search_google uses google_cse_endpoint when set" do
+      @config_stub.stubs(:get).with("google_cse_endpoint").returns("http://search.example.test/customsearch/v1")
+      stub = stub_request(:get, "http://search.example.test/customsearch/v1")
+        .with(query: hash_including("key" => "test-google-key", "cx" => "test-cse-id", "q" => "landscape", "searchType" => "image"))
+        .to_return(
+          status: 200,
+          body: { "items" => [ { "link" => "https://example.com/a.jpg", "title" => "A", "displayLink" => "example.com" } ] }.to_json,
+          headers: { "Content-Type" => "application/json" }
+        )
+
+      get "/images/search_google", params: { q: "landscape" }, as: :json
+      assert_response :success
+      assert_requested stub
+      assert_not_requested :get, /googleapis\.com/
+
+      data = JSON.parse(response.body)
+      assert_equal "https://example.com/a.jpg", data["images"][0]["url"]
+    end
+
     test "search_google handles API error response" do
       stub_request(:get, /googleapis\.com\/customsearch\/v1/)
         .to_return(
