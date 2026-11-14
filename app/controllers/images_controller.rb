@@ -4,6 +4,8 @@ require "net/http"
 require "json"
 
 class ImagesController < ApplicationController
+  GOOGLE_CSE_ENDPOINT = "https://www.googleapis.com/customsearch/v1"
+
   include MediaStorageRecovery
   before_action :recover_missing_upload_storage, only: [ :upload, :upload_base64, :import, :upload_to_s3, :upload_external_to_s3 ]
   before_action :require_images_enabled, except: [ :status, :upload, :upload_base64, :import, :search_web, :search_google, :search_pinterest ]
@@ -260,7 +262,7 @@ class ImagesController < ApplicationController
 
   def search_google_images(query, start = 0)
     cfg = Config.new
-    uri = URI("https://www.googleapis.com/customsearch/v1")
+    uri = URI(cfg.get("google_cse_endpoint").presence || GOOGLE_CSE_ENDPOINT)
     uri.query = URI.encode_www_form(
       key: cfg.get("google_api_key"),
       cx: cfg.get("google_cse_id"),

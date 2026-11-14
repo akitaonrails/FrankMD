@@ -422,6 +422,7 @@ contain credentials.
 | `youtube_api_key` | string | - | YouTube Data API key |
 | `google_api_key` | string | - | Google API key |
 | `google_cse_id` | string | - | Google Custom Search Engine ID |
+| `google_cse_endpoint` | string | - | Custom Search JSON endpoint; leave unset for Google's own (`https://www.googleapis.com/customsearch/v1`) |
 | `ai_provider` | string | auto | AI provider: auto, ollama, openrouter, anthropic, gemini, openai, cheaperinference |
 | `ai_model` | string | (per provider) | Override model for any provider |
 | `ollama_api_base` | string | - | Ollama API base URL (e.g., http://localhost:11434/v1) |
@@ -511,6 +512,7 @@ To enable Google Images tab (in addition to the free web search):
 |----------|-------------|
 | `GOOGLE_API_KEY` | Your Google API key |
 | `GOOGLE_CSE_ID` | Your Custom Search Engine ID |
+| `GOOGLE_CSE_ENDPOINT` | Optional. Another endpoint that answers in the Custom Search JSON format; unset means Google's own |
 
 **In-app setup:** You can also configure this directly in the `.fed` file:
 ```ini
