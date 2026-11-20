@@ -332,7 +332,7 @@ GEM
       rubocop-rails (>= 2.30)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
-    ruby_llm (2.2.0)
+    ruby_llm (2.2.2)
       base64
       faraday (>= 1.10.0, != 2.0.0)
       faraday-multipart (>= 1)
