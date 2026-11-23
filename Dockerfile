@@ -11,7 +11,7 @@
 # Or use docker-compose with user override (no rebuild needed):
 #   UID=$(id -u) GID=$(id -g) docker compose up -d
 
-ARG RUBY_VERSION=3.4.1
+ARG RUBY_VERSION=3.4.13
 FROM ruby:$RUBY_VERSION-slim AS base
 
 WORKDIR /rails

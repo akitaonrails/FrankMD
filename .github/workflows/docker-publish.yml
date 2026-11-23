@@ -17,7 +17,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
+    runs-on: ubuntu-24.04 # Pinned for reproducible CI; review with Ruby runner changes.
     permissions:
       contents: read
     steps:
