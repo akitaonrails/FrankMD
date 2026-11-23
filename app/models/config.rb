@@ -5,7 +5,7 @@
 class Config
   CONFIG_FILE = ".fed"
   LOCK_FILE = ".frankmd-config.lock"
-  CONFIG_VERSION = 6  # Increment when adding new settings
+  CONFIG_VERSION = 7  # Increment when adding new settings
 
   # All configurable options with their defaults and types
   SCHEMA = {
@@ -53,6 +53,9 @@ class Config
     # Google Custom Search (ENV defaults)
     "google_api_key" => { default: nil, type: :string, env: "GOOGLE_API_KEY" },
     "google_cse_id" => { default: nil, type: :string, env: "GOOGLE_CSE_ID" },
+    # Custom Search JSON endpoint. When unset, image search calls Google's
+    # own (https://www.googleapis.com/customsearch/v1).
+    "google_cse_endpoint" => { default: nil, type: :string, env: "GOOGLE_CSE_ENDPOINT" },
 
     # AI/LLM Settings (ENV defaults)
     "ai_provider" => { default: "auto", type: :string, env: "AI_PROVIDER" },
@@ -232,7 +235,12 @@ class Config
         "# Google Custom Search (for image search)",
         "",
         "# google_api_key = your-google-api-key",
-        "# google_cse_id = your-custom-search-engine-id"
+        "# google_cse_id = your-custom-search-engine-id",
+        "",
+        "# Another endpoint that answers in the Custom Search JSON format",
+        "# (leave unset for Google's own). It receives the Google API key,",
+        "# search engine ID, and search terms; prefer HTTPS outside trusted networks.",
+        "# google_cse_endpoint = https://www.googleapis.com/customsearch/v1"
       ]
     },
     {
