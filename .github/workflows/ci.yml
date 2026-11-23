@@ -7,7 +7,7 @@ on:
 
 jobs:
   scan_ruby:
-    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
+    runs-on: ubuntu-24.04 # Pinned for reproducible CI; review with Ruby runner changes.
     permissions:
       contents: read
 
@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
+        uses: ruby/setup-ruby@be3c7df29b3349ec6bcfc6b4792f1cf9f5237d18 # v1.343.0
         with:
           bundler-cache: true
 
@@ -30,7 +30,7 @@ jobs:
         run: bin/bundler-audit
       
   scan_js:
-    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
+    runs-on: ubuntu-24.04 # Pinned for reproducible CI; review with Ruby runner changes.
     permissions:
       contents: read
 
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
+        uses: ruby/setup-ruby@be3c7df29b3349ec6bcfc6b4792f1cf9f5237d18 # v1.343.0
         with:
           bundler-cache: true
 
@@ -51,7 +51,7 @@ jobs:
 
   test_js:
     needs: scan_js
-    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
+    runs-on: ubuntu-24.04 # Pinned for reproducible CI; review with Ruby runner changes.
     permissions:
       contents: read
 
@@ -67,7 +67,7 @@ jobs:
 
   test_ruby:
     needs: scan_ruby
-    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
+    runs-on: ubuntu-24.04 # Pinned for reproducible CI; review with Ruby runner changes.
     permissions:
       contents: read
 
@@ -76,7 +76,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
+        uses: ruby/setup-ruby@be3c7df29b3349ec6bcfc6b4792f1cf9f5237d18 # v1.343.0
         with:
           bundler-cache: true
 
@@ -89,7 +89,7 @@ jobs:
         run: bin/rails test test/controllers test/models test/services test/helpers
 
   lint:
-    runs-on: ubuntu-24.04 # ruby 3.4.8 has no ubuntu-26.04 build yet; bump with the ruby pin
+    runs-on: ubuntu-24.04 # Pinned for reproducible CI; review with Ruby runner changes.
     permissions:
       contents: read
     env:
@@ -99,7 +99,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
+        uses: ruby/setup-ruby@be3c7df29b3349ec6bcfc6b4792f1cf9f5237d18 # v1.343.0
         with:
           bundler-cache: true
 
