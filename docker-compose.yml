@@ -53,6 +53,7 @@ services:
       # Optional: Google Image search
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - GOOGLE_CSE_ID=${GOOGLE_CSE_ID:-}
+      - GOOGLE_CSE_ENDPOINT=${GOOGLE_CSE_ENDPOINT:-}
 
       # Optional: AI/LLM grammar checking
       - AI_PROVIDER=${AI_PROVIDER:-}

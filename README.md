@@ -514,10 +514,14 @@ To enable Google Images tab (in addition to the free web search):
 | `GOOGLE_CSE_ID` | Your Custom Search Engine ID |
 | `GOOGLE_CSE_ENDPOINT` | Optional. Another endpoint that answers in the Custom Search JSON format; unset means Google's own |
 
+A custom endpoint receives the configured Google API key, search engine ID, and
+user search terms. Prefer HTTPS unless the endpoint is on a trusted local network.
+
 **In-app setup:** You can also configure this directly in the `.fed` file:
 ```ini
 google_api_key = your-google-api-key
 google_cse_id = your-custom-search-engine-id
+# google_cse_endpoint = https://search.example.com/customsearch/v1
 ```
 
 When not configured, the Google Images tab shows setup instructions with a link to this documentation.

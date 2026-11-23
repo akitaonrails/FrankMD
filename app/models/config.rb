@@ -5,7 +5,7 @@
 class Config
   CONFIG_FILE = ".fed"
   LOCK_FILE = ".frankmd-config.lock"
-  CONFIG_VERSION = 6  # Increment when adding new settings
+  CONFIG_VERSION = 7  # Increment when adding new settings
 
   # All configurable options with their defaults and types
   SCHEMA = {
@@ -238,7 +238,8 @@ class Config
         "# google_cse_id = your-custom-search-engine-id",
         "",
         "# Another endpoint that answers in the Custom Search JSON format",
-        "# (leave unset for Google's own).",
+        "# (leave unset for Google's own). It receives the Google API key,",
+        "# search engine ID, and search terms; prefer HTTPS outside trusted networks.",
         "# google_cse_endpoint = https://www.googleapis.com/customsearch/v1"
       ]
     },

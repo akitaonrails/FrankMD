@@ -59,7 +59,7 @@ class ConfigTest < ActiveSupport::TestCase
   def feature_env_keys
     %w[
       AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_S3_BUCKET
-      YOUTUBE_API_KEY GOOGLE_API_KEY GOOGLE_CSE_ID
+      YOUTUBE_API_KEY GOOGLE_API_KEY GOOGLE_CSE_ID GOOGLE_CSE_ENDPOINT
     ]
   end
 
@@ -558,9 +558,13 @@ class ConfigTest < ActiveSupport::TestCase
     assert config2.feature_available?(:google_search)
   end
 
-  test "google_cse_endpoint is unset by default and read from .fed" do
+  test "google_cse_endpoint uses ENV with .fed taking precedence" do
     config = Config.new(base_path: @test_dir)
     assert_nil config.get("google_cse_endpoint")
+
+    ENV["GOOGLE_CSE_ENDPOINT"] = "https://env.example.test/customsearch/v1"
+    config_from_env = Config.new(base_path: @test_dir)
+    assert_equal "https://env.example.test/customsearch/v1", config_from_env.get("google_cse_endpoint")
 
     @test_dir.join(".fed").write(<<~CONFIG)
       google_cse_endpoint = http://search.example.test/customsearch/v1
