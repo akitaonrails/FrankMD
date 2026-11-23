@@ -557,12 +557,35 @@ class NotesServiceTest < ActiveSupport::TestCase
     refute @test_notes_dir.join("empty_folder").exist?
   end
 
-  test "delete_folder raises InvalidPathError for non-empty directory" do
-    create_test_folder("folder")
-    create_test_note("folder/note.md")
+  test "delete_folder recursively removes notes attachments and nested directories" do
+    create_test_note("folder/nested/note.md")
+    create_test_note("folder/nested/attachment.png", "image data")
+    create_test_note("sibling.md", "keep me")
 
-    assert_raises(NotesService::InvalidPathError) do
+    @service.delete_folder("folder")
+
+    refute @test_notes_dir.join("folder").exist?
+    assert_equal "keep me", @test_notes_dir.join("sibling.md").read
+  end
+
+  test "delete_folder does not follow symlinks outside the deleted subtree" do
+    Dir.mktmpdir do |outside|
+      outside_file = Pathname.new(outside).join("keep.md")
+      outside_file.write("outside")
+      create_test_folder("folder")
+      File.symlink(outside, @test_notes_dir.join("folder/external"))
+
       @service.delete_folder("folder")
+
+      assert_equal "outside", outside_file.read
+      refute @test_notes_dir.join("folder").exist?
+    end
+  end
+
+  test "delete_folder refuses to delete the notes root" do
+    [ "", "." ].each do |path|
+      assert_raises(NotesService::InvalidPathError) { @service.delete_folder(path) }
+      assert @test_notes_dir.directory?
     end
   end
 

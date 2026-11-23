@@ -134,12 +134,9 @@ class NotesService
       with_filesystem_lock do
         full_path = safe_path(path)
         raise NotFoundError, "Folder not found: #{path}" unless full_path.directory?
+        raise InvalidPathError, "Cannot delete notes root" if full_path.cleanpath == @base_path.cleanpath
 
-        if full_path.children.any?
-          raise InvalidPathError, "Folder not empty: #{path}"
-        end
-
-        full_path.rmdir
+        FileUtils.remove_entry_secure(full_path.to_s)
       end
       update_recent_files { |history| history.remove(path) }
       true

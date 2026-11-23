@@ -38,14 +38,16 @@ class RecentFilesServiceTest < ActiveSupport::TestCase
 
   test "successful file and folder mutations update shared history" do
     create_test_note("docs/first.md")
+    create_test_note("docs/nested/second.md")
     create_test_note("docs-other/other.md")
     @history.record("docs/first.md")
+    @history.record("docs/nested/second.md")
     @history.record("docs-other/other.md")
     notes = NotesService.new
     notes.rename("docs", "renamed")
-    assert_equal [ "docs-other/other.md", "renamed/first.md" ], RecentFilesService.new.entries.map { |item| item["path"] }
-    notes.rename("renamed/first.md", "renamed/second.md")
-    notes.delete("renamed/second.md")
+    assert_equal [ "docs-other/other.md", "renamed/nested/second.md", "renamed/first.md" ],
+      RecentFilesService.new.entries.map { |item| item["path"] }
+    notes.delete_folder("renamed")
     assert_equal [ "docs-other/other.md" ], RecentFilesService.new.entries.map { |item| item["path"] }
   end
 

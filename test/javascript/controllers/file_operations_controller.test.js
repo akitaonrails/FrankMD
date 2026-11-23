@@ -1108,6 +1108,45 @@ describe("FileOperationsController", () => {
       expect(global.fetch).toHaveBeenCalledOnce()
     })
 
+    it("persists an active nested draft before deleting its parent folder", async () => {
+      const autosave = { prepareForTransition: vi.fn(() => ({ ok: true })) }
+      controller.getAppController = () => ({
+        currentFile: "docs/nested.md",
+        getAutosaveController: () => autosave
+      })
+
+      await controller.deleteItem({ path: "docs", type: "folder" })
+
+      expect(autosave.prepareForTransition).toHaveBeenCalledOnce()
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/folders/docs"),
+        expect.objectContaining({ method: "DELETE" })
+      )
+    })
+
+    it("resumes an active nested draft when deleting its parent folder fails", async () => {
+      const autosave = {
+        prepareForTransition: vi.fn(() => ({ ok: true })),
+        resumeAfterTransition: vi.fn()
+      }
+      controller.getAppController = () => ({
+        currentFile: "docs/nested.md",
+        getAutosaveController: () => autosave
+      })
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        headers: { get: () => "application/json" },
+        json: () => Promise.resolve({ error: "delete failed" }),
+        text: () => Promise.resolve("")
+      })
+
+      await controller.deleteItem({ path: "docs", type: "folder" })
+
+      expect(autosave.resumeAfterTransition).toHaveBeenCalledOnce()
+      expect(appAlert).toHaveBeenCalledWith("delete failed")
+    })
+
     it("does not delete an active file when its draft cannot be persisted", async () => {
       const autosave = { prepareForTransition: vi.fn(() => ({ ok: false, error: new Error("storage unavailable") })) }
       controller.getAppController = () => ({

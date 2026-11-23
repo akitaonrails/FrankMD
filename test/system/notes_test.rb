@@ -419,7 +419,7 @@ class NotesTest < ApplicationSystemTestCase
     refute @test_notes_dir.join("keyboard_delete.md").exist?
   end
 
-  test "selecting a folder keeps expansion and Delete rejects nonempty folders" do
+  test "selecting a folder keeps expansion and Delete removes its subtree" do
     create_test_folder("keyboard_folder")
     create_test_note("keyboard_folder/nested.md", "Nested note")
 
@@ -434,8 +434,8 @@ class NotesTest < ApplicationSystemTestCase
     assert_selector 'dialog[role="alertdialog"]'
     find('dialog[role="alertdialog"] button', text: "Delete").click
 
-    assert_selector 'dialog[role="alertdialog"]', text: "Folder not empty"
-    assert @test_notes_dir.join("keyboard_folder/nested.md").exist?
+    assert_no_selector "[data-path='keyboard_folder']", wait: 3
+    refute @test_notes_dir.join("keyboard_folder").exist?
   end
 
   test "Delete in the editor removes text instead of deleting the selected note" do

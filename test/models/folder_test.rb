@@ -80,14 +80,13 @@ class FolderTest < ActiveSupport::TestCase
     refute File.exist?(@test_notes_dir.join("empty_folder"))
   end
 
-  test "folder.destroy fails for non-empty directory" do
+  test "folder.destroy removes non-empty directory" do
     create_test_folder("folder_with_content")
     create_test_note("folder_with_content/note.md")
     folder = Folder.new(path: "folder_with_content")
 
-    refute folder.destroy
-    assert folder.errors[:base].any?
-    assert File.exist?(@test_notes_dir.join("folder_with_content"))
+    assert folder.destroy
+    refute File.exist?(@test_notes_dir.join("folder_with_content"))
   end
 
   test "folder.destroy returns false for missing folder" do

@@ -187,18 +187,7 @@ class DraftRecoveryTest < ApplicationSystemTestCase
     assert_nil page.evaluate_script("localStorage.getItem(#{draft_key("docs/child.md").to_json})")
     assert_equal "keep", JSON.parse(page.evaluate_script("localStorage.getItem(#{draft_key("docs-old/keep.md").to_json})"))["content"]
 
-    # Deleting a non-empty folder is refused by design, so remove the note first
-    # and then the emptied folder: both steps must clear the matching drafts.
-    find("[data-path='archive/child.md'][data-type='file']").right_click
-    within "[data-app-target='contextMenu']" do
-      click_button "Delete"
-    end
-    assert_selector 'dialog[role="alertdialog"]'
-    find('dialog[role="alertdialog"] button', text: "Delete").click
-
-    assert_no_selector "[data-path='archive/child.md']", wait: 3
-    assert_nil page.evaluate_script("localStorage.getItem(#{draft_key("archive/child.md").to_json})")
-
+    # Deleting the folder clears drafts for every note in its subtree.
     find("[data-path='archive'][data-type='folder']").right_click
     within "[data-app-target='contextMenu']" do
       click_button "Delete"
@@ -207,6 +196,7 @@ class DraftRecoveryTest < ApplicationSystemTestCase
     find('dialog[role="alertdialog"] button', text: "Delete").click
 
     assert_no_selector "[data-path='archive'][data-type='folder']", wait: 3
+    assert_nil page.evaluate_script("localStorage.getItem(#{draft_key("archive/child.md").to_json})")
     assert_equal "keep", JSON.parse(page.evaluate_script("localStorage.getItem(#{draft_key("docs-old/keep.md").to_json})"))["content"]
   end
 

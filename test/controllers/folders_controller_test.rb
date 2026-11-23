@@ -45,15 +45,14 @@ class FoldersControllerTest < ActionDispatch::IntegrationTest
     refute @test_notes_dir.join("empty_folder").exist?
   end
 
-  test "destroy returns error for non-empty folder" do
+  test "destroy recursively removes non-empty folder" do
     create_test_folder("folder")
-    create_test_note("folder/note.md")
+    create_test_note("folder/nested/note.md")
 
     delete destroy_folder_url(path: "folder"), as: :json
-    assert_response :unprocessable_entity
+    assert_response :success
 
-    # Folder should still exist
-    assert @test_notes_dir.join("folder").exist?
+    refute @test_notes_dir.join("folder").exist?
   end
 
   test "destroy returns 404 for missing folder" do
